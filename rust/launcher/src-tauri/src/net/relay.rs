@@ -1,13 +1,21 @@
-//! The local relay for public mode (contract C4, row L22): `src/main/relay.ts`.
+//! The local relay (DR's contract C4, rows L22, L33; RA6): `src/main/relay.ts`.
 //!
-//! The 1.4.4 client only speaks plain HTTP, so in public mode it is pointed at this relay on
-//! `http://127.0.0.1:61000` on the player's own PC. Every request (and the chat WebSocket) is forwarded
-//! over TLS to the server's gateway, on a connection pinned to the invite's certificate. Nothing leaves
-//! the PC unencrypted, and nothing is sent to a server whose certificate does not match.
+//! The game runtime sends the 1.14.7 client's backend calls to `REFORGED_BACKEND_URL`, which the
+//! launcher sets to `http://127.0.0.1:61100`: this relay on the player's own PC. Every request (and the
+//! chat WebSocket) is forwarded to the server:
+//!   - public mode: over TLS to the server's gateway, on a connection pinned to the certificate
+//!     fingerprint from the invite. Nothing leaves the PC unencrypted, and nothing is sent to a server
+//!     whose certificate does not match.
+//!   - private mode: over plain HTTP to the host inside the tailnet (Tailscale encrypts it), or on this PC.
 //!
-//! The relay runs only while the game runs. It listens on 127.0.0.1 only and refuses requests that look
+//! Paths go through as the runtime sent them, `/__origin/<host><path>` included: the gateway and the
+//! backend unwrap those. The game measures its region by fetching its QoS URL (the server points it at
+//! `http://127.0.0.1:61100/QoS`) and expects a fixed "pong" page; the relay answers that itself, and a
+//! second, best-effort listener on 127.0.0.1:80 answers it too in case the game ignores the port.
+//!
+//! The relay runs only while the game runs. It listens on 127.0.0.1 only, refuses requests that look
 //! like they come from a web browser (a page could otherwise use it through DNS rebinding), and, with an
-//! owner check, connections that do not come from the game's process.
+//! owner check (`relay_owner.rs`, Windows), connections that do not come from the game's process.
 
 use std::convert::Infallible;
 use std::future::Future;
@@ -23,16 +31,24 @@ use http_body_util::{BodyExt, Empty, Full};
 use hyper::body::Incoming;
 use hyper::header::{CONNECTION, CONTENT_LENGTH, HOST, HeaderMap, HeaderValue, TRANSFER_ENCODING, UPGRADE};
 use hyper::service::service_fn;
-use hyper::{Request, Response, StatusCode, Uri};
+use hyper::{Method, Request, Response, StatusCode, Uri};
 use hyper_util::client::legacy::Client;
 use hyper_util::rt::{TokioExecutor, TokioIo};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
+use tower_service::Service as _;
 
 use super::connector::{Host, HostConnector, pin_error};
-use super::pinned::{PinnedTarget, pinned_connect};
+use super::pinned::PinnedTarget;
 
-pub const DEFAULT_RELAY_PORT: u16 = 61000;
+mod local;
+
+use local::{Origin, request_problem};
+pub use local::{QOS_PONG, is_qos_path, relay_port_override};
+
+pub const DEFAULT_RELAY_PORT: u16 = 61100;
+/// The extra QoS-only listener's port (`RelayOptions::qos_port`)
+pub const DEFAULT_QOS_PORT: u16 = 80;
 /// How long an upgraded connection (the chat) may be silent both ways before it is cut
 const TUNNEL_IDLE: Duration = Duration::from_secs(24 * 60 * 60);
 const UPGRADE_BODY_MAX: usize = 64 * 1024;
@@ -66,21 +82,34 @@ pub enum LogLevel {
 /// Whether a local connection (its local and remote address) belongs to the game.
 pub type Authorize = Arc<dyn Fn(SocketAddr, SocketAddr) -> Pin<Box<dyn Future<Output = bool> + Send>> + Send + Sync>;
 
+/// Where the relay sends the game's traffic: the gateway over pinned TLS (public, with the invite's
+/// fingerprint), or the host over plain HTTP inside the tailnet or on this PC (private, no fingerprint).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RelayTarget {
+    pub host: String,
+    pub port: u16,
+    pub fingerprint: Option<String>,
+}
+
 #[derive(Clone)]
 pub struct RelayOptions {
-    pub target: PinnedTarget,
+    pub target: RelayTarget,
     pub port: u16,
+    /// Also answer QoS pings on 127.0.0.1:<qos_port>. Best effort: a busy port is logged and ignored.
+    pub qos_port: Option<u16>,
     pub connect_timeout: Duration,
     pub on_pin_error: Option<Arc<dyn Fn(Option<String>) + Send + Sync>>,
     pub on_log: Option<Arc<dyn Fn(LogLevel, String) + Send + Sync>>,
+    /// The owner check (`relay_owner::game_owner_check`); None serves every loopback connection.
     pub authorize: Option<Authorize>,
 }
 
 impl RelayOptions {
-    pub fn new(target: PinnedTarget) -> Self {
+    pub fn new(target: RelayTarget) -> Self {
         Self {
             target,
             port: DEFAULT_RELAY_PORT,
+            qos_port: Some(DEFAULT_QOS_PORT),
             connect_timeout: Duration::from_secs(10),
             on_pin_error: None,
             on_log: None,
@@ -89,107 +118,17 @@ impl RelayOptions {
     }
 }
 
-/// The hidden override for the relay port (`DAUNTLESS_REVIVED_RELAY_PORT`; tests and rehearsals on a PC
-/// where 61000 is taken): 4 or 5 digits, 1024 to 65535.
-pub fn relay_port_override(value: Option<&str>) -> Option<u16> {
-    let text = value?.trim();
-    let shaped =
-        (4..=5).contains(&text.len()) && !text.starts_with('0') && text.bytes().all(|byte| byte.is_ascii_digit());
-    text.parse::<u16>().ok().filter(|port| shaped && *port >= 1024)
-}
-
 // ---------------------------------------------------------------- local request checks
 
-fn is_loopback_name(name: &str) -> bool {
-    let name = name.to_ascii_lowercase();
-    if name == "localhost" || name == "::1" {
-        return true;
-    }
-    let parts: Vec<&str> = name.split('.').collect();
-    parts.len() == 4
-        && parts[0] == "127"
-        && parts
-            .iter()
-            .all(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
-}
-
-/// "127.0.0.1:61000", "localhost", "[::1]:61000" -> the host part
-fn host_part(value: &str) -> &str {
-    let value = value.trim();
-    if let Some(inner) = value.strip_prefix('[')
-        && let Some((host, rest)) = inner.split_once(']')
-        && (rest.is_empty()
-            || rest
-                .strip_prefix(':')
-                .is_some_and(|port| !port.is_empty() && port.bytes().all(|b| b.is_ascii_digit())))
-    {
-        return host;
-    }
-    match value.rsplit_once(':') {
-        Some((host, port)) if !port.is_empty() && port.bytes().all(|byte| byte.is_ascii_digit()) => host,
-        _ => value,
-    }
-}
-
-/// `/^(?:[a-z][a-z0-9+.-]*:\/\/)?(\[[^\]]+\]|[^/:]+)(?::\d+)?\/?$/i`: the host an Origin names.
-fn origin_host(origin: &str) -> Option<&str> {
-    let mut rest = origin.trim();
-    if let Some((scheme, after)) = rest.split_once("://") {
-        let mut chars = scheme.chars();
-        let valid = chars.next().is_some_and(|c| c.is_ascii_alphabetic())
-            && chars.all(|c| c.is_ascii_alphanumeric() || "+.-".contains(c));
-        if valid {
-            rest = after;
-        }
-    }
-    let rest = rest.strip_suffix('/').unwrap_or(rest);
-    let (host, after) = if let Some(inner) = rest.strip_prefix('[') {
-        let (host, after) = inner.split_once(']')?;
-        if host.is_empty() {
-            return None;
-        }
-        (host, after)
-    } else {
-        let end = rest.find([':', '/']).unwrap_or(rest.len());
-        if end == 0 {
-            return None;
-        }
-        (&rest[..end], &rest[end..])
-    };
-    let port_ok = after.is_empty()
-        || after
-            .strip_prefix(':')
-            .is_some_and(|port| !port.is_empty() && port.bytes().all(|b| b.is_ascii_digit()));
-    port_ok.then_some(host)
-}
-
-/// Why a request must be refused, or None. The game sends `Host: 127.0.0.1:<port>` and no browser
-/// headers. A web page cannot avoid sending `Sec-Fetch-*` on plain requests, and a browser WebSocket
-/// always carries the page's Origin; DNS rebinding shows up as a foreign Host.
+/// Why a request must be refused, or None (`local::request_problem`).
 pub fn local_request_problem(remote: SocketAddr, headers: &HeaderMap, upgrade: bool) -> Option<&'static str> {
-    let ip = match remote.ip() {
-        std::net::IpAddr::V6(v6) => v6
-            .to_ipv4_mapped()
-            .map_or(std::net::IpAddr::V6(v6), std::net::IpAddr::V4),
-        ip => ip,
-    };
-    if !ip.is_loopback() {
-        return Some("not_local");
-    }
     let host = headers.get(HOST).and_then(|value| value.to_str().ok());
-    if !host.is_some_and(|host| is_loopback_name(host_part(host))) {
-        return Some("host");
-    }
-    if !upgrade && headers.keys().any(|name| name.as_str().starts_with("sec-fetch-")) {
-        return Some("browser");
-    }
-    if let Some(origin) = headers.get("origin") {
-        let host = origin.to_str().ok().and_then(origin_host);
-        if !host.is_some_and(is_loopback_name) {
-            return Some("origin");
-        }
-    }
-    None
+    let origin = match headers.get("origin") {
+        None => Origin::Absent,
+        Some(value) => value.to_str().map_or(Origin::Unreadable, Origin::Text),
+    };
+    let fetch_metadata = headers.keys().any(|name| name.as_str().starts_with("sec-fetch-"));
+    request_problem(remote.ip(), host, origin, fetch_metadata, upgrade)
 }
 
 fn is_upgrade(headers: &HeaderMap) -> bool {
@@ -201,17 +140,24 @@ fn forwarded(headers: &HeaderMap) -> HeaderMap {
     proxy::end_to_end(headers, |name| name == "host" || name == "http2-settings")
 }
 
+/// The request target as the client sent it (origin form), `/` when there is none.
+fn request_target(uri: &Uri) -> &str {
+    uri.path_and_query().map_or("/", |path| path.as_str())
+}
+
 // ---------------------------------------------------------------- the relay
 
 struct Shared {
     options: RelayOptions,
     host_header: HeaderValue,
+    connector: HostConnector,
     client: Client<HostConnector, Incoming>,
     stop: CancellationToken,
     requests: AtomicU64,
     upgrades: AtomicU64,
     failures: AtomicU64,
-    tls_connections: Arc<AtomicU64>,
+    qos_answers: AtomicU64,
+    upstream_connections: Arc<AtomicU64>,
 }
 
 impl Shared {
@@ -235,7 +181,8 @@ impl Shared {
 pub struct Relay {
     shared: Arc<Shared>,
     port: u16,
-    task: tokio::task::JoinHandle<()>,
+    qos_port: Option<u16>,
+    tasks: Vec<tokio::task::JoinHandle<()>>,
 }
 
 fn empty() -> Body {
@@ -259,6 +206,20 @@ fn json_error(status: StatusCode, code: &str, close: bool) -> Response<Body> {
     response
 }
 
+/// The QoS page: 200, `text/html`, its length, never cached; no body for HEAD.
+fn pong(method: &Method) -> Response<Body> {
+    let mut response = Response::new(if method == Method::HEAD {
+        empty()
+    } else {
+        full(QOS_PONG)
+    });
+    let headers = response.headers_mut();
+    headers.insert("content-type", HeaderValue::from_static("text/html"));
+    headers.insert(CONTENT_LENGTH, HeaderValue::from(QOS_PONG.len()));
+    headers.insert("cache-control", HeaderValue::from_static("no-store"));
+    response
+}
+
 fn bare(status: StatusCode) -> Response<Body> {
     let mut response = Response::new(empty());
     *response.status_mut() = status;
@@ -271,56 +232,110 @@ fn bare(status: StatusCode) -> Response<Body> {
     response
 }
 
+async fn bind(port: u16) -> Result<TcpListener, RelayError> {
+    TcpListener::bind(("127.0.0.1", port))
+        .await
+        .map_err(|error| match error.kind() {
+            std::io::ErrorKind::AddrInUse | std::io::ErrorKind::PermissionDenied => RelayError::PortBusy(port),
+            _ => RelayError::ListenFailed(error.to_string()),
+        })
+}
+
 impl Relay {
-    /// Listens on 127.0.0.1 and forwards until `stop`.
+    /// Listens on 127.0.0.1 and forwards until `stop`. Plain HTTP (no fingerprint) only to a Tailscale
+    /// address or name or to this PC, as for every other request (`http.rs`).
     pub async fn start(options: RelayOptions) -> Result<Self, RelayError> {
         let target = &options.target;
-        let host = if target.port == 443 {
+        let (upstream, mode) = match &target.fingerprint {
+            Some(fingerprint) => (
+                Host::Pinned(PinnedTarget {
+                    host: target.host.clone(),
+                    port: target.port,
+                    fingerprint: fingerprint.clone(),
+                }),
+                "pinned TLS",
+            ),
+            None if protocol::invite::is_private_mode_host(&target.host) => (
+                Host::Plain {
+                    host: target.host.clone(),
+                    port: target.port,
+                },
+                "plain HTTP, private mode",
+            ),
+            None => {
+                return Err(RelayError::ListenFailed(
+                    "plain HTTP only to Tailscale or loopback".into(),
+                ));
+            }
+        };
+        let host = if target.fingerprint.is_some() && target.port == 443 {
             target.host.clone()
         } else {
             format!("{}:{}", target.host, target.port)
         };
         let host_header =
             HeaderValue::from_str(&host).map_err(|_| RelayError::ListenFailed("invalid target host".into()))?;
-        let connector = HostConnector::new(Host::Pinned(target.clone()), options.connect_timeout);
-        let tls_connections = connector.opened.clone();
+        let connector = HostConnector::new(upstream, options.connect_timeout);
+        let upstream_connections = connector.opened.clone();
         let client = Client::builder(TokioExecutor::new())
             .pool_idle_timeout(Duration::from_secs(60))
             .pool_max_idle_per_host(8)
             .set_host(false)
-            .build(connector);
-        let listener = TcpListener::bind(("127.0.0.1", options.port))
-            .await
-            .map_err(|error| match error.kind() {
-                std::io::ErrorKind::AddrInUse | std::io::ErrorKind::PermissionDenied => {
-                    RelayError::PortBusy(options.port)
-                }
-                _ => RelayError::ListenFailed(error.to_string()),
-            })?;
+            .build(connector.clone());
+        let listener = bind(options.port).await?;
         let port = listener
             .local_addr()
             .map_err(|error| RelayError::ListenFailed(error.to_string()))?
             .port();
+        let wanted_qos = options.qos_port;
         let shared = Arc::new(Shared {
             options,
             host_header,
+            connector,
             client,
             stop: CancellationToken::new(),
             requests: AtomicU64::new(0),
             upgrades: AtomicU64::new(0),
             failures: AtomicU64::new(0),
-            tls_connections,
+            qos_answers: AtomicU64::new(0),
+            upstream_connections,
         });
         shared.log(
             LogLevel::Info,
-            format!("relay listening on 127.0.0.1:{port} for {host}"),
+            format!("relay listening on 127.0.0.1:{port} for {host} ({mode})"),
         );
-        let task = tokio::spawn(accept(listener, shared.clone()));
-        Ok(Self { shared, port, task })
+        let mut tasks = vec![tokio::spawn(accept(listener, shared.clone()))];
+        // The extra QoS-only listener. Never fatal: another program may hold the port.
+        let mut qos_port = None;
+        if let Some(wanted) = wanted_qos {
+            match bind(wanted).await {
+                Ok(qos) => {
+                    qos_port = qos.local_addr().ok().map(|address| address.port());
+                    tasks.push(tokio::spawn(accept_qos(qos, shared.clone())));
+                }
+                Err(error) => shared.log(
+                    LogLevel::Info,
+                    format!(
+                        "QoS listener on 127.0.0.1:{wanted} not started ({error}); the relay port still answers QoS"
+                    ),
+                ),
+            }
+        }
+        Ok(Self {
+            shared,
+            port,
+            qos_port,
+            tasks,
+        })
     }
 
     pub fn port(&self) -> u16 {
         self.port
+    }
+
+    /// Where the extra QoS listener listens, when it started.
+    pub fn qos_port(&self) -> Option<u16> {
+        self.qos_port
     }
 
     pub fn requests(&self) -> u64 {
@@ -335,16 +350,23 @@ impl Relay {
         self.shared.failures.load(Ordering::Relaxed)
     }
 
-    /// TLS connections opened to the server so far (kept-alive ones are reused).
-    #[cfg_attr(not(test), expect(dead_code, reason = "the tests use it"))]
-    pub fn tls_connections(&self) -> u64 {
-        self.shared.tls_connections.load(Ordering::Relaxed)
+    /// QoS pings answered here, on either listener.
+    pub fn qos_answers(&self) -> u64 {
+        self.shared.qos_answers.load(Ordering::Relaxed)
     }
 
-    /// Stops listening, cuts every connection and tunnel, and frees the port.
+    /// Connections opened to the server so far (kept-alive ones are reused).
+    #[cfg_attr(not(test), expect(dead_code, reason = "the tests use it"))]
+    pub fn upstream_connections(&self) -> u64 {
+        self.shared.upstream_connections.load(Ordering::Relaxed)
+    }
+
+    /// Stops listening, cuts every connection and tunnel, and frees both ports.
     pub async fn stop(self) {
         self.shared.stop.cancel();
-        let _ = self.task.await;
+        for task in self.tasks {
+            let _ = task.await;
+        }
     }
 }
 
@@ -393,6 +415,45 @@ async fn accept(listener: TcpListener, shared: Arc<Shared>) {
     connections.shutdown().await;
 }
 
+/// The QoS-only listener: the pong page for `/qos...` and `/` after the same local-request rules, 404
+/// for anything else. Nothing is forwarded from here, so it has no owner check.
+async fn accept_qos(listener: TcpListener, shared: Arc<Shared>) {
+    let mut connections = tokio::task::JoinSet::new();
+    loop {
+        let accepted = tokio::select! {
+            accepted = listener.accept() => accepted,
+            () = shared.stop.cancelled() => break,
+        };
+        let Ok((tcp, remote)) = accepted else { continue };
+        let shared = shared.clone();
+        connections.spawn(async move {
+            let stop = shared.stop.clone();
+            let service = service_fn(move |request: Request<Incoming>| {
+                let shared = shared.clone();
+                async move {
+                    let target = request_target(request.uri());
+                    let refused = local_request_problem(remote, request.headers(), false).is_some()
+                        || (!is_qos_path(target) && target != "/");
+                    Ok::<_, Infallible>(if refused {
+                        json_error(StatusCode::NOT_FOUND, "not_found", false)
+                    } else {
+                        shared.qos_answers.fetch_add(1, Ordering::Relaxed);
+                        pong(request.method())
+                    })
+                }
+            });
+            let connection = hyper::server::conn::http1::Builder::new()
+                .max_buf_size(64 * 1024)
+                .serve_connection(TokioIo::new(tcp), service);
+            tokio::select! {
+                _ = connection => {}
+                () = stop.cancelled() => {}
+            }
+        });
+    }
+    connections.shutdown().await;
+}
+
 async fn handle(request: Request<Incoming>, remote: SocketAddr, allowed: bool, shared: Arc<Shared>) -> Response<Body> {
     let upgrade = is_upgrade(request.headers());
     if !allowed {
@@ -415,14 +476,20 @@ async fn handle_request(request: Request<Incoming>, remote: SocketAddr, shared: 
         shared.log(LogLevel::Warn, format!("refused a local request ({problem})"));
         return json_error(StatusCode::FORBIDDEN, "forbidden", false);
     }
+    if (request.method() == Method::GET || request.method() == Method::HEAD)
+        && is_qos_path(request_target(request.uri()))
+    {
+        shared.qos_answers.fetch_add(1, Ordering::Relaxed);
+        return pong(request.method());
+    }
     let chunked = match request.headers().get(TRANSFER_ENCODING) {
         None => false,
         Some(value) if value.to_str().is_ok_and(|text| text.eq_ignore_ascii_case("chunked")) => true,
         Some(_) => return json_error(StatusCode::NOT_IMPLEMENTED, "unsupported_transfer_encoding", false),
     };
     let (parts, body) = request.into_parts();
-    let path = parts.uri.path_and_query().map_or("/", |path| path.as_str());
-    let Ok(uri) = format!("http://relay-upstream{path}").parse::<Uri>() else {
+    // `/__origin/<host><path>` too: the gateway and the backend unwrap it, the relay does not
+    let Ok(uri) = format!("http://relay-upstream{}", request_target(&parts.uri)).parse::<Uri>() else {
         return json_error(StatusCode::BAD_REQUEST, "bad_request", false);
     };
     let mut upstream = Request::builder()
@@ -484,17 +551,21 @@ async fn handle_upgrade(mut request: Request<Incoming>, remote: SocketAddr, shar
         bare(StatusCode::BAD_GATEWAY)
     };
 
-    // A connection of its own: an upgraded connection never goes back to the pool
-    let stream = match pinned_connect(&shared.options.target, shared.options.connect_timeout).await {
+    // A connection of its own (pinned TLS, or plain in private mode): an upgraded connection never goes
+    // back to the pool
+    let stream = match shared
+        .connector
+        .clone()
+        .call(Uri::from_static("http://relay-upstream/"))
+        .await
+    {
         Ok(stream) => stream,
         Err(error) => return failed(&shared, &error),
     };
-    shared.tls_connections.fetch_add(1, Ordering::Relaxed);
-    let (mut sender, connection) =
-        match hyper::client::conn::http1::handshake::<_, Empty<Bytes>>(TokioIo::new(stream)).await {
-            Ok(pair) => pair,
-            Err(error) => return failed(&shared, &error),
-        };
+    let (mut sender, connection) = match hyper::client::conn::http1::handshake::<_, Empty<Bytes>>(stream).await {
+        Ok(pair) => pair,
+        Err(error) => return failed(&shared, &error),
+    };
     tokio::spawn(connection.with_upgrades());
 
     let mut upstream = Request::builder()

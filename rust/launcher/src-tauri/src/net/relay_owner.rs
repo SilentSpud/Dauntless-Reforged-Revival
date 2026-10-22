@@ -1,11 +1,15 @@
-//! Whether a connection to the relay comes from the game (rows L22, L31): `src/main/relay-owner.ts`. On
+//! Whether a connection to the relay comes from the game (RD21; DR rows L22, L31, `relay-owner.ts`). On
 //! Windows the TCP table (`netstat -ano -p tcp`) names the process that owns the client end of a loopback
-//! connection; only the game's own process id passes. Requests waiting together share one fresh
-//! snapshot; nothing is cached, a missing row gets one retry 25 ms later, and everything else fails
-//! closed, as do other platforms and more than 64 waiting checks.
+//! connection; only the process id of the game the launcher started passes. Requests waiting together
+//! share one fresh snapshot; nothing is cached, a missing row gets one retry 25 ms later, and everything
+//! else fails closed, as do more than 64 waiting checks.
+//!
+//! Elsewhere (Linux, the game under Proton) there is no owner check yet: the relay serves any loopback
+//! connection, as Reforged's Electron launcher does on every platform. That is
+//! [`loopback_only_without_owner_check`], which RA10 replaces if it finds the game's process.
 
 use std::future::Future;
-use std::net::{IpAddr, SocketAddr};
+use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -15,35 +19,14 @@ use tokio::sync::{mpsc, oneshot};
 
 use super::relay::Authorize;
 
+mod table;
+
+use table::{endpoint, peer_pid};
+
 const MAX_PENDING: usize = 64;
 
-/// `127.x.y.z:port`, for a loopback IPv4 address (IPv4-mapped IPv6 included).
-fn endpoint(address: SocketAddr) -> Option<String> {
-    let ip = match address.ip() {
-        IpAddr::V4(v4) => v4,
-        IpAddr::V6(v6) => v6.to_ipv4_mapped()?,
-    };
-    (ip.octets()[0] == 127 && address.port() > 0).then(|| format!("{ip}:{}", address.port()))
-}
-
-/// The owner of the client row (`TCP <client> <server> <state> <pid>`), not the accepted server row the
-/// launcher owns: Some(pid), None when the row is not there (yet), Some(-1) when it cannot be told.
-/// State labels are localized, so they are never compared.
-fn peer_pid(table: &str, local: SocketAddr, remote: SocketAddr) -> Option<i64> {
-    let (Some(client), Some(server)) = (endpoint(remote), endpoint(local)) else {
-        return Some(-1);
-    };
-    let rows: Vec<Vec<&str>> = table
-        .lines()
-        .map(|line| line.split_whitespace().collect::<Vec<_>>())
-        .filter(|fields| fields.len() == 5 && fields[0] == "TCP" && fields[1] == client && fields[2] == server)
-        .collect();
-    match rows.as_slice() {
-        [] => None,
-        [row] if row[4].bytes().all(|b| b.is_ascii_digit()) => Some(row[4].parse().unwrap_or(-1)),
-        _ => Some(-1),
-    }
-}
+/// The process id of the game the launcher started, while it runs.
+pub type GamePid = Arc<dyn Fn() -> Option<u32> + Send + Sync>;
 
 #[cfg_attr(not(test), expect(dead_code, reason = "the tests use it"))]
 pub fn tcp_table_owns_peer(table: &str, local: SocketAddr, remote: SocketAddr, pid: u32) -> bool {
@@ -112,7 +95,7 @@ async fn serve(mut requests: mpsc::UnboundedReceiver<Pending>, read: ReadTable, 
 }
 
 /// The relay's owner check for the game process `pid()` (the current game, when there is one).
-pub fn owner_check(read: ReadTable, windows: bool, pid: Arc<dyn Fn() -> Option<u32> + Send + Sync>) -> Authorize {
+pub fn owner_check(read: ReadTable, windows: bool, pid: GamePid) -> Authorize {
     let (tx, rx) = mpsc::unbounded_channel();
     let pending = Arc::new(AtomicUsize::new(0));
     if windows {
@@ -149,6 +132,24 @@ pub fn owner_check(read: ReadTable, windows: bool, pid: Arc<dyn Fn() -> Option<u
     })
 }
 
+/// The relay's owner check on this platform (`RelayOptions::authorize`): on Windows only the game's own
+/// connections are served; elsewhere see [`loopback_only_without_owner_check`].
+pub fn game_owner_check(pid: GamePid) -> Option<Authorize> {
+    if cfg!(windows) {
+        Some(owner_check(read_netstat(), true, pid))
+    } else {
+        loopback_only_without_owner_check(pid)
+    }
+}
+
+/// Linux and every platform but Windows: no owner check, so any process on this PC that connects to
+/// 127.0.0.1 is served, within the relay's local-request rules (loopback peer, loopback Host, no browser
+/// headers or foreign Origin). This is what Reforged's Electron relay does today. RA10 replaces this
+/// function with a real check if it can find the game's process under Proton (RD21).
+pub fn loopback_only_without_owner_check(_pid: GamePid) -> Option<Authorize> {
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::Mutex;
@@ -159,16 +160,16 @@ mod tests {
         text.parse().unwrap()
     }
 
-    const ROW: &str = " TCP 127.0.0.1:52123 127.0.0.1:61000 ESTABLISHED 123\r\n";
+    const ROW: &str = " TCP 127.0.0.1:52123 127.0.0.1:61100 ESTABLISHED 123\r\n";
 
     #[test]
     fn the_client_row_and_the_exact_pid_never_the_server_row() {
-        let (local, remote) = (addr("127.0.0.1:61000"), addr("127.0.0.1:52123"));
+        let (local, remote) = (addr("127.0.0.1:61100"), addr("127.0.0.1:52123"));
         assert!(tcp_table_owns_peer(ROW, local, remote, 123));
         for table in [
             ROW.replace("123\r", "456\r"),
             format!("{ROW}{ROW}"),
-            "TCP 127.0.0.1:61000 127.0.0.1:52123 ESTABLISHED 123".into(),
+            "TCP 127.0.0.1:61100 127.0.0.1:52123 ESTABLISHED 123".into(),
             ROW.replace("52123", "52124"),
             ROW.replace("127.0.0.1:52123", "127.0.0.2:52123"),
         ] {
@@ -201,7 +202,7 @@ mod tests {
 
     #[tokio::test]
     async fn checks_share_fresh_snapshots_and_fail_closed() {
-        let (local, remote) = (addr("127.0.0.1:61000"), addr("127.0.0.1:52123"));
+        let (local, remote) = (addr("127.0.0.1:61100"), addr("127.0.0.1:52123"));
         let reads = Arc::new(AtomicUsize::new(0));
         let check = owner_check(
             counting(Arc::new(Mutex::new(vec![ROW.into()])), reads.clone()),
@@ -264,7 +265,7 @@ mod tests {
             })
         };
         let check = owner_check(slow, true, Arc::new(|| Some(123)));
-        let local = addr("127.0.0.1:61000");
+        let local = addr("127.0.0.1:61100");
         let first = check(local, addr("127.0.0.1:52123"));
         let first = tokio::spawn(first);
         tokio::time::sleep(Duration::from_millis(10)).await;
