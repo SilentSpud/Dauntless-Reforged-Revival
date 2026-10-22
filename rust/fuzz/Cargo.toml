@@ -64,5 +64,19 @@ test = false
 doc = false
 bench = false
 
+[[bin]]
+name = "gateway_policy"
+path = "fuzz_targets/gateway_policy.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "gateway_capture"
+path = "fuzz_targets/gateway_capture.rs"
+test = false
+doc = false
+bench = false
+
 [workspace]
 members = ["."]

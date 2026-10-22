@@ -136,7 +136,7 @@ pub struct MakeCertArgs {
     pub fingerprint: Option<PathBuf>,
 }
 
-const USAGE: &str = "usage: gateway make-cert --host <public IP or DNS name> [--host ...] (--out <dir> | --cert <file> --key <file>) [--force] [--json]\n       gateway make-cert --fingerprint <cert.pem> [--json]";
+const USAGE: &str = "usage: gateway make-cert --host <public IP or DNS name> [--host ...] (--out <dir> | --cert <file> --key <file>) [--force] [--json]\n       gateway make-cert --fingerprint <cert.pem> [--json]\n\n  gateway make-cert --host 203.0.113.7 [--host play.example.org] --out C:\\ReforgedServer\\tls\n  gateway make-cert --fingerprint C:\\ReforgedServer\\tls\\gateway-cert.pem";
 
 pub fn parse_make_cert_args(args: &[String]) -> Result<MakeCertArgs, String> {
     let mut out = MakeCertArgs::default();
@@ -240,7 +240,7 @@ pub fn make_certificate(names: Vec<rcgen::SanType>) -> Result<(String, String), 
     params.distinguished_name.push(DnType::CommonName, first);
     params
         .distinguished_name
-        .push(DnType::OrganizationName, "Dauntless Revived server");
+        .push(DnType::OrganizationName, "Dauntless Reforged Revival server");
     params.is_ca = IsCa::ExplicitNoCa;
     params.key_usages = vec![KeyUsagePurpose::DigitalSignature, KeyUsagePurpose::KeyEncipherment];
     params.extended_key_usages = vec![ExtendedKeyUsagePurpose::ServerAuth];

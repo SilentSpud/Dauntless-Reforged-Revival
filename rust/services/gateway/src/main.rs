@@ -11,7 +11,7 @@ use service_kit::env::Env;
 use service_kit::linelog;
 
 #[derive(Parser)]
-#[command(name = "gateway", version, about = "Dauntless Revived gateway")]
+#[command(name = "gateway", version, about = "Dauntless Reforged Revival gateway")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -19,7 +19,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Serves the public TLS port.
+    /// Serves the public TLS port (plain HTTP on a Tailscale address with GATEWAY_TLS=0).
     Serve {
         #[arg(long)]
         env_file: Option<PathBuf>,
@@ -47,18 +47,23 @@ fn fatal(message: &str) -> ExitCode {
 }
 
 fn serve(env_file: Option<PathBuf>) -> ExitCode {
-    let config = Env::load(env_file.as_deref())
-        .map_err(|e| e.to_string())
-        .and_then(|env| gateway::config::Config::from_env(&env));
-    let config = match config {
+    let env = match Env::load(env_file.as_deref()) {
+        Ok(env) => env,
+        Err(error) => return fatal(&format!("Configuration: {error}")),
+    };
+    let config = match gateway::config::Config::from_env(&env) {
         Ok(config) => config,
         Err(error) => return fatal(&format!("Configuration: {error}")),
+    };
+    let capture = match gateway::server::load_capture(&env) {
+        Ok(capture) => capture,
+        Err(error) => return fatal(&error),
     };
     let runtime = match tokio::runtime::Builder::new_multi_thread().enable_all().build() {
         Ok(runtime) => runtime,
         Err(error) => return fatal(&error.to_string()),
     };
-    match runtime.block_on(gateway::server::run(config)) {
+    match runtime.block_on(gateway::server::run(config, capture)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => fatal(&error),
     }

@@ -9,10 +9,11 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
 use bytes::Bytes;
+use gateway::capture::CaptureWriter;
 use gateway::cert::{self, CertInfo};
 use gateway::config::Config;
 use gateway::feed::AllowlistFeed;
-use gateway::gateway::Gateway;
+use gateway::gateway::{Gateway, Tls as GatewayTls};
 use http_body_util::{BodyExt, Full};
 use hyper_util::rt::TokioIo;
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
@@ -239,15 +240,15 @@ pub async fn dead_port() -> u16 {
 // ---- the gateway ----
 
 pub struct Ports {
-    pub metagame: u16,
+    pub backend: u16,
     pub content: u16,
     pub ws: u16,
 }
 
 /// `TestConfig`: loopback, the test secret, no allowlist feed, short grace.
 pub fn test_config(cert: &TestCert, ports: &Ports, extra: &[(&str, &str)]) -> Config {
-    let (metagame, content, ws) = (
-        format!("http://127.0.0.1:{}", ports.metagame),
+    let (backend, content, ws) = (
+        format!("http://127.0.0.1:{}", ports.backend),
         format!("http://127.0.0.1:{}", ports.content),
         format!("http://127.0.0.1:{}", ports.ws),
     );
@@ -258,7 +259,7 @@ pub fn test_config(cert: &TestCert, ports: &Ports, extra: &[(&str, &str)]) -> Co
         ("GATEWAY_CERT", &cert_file),
         ("GATEWAY_KEY", &key_file),
         ("GATEWAY_SECRET", GATEWAY_SECRET),
-        ("GATEWAY_METAGAME_URL", &metagame),
+        ("GATEWAY_BACKEND_URL", &backend),
         ("GATEWAY_CONTENT_URL", &content),
         ("GATEWAY_WS_URL", &ws),
         ("GATEWAY_ALLOWLIST", "0"),
@@ -296,12 +297,27 @@ impl Drop for Running {
 }
 
 pub async fn start_gateway(cert: &TestCert, config: Config, feed: Option<AllowlistFeed>) -> Running {
+    start_gateway_with(Some(cert), config, feed, None).await
+}
+
+/// A gateway with or without a certificate (private mode), and with the traffic capture.
+pub async fn start_gateway_with(
+    cert: Option<&TestCert>,
+    config: Config,
+    feed: Option<AllowlistFeed>,
+    capture: Option<CaptureWriter>,
+) -> Running {
     log_lines();
-    let loaded = cert::load(&cert.cert_file, &cert.key_file).unwrap();
-    let tls = cert::server_config(&loaded).unwrap();
+    let tls = cert.map(|cert| {
+        let loaded = cert::load(&cert.cert_file, &cert.key_file).unwrap();
+        GatewayTls {
+            config: cert::server_config(&loaded).unwrap(),
+            info: loaded.info,
+        }
+    });
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
-    let gateway = Gateway::new(config, tls, loaded.info, feed);
+    let gateway = Gateway::new(config, tls, feed, capture).unwrap();
     let (stop, stopping) = watch::channel(false);
     let task = tokio::spawn(gateway.clone().serve(listener, stopping));
     Running {
@@ -466,9 +482,18 @@ pub async fn https_request(port: u16, target: &str, options: Options<'_>) -> Res
     })
 }
 
-pub async fn request_on(tls: Tls, target: &str, options: &Options<'_>) -> Result<Reply, String> {
+/// One plain HTTP request on a fresh connection (a private-mode gateway).
+pub async fn plain_request(port: u16, target: &str, options: Options<'_>) -> Result<Reply, String> {
+    let tcp = tcp_connect(port, options.local).await.map_err(|e| e.to_string())?;
+    request_on(tcp, target, &options).await
+}
+
+pub async fn request_on<S>(io: S, target: &str, options: &Options<'_>) -> Result<Reply, String>
+where
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
     let (mut sender, connection) = hyper::client::conn::http1::Builder::new()
-        .handshake::<_, Full<Bytes>>(TokioIo::new(tls))
+        .handshake::<_, Full<Bytes>>(TokioIo::new(io))
         .await
         .map_err(|e| e.to_string())?;
     tokio::spawn(connection);
@@ -696,6 +721,25 @@ pub async fn upgrade(port: u16, target: &str, extra: &[(&str, &str)], local: Opt
         rest,
         key,
     }
+}
+
+/// `ReforgedApiRoutes`: every route the backend registers under /reforged/api, read from its
+/// source (paradox/backend/src/routes/reforgedApi.ts, patch 0002 in docs/paradox-patches.md).
+pub fn reforged_api_routes() -> Vec<(String, String)> {
+    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../paradox/backend/src/routes/reforgedApi.ts");
+    let source = std::fs::read_to_string(file).unwrap();
+    let pattern = regex::Regex::new(r#"(?m)^\s*reforgedApiRouter\.(get|post|put|delete|patch)\(\s*"([^"]+)""#).unwrap();
+    let parameter = regex::Regex::new(r":[A-Za-z]+").unwrap();
+    pattern
+        .captures_iter(&source)
+        .filter(|found| found[2].starts_with("/reforged/api/"))
+        .map(|found| {
+            (
+                found[1].to_uppercase(),
+                parameter.replace_all(&found[2], "ABCD-EFGH-JKMN").into_owned(),
+            )
+        })
+        .collect()
 }
 
 pub fn path_exists(path: &Path) -> bool {

@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)] // test helpers
 
-//! The gateway's parity with the Node one (MIGRATION_PLAN.md S2): each
+//! The gateway's parity with Reforged's Node one (`legacy/ReforgedGateway`, MIGRATION_PLAN.md RS3): each
 //! `tests/parity/<name>.requests.json` script runs against the Rust gateway, and every reply's
 //! status, headers, body and access-log lines must be what the Node gateway gave
 //! (`<name>.expected.json`, written by `tests/parity/record.cjs` against the same fake upstreams).
@@ -34,7 +34,7 @@ const HEADERS: [&str; 12] = [
     "connection",
     "retry-after",
     "x-powered-by",
-    "x-dauntless-gateway",
+    "x-reforged-gateway",
     "set-cookie",
     "upgrade",
     "sec-websocket-accept",
@@ -77,7 +77,7 @@ fn echo(upstream: &str, method: &str, url: &str, headers: &http::HeaderMap, body
     .to_string()
 }
 
-/// The fake metagame, content server and allowlist helper (kept in step with record.cjs).
+/// The fake backend, content server and allowlist helper (kept in step with record.cjs).
 async fn upstream(label: &'static str, allowed: Arc<Mutex<Vec<String>>>) -> u16 {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
@@ -103,7 +103,7 @@ async fn upstream(label: &'static str, allowed: Arc<Mutex<Vec<String>>>) -> u16 
                                 allowed.lock().unwrap().push(ip["ip"].as_str().unwrap().to_owned());
                                 full(200, &[("content-type", "application/json")], "{}")
                             }
-                            ("metagame", status) if status.starts_with("/status/") => {
+                            ("backend", status) if status.starts_with("/status/") => {
                                 let code: u16 = status["/status/".len()..].parse().unwrap();
                                 let frames: Vec<Result<http_body::Frame<Bytes>, std::convert::Infallible>> =
                                     if code == 204 {
@@ -116,7 +116,7 @@ async fn upstream(label: &'static str, allowed: Arc<Mutex<Vec<String>>>) -> u16 
                                     .status(code)
                                     .header("content-type", "text/plain")
                                     .header("x-powered-by", "Express")
-                                    .header("x-dauntless-gateway", "leak")
+                                    .header("x-reforged-gateway", "leak")
                                     .header("set-cookie", "a=1")
                                     .header("set-cookie", "b=2")
                                     .body(http_body_util::Either::Right(StreamBody::new(
@@ -124,7 +124,12 @@ async fn upstream(label: &'static str, allowed: Arc<Mutex<Vec<String>>>) -> u16 
                                     )))
                                     .unwrap()
                             }
-                            ("metagame", "/heartbeat") => {
+                            // Paradox's POST /login answers 2xx after its own bearer check;
+                            // /game/login is DR's route
+                            ("backend", "/login" | "/game/login") => {
+                                full(200, &[("content-type", "application/json")], "{}")
+                            }
+                            ("backend", "/heartbeat") => {
                                 let ok = parts
                                     .headers
                                     .get("authorization")
@@ -135,7 +140,7 @@ async fn upstream(label: &'static str, allowed: Arc<Mutex<Vec<String>>>) -> u16 
                                     if ok { "20000" } else { "" },
                                 )
                             }
-                            ("metagame", "/account/api/oauth/token") => {
+                            ("backend", "/account/api/oauth/token") => {
                                 full(200, &[("content-type", "application/json")], r#"{"access_token":"x"}"#)
                             }
                             _ => full(
@@ -253,7 +258,7 @@ async fn run(name: &str) {
         serde_json::from_str(&std::fs::read_to_string(here.join(format!("{name}.expected.json"))).unwrap()).unwrap();
 
     let allowed: Arc<Mutex<Vec<String>>> = Arc::default();
-    let metagame = upstream("metagame", allowed.clone()).await;
+    let backend = upstream("backend", allowed.clone()).await;
     let content = upstream("content", allowed.clone()).await;
     let helper = upstream("helper", allowed.clone()).await;
     let ws = start_ws_upstream().await;
@@ -262,13 +267,13 @@ async fn run(name: &str) {
         cert.cert_file.to_string_lossy().into_owned(),
         cert.key_file.to_string_lossy().into_owned(),
     );
-    let urls = [metagame, content, ws.port, helper].map(|port| format!("http://127.0.0.1:{port}"));
+    let urls = [backend, content, ws.port, helper].map(|port| format!("http://127.0.0.1:{port}"));
     let mut pairs: Vec<(String, String)> = vec![
         ("GATEWAY_BIND".into(), "127.0.0.1".into()),
         ("GATEWAY_CERT".into(), cert_file),
         ("GATEWAY_KEY".into(), key_file),
         ("GATEWAY_SECRET".into(), SECRET.into()),
-        ("GATEWAY_METAGAME_URL".into(), urls[0].clone()),
+        ("GATEWAY_BACKEND_URL".into(), urls[0].clone()),
         ("GATEWAY_CONTENT_URL".into(), urls[1].clone()),
         ("GATEWAY_WS_URL".into(), urls[2].clone()),
         ("ALLOWLIST_URL".into(), urls[3].clone()),

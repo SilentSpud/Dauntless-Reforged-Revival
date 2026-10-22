@@ -1,12 +1,16 @@
 //! What the gateway does with one request (`src/policy.ts`), decided from the method, the request
 //! target and the headers only, before any body is read. Pure functions, so every rule has a test.
+//!
+//! The routes are the Mystic Paradox backend's: the 1.14.7 runtime sends the game's calls as
+//! `/__origin/<official host>/<path>`, which the backend unwraps before routing, so every rule here
+//! looks at that inner path.
 
 use http::HeaderMap;
 use service_kit::js;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Upstream {
-    Metagame,
+    Backend,
     Content,
     Ws,
 }
@@ -14,7 +18,7 @@ pub enum Upstream {
 impl Upstream {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::Metagame => "metagame",
+            Self::Backend => "backend",
             Self::Content => "content",
             Self::Ws => "ws",
         }
@@ -75,19 +79,32 @@ impl Decision {
     }
 }
 
-/// The only /undaunted/api routes reachable from outside, and with which methods. Everything else
-/// under /undaunted/api is an admin route (invites, renames, rollbacks, entitlements, JWTs for any
-/// account) and answers 403 here, even with a valid admin key.
-pub const PUBLIC_UNDAUNTED_API: [(&str, &[&str]); 6] = [
+/// The only /reforged/api routes reachable from outside, and with which methods. Everything else
+/// under /reforged/api is an admin route (invites, account status) and answers 403 here, even with
+/// a valid admin key: the backend accepts those only from its own machine anyway.
+pub const PUBLIC_REFORGED_API: [(&str, &[&str]); 4] = [
     ("register", &["POST"]),
     ("getuserinfo", &["GET", "HEAD"]),
     ("serverstatus", &["GET", "HEAD"]),
-    ("huntregion", &["GET", "HEAD", "POST"]),
-    ("devicesignals", &["POST"]),
     ("registrationstatus", &["GET", "HEAD"]),
 ];
 
-pub const GAMESERVER_KEY_HEADER: &str = "x-undaunted-gameserver-apikey";
+/// Path prefixes of the backend that are for the host only, never for players:
+/// - `/admin`: Mystic Paradox's admin dashboard API
+/// - `/launcher`: Mystic Paradox's own launcher API (email and Discord accounts, game sessions, its
+///   update channel and guard); a Reforged server registers players through invites only
+/// - `/internal`: the metrics endpoint
+/// - `/health`: the readiness probes
+pub const HOST_ONLY_PREFIXES: [&str; 4] = ["/admin", "/launcher", "/internal", "/health"];
+
+/// Headers only the host's own processes send: the dedicated game servers (they run on the server
+/// and talk to the backend directly), the admin tools and the metrics scraper.
+pub const GAMESERVER_KEY_HEADER: &str = "x-mysticparadox-gameserver-apikey";
+pub const HOST_ONLY_HEADERS: [&str; 3] = [
+    GAMESERVER_KEY_HEADER,
+    "x-reforged-admin-key",
+    "x-mysticparadox-metrics-token",
+];
 
 const ALLOWED_METHODS: [&str; 7] = ["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"];
 
@@ -102,7 +119,8 @@ pub fn split_target(raw: &str) -> Option<(&str, &str)> {
 
 /// Paths the real client never sends and that could make the gateway and the upstream disagree
 /// about which route is meant. The client's own paths contain letters, digits, "-", "_", ".", ":"
-/// and "/" only (checked against every path in the metagame logs).
+/// and "/" only. Stricter than `CheckPath` on Unicode spaces such as U+00A0 (Paradox paths are
+/// ASCII).
 pub fn check_path(path: &str) -> bool {
     if path
         .chars()
@@ -119,7 +137,7 @@ pub fn check_path(path: &str) -> bool {
 
 /// The path as a lenient router would match it: percent-decoded, lower case, repeated slashes
 /// folded, trailing slashes dropped. Express matches routes case-insensitively and with an optional
-/// trailing slash, so the admin-route check must be at least that lenient.
+/// trailing slash, so the host-only checks must be at least that lenient.
 pub fn canonical_path(path: &str) -> Option<String> {
     let decoded = js::decode_uri_component(path)?.to_lowercase();
     let mut out = String::with_capacity(decoded.len());
@@ -133,6 +151,68 @@ pub fn canonical_path(path: &str) -> Option<String> {
         out.pop();
     }
     Some(out)
+}
+
+/// `/^\/+__origin(\/|$)/i`: the path starts with an `/__origin` segment.
+fn starts_with_origin(path: &str) -> bool {
+    let rest = path.trim_start_matches('/');
+    if rest.len() == path.len() {
+        return false;
+    }
+    rest.get(..8).is_some_and(|word| word.eq_ignore_ascii_case("__origin"))
+        && rest[8..].chars().next().is_none_or(|c| c == '/')
+}
+
+/// The inner path of `/__origin/<host><rest>` and the host, or the path itself with no host.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Unwrapped<'a> {
+    pub path: std::borrow::Cow<'a, str>,
+    pub origin: Option<String>,
+}
+
+/// `UnwrapOrigin`: the backend unwraps `/__origin/<host><rest>` before routing (once, and only for
+/// a bare host name), the same way as here. The rules then apply to `<rest>`. A second
+/// `/__origin` inside is never valid. `None` is `bad_origin`.
+pub fn unwrap_origin(path: &str) -> Option<Unwrapped<'_>> {
+    if !starts_with_origin(path) {
+        return Some(Unwrapped {
+            path: path.into(),
+            origin: None,
+        });
+    }
+    // `/^\/+__origin\/([^/?#]+)(.*)$/i`
+    let after = &path.trim_start_matches('/')[8..];
+    let after = after.strip_prefix('/')?;
+    let host_end = after.find(['/', '?', '#']).unwrap_or(after.len());
+    if host_end == 0 {
+        return None;
+    }
+    let host = js::decode_uri_component(&after[..host_end])?.to_lowercase();
+    if !(1..=253).contains(&host.len())
+        || !host
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'.' || b == b'-')
+        || host.starts_with('.')
+        || host.ends_with('.')
+        || host.contains("..")
+    {
+        return None;
+    }
+    let rest = &after[host_end..];
+    let inner = if rest.is_empty() {
+        "/".to_owned()
+    } else if rest.starts_with('/') {
+        rest.to_owned()
+    } else {
+        format!("/{rest}")
+    };
+    if starts_with_origin(&inner) {
+        return None;
+    }
+    Some(Unwrapped {
+        path: inner.into(),
+        origin: Some(host),
+    })
 }
 
 fn reject(status: u16, error: &'static str, reason: &'static str, limit_class: LimitClass) -> Decision {
@@ -152,6 +232,13 @@ fn proxy(upstream: Upstream, limit_class: LimitClass, feed: Option<FeedKind>) ->
     }
 }
 
+/// `Under`: the path is the prefix or below it.
+fn under(canonical: &str, prefix: &str) -> bool {
+    canonical
+        .strip_prefix(prefix)
+        .is_some_and(|rest| rest.is_empty() || rest.starts_with('/'))
+}
+
 /// `Classify`.
 pub fn classify(method: &str, raw_url: &str, headers: &HeaderMap, is_upgrade: bool) -> Decision {
     let verb = method.to_uppercase();
@@ -161,17 +248,22 @@ pub fn classify(method: &str, raw_url: &str, headers: &HeaderMap, is_upgrade: bo
     if !check_path(path) {
         return reject(400, "bad_path", "bad_path", LimitClass::General);
     }
-    let Some(canonical) = canonical_path(path) else {
+    let Some(unwrapped) = unwrap_origin(path) else {
+        return reject(400, "bad_path", "bad_origin", LimitClass::General);
+    };
+    let Some(canonical) = canonical_path(&unwrapped.path) else {
         return reject(400, "bad_path", "bad_percent_encoding", LimitClass::General);
     };
+    // The content server is the launcher's, never behind an /__origin prefix
+    let is_content = unwrapped.origin.is_none() && under(&canonical, "/content");
 
     let limit_class = if is_upgrade {
         LimitClass::Ws
-    } else if canonical == "/undaunted/api/register" {
+    } else if canonical == "/reforged/api/register" {
         LimitClass::Register
     } else if canonical == "/account/api/oauth/token" {
         LimitClass::Token
-    } else if canonical == "/content" || canonical.starts_with("/content/") {
+    } else if is_content {
         LimitClass::Content
     } else {
         LimitClass::General
@@ -180,22 +272,33 @@ pub fn classify(method: &str, raw_url: &str, headers: &HeaderMap, is_upgrade: bo
     if !ALLOWED_METHODS.contains(&verb.as_str()) {
         return reject(405, "method_not_allowed", "method", limit_class);
     }
-    if headers.contains_key(GAMESERVER_KEY_HEADER) {
-        return reject(403, "forbidden", "gameserver_key_header", limit_class);
+    for name in HOST_ONLY_HEADERS {
+        if headers.contains_key(name) {
+            let reason = if name == GAMESERVER_KEY_HEADER {
+                "gameserver_key_header"
+            } else {
+                "host_only_header"
+            };
+            return reject(403, "forbidden", reason, limit_class);
+        }
     }
 
-    if canonical == "/undaunted" || canonical.starts_with("/undaunted/") {
+    if under(&canonical, "/reforged") {
         let methods = canonical
-            .strip_prefix("/undaunted/api/")
+            .strip_prefix("/reforged/api/")
             .filter(|name| !name.is_empty() && !name.contains('/'))
-            .and_then(|name| PUBLIC_UNDAUNTED_API.iter().find(|(route, _)| *route == name))
+            .and_then(|name| PUBLIC_REFORGED_API.iter().find(|(route, _)| *route == name))
             .map(|(_, methods)| *methods);
         return match methods {
             Some(methods) if !is_upgrade && methods.contains(&verb.as_str()) => {
-                proxy(Upstream::Metagame, limit_class, None)
+                proxy(Upstream::Backend, limit_class, None)
             }
             _ => reject(403, "forbidden", "admin_route", limit_class),
         };
+    }
+
+    if HOST_ONLY_PREFIXES.iter().any(|prefix| under(&canonical, prefix)) {
+        return reject(403, "forbidden", "host_only_route", limit_class);
     }
 
     if is_upgrade {
@@ -209,23 +312,24 @@ pub fn classify(method: &str, raw_url: &str, headers: &HeaderMap, is_upgrade: bo
         return proxy(Upstream::Ws, limit_class, None);
     }
 
-    if limit_class == LimitClass::Content {
+    if is_content {
         return proxy(Upstream::Content, limit_class, None);
     }
 
-    // /game/login returns 2xx only after bearer validation and account lookup. Reuse the
-    // bearer-required feed so travel need not wait for a heartbeat.
-    if verb == "POST" && (canonical == "/heartbeat" || canonical == "/game/login") {
-        return proxy(Upstream::Metagame, limit_class, Some(FeedKind::Heartbeat));
+    // Paradox has no /game/login (DR's metagame fed the allowlist from it): its login is POST
+    // /login, so only the heartbeat and the token route feed, as in the Node gateway (RD20)
+    if verb == "POST" && canonical == "/heartbeat" {
+        return proxy(Upstream::Backend, limit_class, Some(FeedKind::Heartbeat));
     }
     if verb == "POST" && canonical == "/account/api/oauth/token" {
-        return proxy(Upstream::Metagame, limit_class, Some(FeedKind::Token));
+        return proxy(Upstream::Backend, limit_class, Some(FeedKind::Token));
     }
-    proxy(Upstream::Metagame, limit_class, None)
+    proxy(Upstream::Backend, limit_class, None)
 }
 
-/// A heartbeat only proves a login when it carried the player's bearer token (the upstream answers
-/// 401 without one; this is a second check in case that ever changes). `/^bearer\s+\S+/i`.
+/// A heartbeat only proves a login when it carried the player's bearer token. Paradox answers
+/// `POST /heartbeat` without looking at it, so this check is the only one: it keeps a peer with no
+/// token from opening the game ports, but any bearer text passes (`/^bearer\s+\S+/i`).
 pub fn has_bearer(headers: &HeaderMap) -> bool {
     let Some(value) = headers.get(http::header::AUTHORIZATION).and_then(|v| v.to_str().ok()) else {
         return false;
@@ -266,6 +370,13 @@ mod tests {
         }
     }
 
+    fn reason(decision: &Decision) -> Option<&'static str> {
+        match decision {
+            Decision::Reject { reason, .. } => Some(reason),
+            Decision::Proxy { .. } => None,
+        }
+    }
+
     fn feed(decision: &Decision) -> Option<FeedKind> {
         match decision {
             Decision::Proxy { feed, .. } => *feed,
@@ -273,71 +384,70 @@ mod tests {
         }
     }
 
+    fn proxied(upstream: Upstream, limit_class: LimitClass, feed: Option<FeedKind>) -> Decision {
+        Decision::Proxy {
+            upstream,
+            limit_class,
+            feed,
+        }
+    }
+
     fn is_public(method: &str, path: &str) -> bool {
-        let name = path["/undaunted/api/".len()..].to_lowercase();
-        PUBLIC_UNDAUNTED_API
+        let name = path["/reforged/api/".len()..].to_lowercase();
+        PUBLIC_REFORGED_API
             .iter()
             .any(|(route, methods)| *route == name && methods.contains(&method))
     }
 
-    /// The /undaunted/api routes the Rust metagame serves, as the Node test read them from the
-    /// Node metagame's source.
-    fn undaunted_api_routes() -> Vec<(String, String)> {
-        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../metagame/src/routes");
-        let pattern = regex::Regex::new(r#"\.(get|post|put|delete|patch)\(\s*"(/undaunted/api/[^"]+)""#).unwrap();
+    /// `ReforgedApiRoutes`: every route the backend registers under /reforged/api, read from its
+    /// source (patch 0002 in docs/paradox-patches.md), so a route added there later is covered.
+    fn reforged_api_routes() -> Vec<(String, String)> {
+        let file =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../paradox/backend/src/routes/reforgedApi.ts");
+        let source = std::fs::read_to_string(&file).unwrap();
+        let pattern =
+            regex::Regex::new(r#"(?m)^\s*reforgedApiRouter\.(get|post|put|delete|patch)\(\s*"([^"]+)""#).unwrap();
         let parameter = regex::Regex::new(r":[A-Za-z]+").unwrap();
-        let mut routes = Vec::new();
-        for entry in std::fs::read_dir(dir).unwrap() {
-            let source = std::fs::read_to_string(entry.unwrap().path()).unwrap();
-            for found in pattern.captures_iter(&source) {
-                routes.push((
+        pattern
+            .captures_iter(&source)
+            .filter(|found| found[2].starts_with("/reforged/api/"))
+            .map(|found| {
+                (
                     found[1].to_uppercase(),
                     parameter.replace_all(&found[2], "ABCD-EFGH-JKMN").into_owned(),
-                ));
-            }
-        }
-        routes
+                )
+            })
+            .collect()
     }
 
     #[test]
-    fn device_checks_are_post_only() {
-        assert_eq!(
-            status(&classify("POST", "/undaunted/api/DeviceSignals", &none(), false)),
-            None
-        );
-        for method in ["GET", "HEAD", "PUT", "DELETE"] {
-            assert_eq!(
-                status(&classify(method, "/undaunted/api/DeviceSignals", &none(), false)),
-                Some(403)
-            );
-        }
-    }
-
-    #[test]
-    #[ignore = "reads DR's metagame routes, which this repository does not have; RS3 points it at Paradox"]
-    fn only_the_public_undaunted_routes_pass() {
-        let routes = undaunted_api_routes();
-        assert!(routes.len() >= 20, "found only {} routes", routes.len());
+    fn the_backend_still_has_the_routes_this_gateway_knows_about() {
+        let routes = reforged_api_routes();
+        assert!(routes.len() >= 8, "found only {} routes", routes.len());
         for name in [
             "Register",
             "GetUserInfo",
             "ServerStatus",
             "RegistrationStatus",
             "CreateInvite",
-            "RenameUser",
-            "GenerateJWTForUserId",
-            "GrantEntitlement",
-            "RollbackCharacter",
+            "InviteCodes",
+            "SetAccountStatus",
         ] {
             assert!(
-                routes.iter().any(|(_, path)| *path == format!("/undaunted/api/{name}")),
+                routes.iter().any(|(_, path)| *path == format!("/reforged/api/{name}")),
                 "{name}"
             );
         }
-        for (method, path) in &routes {
+    }
+
+    #[test]
+    fn only_the_public_reforged_routes_pass() {
+        let mut passed = 0;
+        for (method, path) in &reforged_api_routes() {
             let choice = classify(method, path, &none(), false);
             if is_public(method, path) {
                 assert_eq!(status(&choice), None, "{method} {path}");
+                passed += 1;
             } else {
                 assert!(
                     matches!(
@@ -352,55 +462,50 @@ mod tests {
                 );
             }
         }
+        assert_eq!(passed, 4);
         // POST RegistrationStatus changes the registration mode: admin only, blocked
-        assert_eq!(
-            status(&classify("POST", "/undaunted/api/RegistrationStatus", &none(), false)),
-            Some(403)
-        );
-        assert_eq!(
-            status(&classify("HEAD", "/undaunted/api/Register", &none(), false)),
-            Some(403)
-        );
-        assert_eq!(
-            status(&classify(
-                "GET",
-                "/undaunted/api/UsernameAvailable?Username=x",
-                &none(),
-                false
-            )),
-            Some(403)
-        );
+        for (method, path) in [
+            ("POST", "/reforged/api/RegistrationStatus"),
+            ("HEAD", "/reforged/api/Register"),
+            ("GET", "/reforged/api/UsernameAvailable?Username=x"),
+        ] {
+            assert_eq!(
+                status(&classify(method, path, &none(), false)),
+                Some(403),
+                "{method} {path}"
+            );
+        }
     }
 
     #[test]
     fn spelling_tricks_cannot_reach_an_admin_route() {
         for variant in [
-            "/UNDAUNTED/API/CREATEINVITE",
-            "/undaunted/api/createinvite",
-            "/Undaunted/Api/CreateInvite/",
-            "/undaunted/api/CreateInvite//",
-            "/undaunted//api/CreateInvite",
-            "//undaunted/api/CreateInvite",
-            "/undaunted/api/%43reateInvite",
-            "/%75ndaunted/api/CreateInvite",
-            "/undaunted/api/CreateInvite?x=/undaunted/api/Register",
-            "/undaunted/api/Register/../CreateInvite",
-            "/undaunted/api/./CreateInvite",
-            "/undaunted%2fapi/CreateInvite",
-            "/undaunted/api%2FCreateInvite",
-            "/undaunted/api/CreateInvite%00",
-            "/undaunted/api\\CreateInvite",
-            "/undaunted/api/%2e%2e/api/CreateInvite",
-            "/undaunted/api/Register;/CreateInvite",
-            "/undaunted/api/Register/",
-            "/undaunted",
-            "/undaunted/api",
-            "/undaunted/api/",
-            "/undaunted/api/Register/x",
-            "/undaunted/api/%zz",
+            "/REFORGED/API/CREATEINVITE",
+            "/reforged/api/createinvite",
+            "/Reforged/Api/CreateInvite/",
+            "/reforged/api/CreateInvite//",
+            "/reforged//api/CreateInvite",
+            "//reforged/api/CreateInvite",
+            "/reforged/api/%43reateInvite",
+            "/%72eforged/api/CreateInvite",
+            "/reforged/api/CreateInvite?x=/reforged/api/Register",
+            "/reforged/api/Register/../CreateInvite",
+            "/reforged/api/./CreateInvite",
+            "/reforged%2fapi/CreateInvite",
+            "/reforged/api%2FCreateInvite",
+            "/reforged/api/CreateInvite%00",
+            "/reforged/api\\CreateInvite",
+            "/reforged/api/%2e%2e/api/CreateInvite",
+            "/reforged/api/Register;/CreateInvite",
+            "/reforged/api/Register/",
+            "/reforged",
+            "/reforged/api",
+            "/reforged/api/",
+            "/reforged/api/Register/x",
+            "/reforged/api/%zz",
         ] {
             let choice = classify("POST", variant, &none(), false);
-            if variant == "/undaunted/api/Register/" {
+            if variant == "/reforged/api/Register/" {
                 // Express treats the trailing slash as the same route: this is Register itself
                 assert_eq!(status(&choice), None, "{variant}");
                 continue;
@@ -411,93 +516,189 @@ mod tests {
 
     #[test]
     fn routes_content_upgrades_and_the_rest() {
-        let proxied = |upstream, limit_class| Decision::Proxy {
-            upstream,
-            limit_class,
-            feed: None,
-        };
         use LimitClass as L;
         use Upstream as U;
-        assert_eq!(
-            classify("GET", "/content/v1/manifest", &none(), false),
-            proxied(U::Content, L::Content)
-        );
-        assert_eq!(
-            classify("GET", "/Content/v1/files/Archon/x.pak", &none(), false),
-            proxied(U::Content, L::Content)
-        );
-        assert_eq!(
-            classify("GET", "/party/invites", &none(), false),
-            proxied(U::Metagame, L::General)
-        );
-        assert_eq!(
-            classify("GET", "/contentx", &none(), false),
-            proxied(U::Metagame, L::General)
-        );
+        let cases = [
+            ("/content/v1/manifest", U::Content, L::Content),
+            ("/Content/v1/files/Archon/x.pak", U::Content, L::Content),
+            ("/party/invites", U::Backend, L::General),
+            ("/contentx", U::Backend, L::General),
+            // The client's own odd path from the logs goes through untouched
+            ("/account127.0.0.1:61000", U::Backend, L::General),
+        ];
+        for (path, upstream, limit_class) in cases {
+            assert_eq!(
+                classify("GET", path, &none(), false),
+                proxied(upstream, limit_class, None),
+                "{path}"
+            );
+        }
         assert_eq!(
             classify("GET", "/xmpp", &headers(&[("upgrade", "websocket")]), true),
-            proxied(U::Ws, L::Ws)
+            proxied(U::Ws, L::Ws, None)
         );
         assert_eq!(
             classify("GET", "/", &headers(&[("upgrade", "WebSocket")]), true),
-            proxied(U::Ws, L::Ws)
-        );
-        // The client's own odd path from the logs goes through untouched
-        assert_eq!(
-            classify("GET", "/account127.0.0.1:61000", &none(), false),
-            proxied(U::Metagame, L::General)
+            proxied(U::Ws, L::Ws, None)
         );
         let inventory = "/inventory/7d1c9d8e-2b43-4c55-9d0e-6f3a0c1e2b44/dauntlessrel-1.4.4:239827";
         assert_eq!(status(&classify("POST", inventory, &none(), false)), None);
     }
 
     #[test]
+    fn the_runtimes_origin_requests_are_judged_by_the_path_inside() {
+        use LimitClass as L;
+        use Upstream as U;
+        let host = "/__origin/gamedev-prod.steelyard.ca";
+        assert_eq!(
+            classify("GET", &format!("{host}/party/invites"), &none(), false),
+            proxied(U::Backend, L::General, None)
+        );
+        assert_eq!(
+            classify(
+                "POST",
+                "/__origin/account-public-service-prod.ol.epicgames.com/account/api/oauth/token",
+                &none(),
+                false
+            ),
+            proxied(U::Backend, L::Token, Some(FeedKind::Token))
+        );
+        assert_eq!(
+            classify("POST", &format!("{host}/heartbeat"), &none(), false),
+            proxied(U::Backend, L::General, Some(FeedKind::Heartbeat))
+        );
+        for inner in [
+            "/reforged/api/CreateInvite",
+            "/admin/v1/players",
+            "/launcher/v1/auth/register",
+            "/internal/v1/metrics",
+            "/health/ready",
+            "/REFORGED/API/SetAccountStatus/",
+        ] {
+            assert_eq!(
+                status(&classify("POST", &format!("{host}{inner}"), &none(), false)),
+                Some(403),
+                "{inner}"
+            );
+        }
+        assert_eq!(
+            status(&classify(
+                "POST",
+                &format!("{host}/reforged/api/Register"),
+                &none(),
+                false
+            )),
+            None
+        );
+        // Content is never reached through the prefix; the backend answers that path itself (404)
+        assert_eq!(
+            classify("GET", &format!("{host}/content/v1/runtime/manifest"), &none(), false),
+            proxied(U::Backend, L::General, None)
+        );
+        for bad in [
+            "/__origin/".to_owned(),
+            "/__origin".to_owned(),
+            "/__origin/a..b/x".to_owned(),
+            "/__origin/.x/x".to_owned(),
+            "/__origin/x%/y".to_owned(),
+            "/__origin/user@host/x".to_owned(),
+            "/__origin/host:443/x".to_owned(),
+            format!("{host}/__origin/other/admin/v1"),
+            format!("{host}//__origin/other/x"),
+        ] {
+            let choice = classify("GET", &bad, &none(), false);
+            assert_eq!(status(&choice), Some(400), "{bad}");
+        }
+        assert_eq!(
+            reason(&classify("GET", "/__ORIGIN", &none(), false)),
+            Some("bad_origin")
+        );
+        assert_eq!(
+            classify("GET", "/__origin", &none(), false).limit_class(),
+            LimitClass::General
+        );
+    }
+
+    #[test]
+    fn blocks_the_host_only_parts_of_the_backend() {
+        for (method, path) in [
+            ("GET", "/admin/v1/players"),
+            ("POST", "/admin/v1/auth/login"),
+            ("PATCH", "/Admin/V1/players/x/access"),
+            ("POST", "/launcher/v1/auth/register"),
+            ("POST", "/launcher/v1/game-sessions"),
+            ("GET", "/launcher/v1/runtime/stable/windows-x86_64/download"),
+            ("GET", "/internal/v1/metrics"),
+            ("GET", "/health/live"),
+            ("GET", "/admin"),
+            ("GET", "//launcher//v1"),
+        ] {
+            assert_eq!(
+                reason(&classify(method, path, &none(), false)),
+                Some("host_only_route"),
+                "{method} {path}"
+            );
+        }
+        assert_eq!(status(&classify("GET", "/administrator", &none(), false)), None);
+        assert_eq!(status(&classify("GET", "/launchers", &none(), false)), None);
+        // An upgrade to a host-only path is refused before the upgrade rules
+        let ws = headers(&[("upgrade", "websocket")]);
+        assert_eq!(
+            reason(&classify("GET", "/health/live", &ws, true)),
+            Some("host_only_route")
+        );
+    }
+
+    #[test]
+    fn refuses_the_admin_key_and_the_metrics_token_headers() {
+        for name in ["x-reforged-admin-key", "x-mysticparadox-metrics-token"] {
+            let choice = classify("GET", "/reforged/api/ServerStatus", &headers(&[(name, "x")]), false);
+            assert_eq!(reason(&choice), Some("host_only_header"), "{name}");
+        }
+    }
+
+    #[test]
     fn feeds_and_limit_classes() {
+        use LimitClass as L;
+        use Upstream as U;
         assert_eq!(
-            feed(&classify("POST", "/heartbeat", &none(), false)),
-            Some(FeedKind::Heartbeat)
+            classify("POST", "/heartbeat", &none(), false),
+            proxied(U::Backend, L::General, Some(FeedKind::Heartbeat))
         );
         assert_eq!(
-            feed(&classify("POST", "/HEARTBEAT/", &none(), false)),
-            Some(FeedKind::Heartbeat)
+            classify("POST", "/HEARTBEAT/", &none(), false),
+            proxied(U::Backend, L::General, Some(FeedKind::Heartbeat))
         );
-        let token = classify("POST", "/account/api/oauth/token", &none(), false);
         assert_eq!(
-            (feed(&token), token.limit_class()),
-            (Some(FeedKind::Token), LimitClass::Token)
+            classify("POST", "/account/api/oauth/token", &none(), false),
+            proxied(U::Backend, L::Token, Some(FeedKind::Token))
         );
         for (method, path) in [
             ("GET", "/heartbeat"),
             ("POST", "/heartbeatx"),
             ("POST", "/account/api/oauth/verify"),
-            ("GET", "/game/login"),
-            ("POST", "/game/loginx"),
-            ("POST", "/game/login/extra"),
+            // DR fed on these; Paradox has no /game/login, and /login is not a feed
+            ("POST", "/game/login"),
+            ("POST", "/GAME/LOGIN/"),
+            ("POST", "/login"),
         ] {
             assert_eq!(feed(&classify(method, path, &none(), false)), None, "{method} {path}");
         }
-        for path in ["/game/login", "/GAME/LOGIN/", "/game/login?x=1"] {
-            assert_eq!(
-                feed(&classify("POST", path, &none(), false)),
-                Some(FeedKind::Heartbeat),
-                "{path}"
-            );
-        }
         assert_eq!(
-            classify("POST", "/undaunted/api/Register", &none(), false).limit_class(),
-            LimitClass::Register
+            classify("POST", "/reforged/api/Register", &none(), false).limit_class(),
+            L::Register
         );
         assert_eq!(
-            classify("POST", "/undaunted/api/register/", &none(), false).limit_class(),
-            LimitClass::Register
+            classify("POST", "/reforged/api/register/", &none(), false).limit_class(),
+            L::Register
         );
         assert_eq!(
             classify("POST", "/account/api/oauth/token?x=1", &none(), false).limit_class(),
-            LimitClass::Token
+            L::Token
         );
         assert_eq!(
-            classify("GET", "/undaunted/api/ServerStatus", &none(), false).limit_class(),
-            LimitClass::General
+            classify("GET", "/reforged/api/ServerStatus", &none(), false).limit_class(),
+            L::General
         );
     }
 
@@ -508,7 +709,7 @@ mod tests {
             "/heartbeat",
             "/character",
             "/content/v1/manifest",
-            "/undaunted/api/Register",
+            "/reforged/api/Register",
             "/progression/UID-1",
         ] {
             for value in ["", "x", long.as_str()] {
@@ -533,7 +734,7 @@ mod tests {
         assert_eq!(
             status(&classify(
                 "GET",
-                "http://evil.example/undaunted/api/CreateInvite",
+                "http://evil.example/reforged/api/CreateInvite",
                 &none(),
                 false
             )),
@@ -549,14 +750,15 @@ mod tests {
         );
         assert_eq!(status(&classify("POST", "/xmpp", &ws, true)), Some(400));
         assert_eq!(
-            status(&classify("GET", "/undaunted/api/ServerStatus", &ws, true)),
+            status(&classify("GET", "/reforged/api/ServerStatus", &ws, true)),
             Some(403)
         );
     }
 
     #[test]
     fn the_clients_chat_connection_asks_for_a_double_slash() {
-        // The request target of the game's XMPP WebSocket (exe 0x1441f761f, docs/findings/chat.md)
+        // The request target of the game's XMPP WebSocket (Dauntless Revived's docs/findings/chat.md);
+        // the backend's chat listener accepts //, / and /__ws/xmpp
         let chat = headers(&[
             ("upgrade", "websocket"),
             ("sec-websocket-protocol", "xmpp"),
@@ -564,22 +766,18 @@ mod tests {
         ]);
         assert_eq!(
             classify("GET", "//", &chat, true),
-            Decision::Proxy {
-                upstream: Upstream::Ws,
-                limit_class: LimitClass::Ws,
-                feed: None
-            }
+            proxied(Upstream::Ws, LimitClass::Ws, None)
         );
         assert_eq!(
             status(&classify(
                 "GET",
-                "//undaunted/api/x",
+                "//reforged/api/x",
                 &headers(&[("upgrade", "websocket")]),
                 true
             )),
             Some(403)
         );
-        assert_eq!(status(&classify("GET", "//undaunted/api/x", &none(), false)), Some(403));
+        assert_eq!(status(&classify("GET", "//reforged/api/x", &none(), false)), Some(403));
     }
 
     #[test]
@@ -600,6 +798,7 @@ mod tests {
             "/..",
             "/a/..",
             "/a\\b",
+            "/a b",
             "/a\u{0}b",
             "/a\tb",
             "/a%2Fb",
@@ -613,14 +812,37 @@ mod tests {
             assert!(!check_path(bad), "{bad:?}");
         }
         assert_eq!(
-            canonical_path("/Undaunted/API/Register/").as_deref(),
-            Some("/undaunted/api/register")
+            canonical_path("/Reforged/API/Register/").as_deref(),
+            Some("/reforged/api/register")
         );
         assert_eq!(canonical_path("//a///b//").as_deref(), Some("/a/b"));
         assert_eq!(canonical_path("/").as_deref(), Some("/"));
         assert_eq!(canonical_path("/%41").as_deref(), Some("/a"));
         assert_eq!(canonical_path("/%zz"), None);
         assert_eq!(canonical_path("/%C3"), None);
+    }
+
+    #[test]
+    fn unwrap_origin_unwraps_exactly_one_bare_host_prefix() {
+        let unwrapped = |path: &str| unwrap_origin(path).map(|u| (u.path.into_owned(), u.origin));
+        assert_eq!(
+            unwrapped("/__origin/gamedev-prod.steelyard.ca/party"),
+            Some(("/party".into(), Some("gamedev-prod.steelyard.ca".into())))
+        );
+        assert_eq!(
+            unwrapped("/__origin/API.EpicGames.dev"),
+            Some(("/".into(), Some("api.epicgames.dev".into())))
+        );
+        assert_eq!(
+            unwrapped("//__Origin/a%2Db.example/x"),
+            Some(("/x".into(), Some("a-b.example".into())))
+        );
+        assert_eq!(unwrapped("/party"), Some(("/party".into(), None)));
+        assert_eq!(unwrapped("/__originx/y"), Some(("/__originx/y".into(), None)));
+        assert_eq!(unwrapped("/__origin/x/__origin/y/z"), None);
+        assert_eq!(unwrapped("/__origin"), None);
+        assert_eq!(unwrapped("/__origin/"), None);
+        assert_eq!(unwrapped(&format!("/__origin/{}/x", "a".repeat(254))), None);
     }
 
     #[test]

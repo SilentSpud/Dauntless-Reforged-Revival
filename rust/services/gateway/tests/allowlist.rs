@@ -479,9 +479,8 @@ async fn a_logged_in_player_gets_the_game_ports() {
     let handler: Handler = Arc::new(|seen: Seen| {
         Box::pin(async move {
             let path = seen.url.split('?').next().unwrap().to_owned();
-            if path == "/game/login" {
-                let status: u16 = seen.url.split("status=").nth(1).map_or(200, |s| s.parse().unwrap());
-                return Some((status, Vec::new(), Vec::new()));
+            if path == "/game/login" || path == "/login" {
+                return Some((200, Vec::new(), Vec::new()));
             }
             if path == "/heartbeat" {
                 let ok = seen.headers.get("authorization").map(String::as_str) == Some("Bearer good-token");
@@ -494,10 +493,10 @@ async fn a_logged_in_player_gets_the_game_ports() {
             None
         })
     });
-    let meta = start_upstream("metagame", Some(handler)).await;
+    let meta = start_upstream("backend", Some(handler)).await;
     let cert = make_cert();
     let ports = Ports {
-        metagame: meta.port,
+        backend: meta.port,
         content: dead_port().await,
         ws: dead_port().await,
     };
@@ -541,41 +540,22 @@ async fn a_logged_in_player_gets_the_game_ports() {
     assert_eq!(dry_runs(&helper.audit_file).last().unwrap(), &strings(&["127.0.0.60"]));
     assert!(!std::fs::read_to_string(&helper.audit_file).unwrap().contains(SECRET));
 
-    // Game login opens them only for a bearer-authenticated successful answer
+    // Login answers never open them (RD20): Paradox has no /game/login (DR fed on it), and its own
+    // POST /login is not a feed; the heartbeat that follows does it
     let before = feed.sent();
-    for status in [400, 401, 403, 500] {
-        let reply = https_request(
-            port,
-            &format!("/game/login?status={status}"),
-            post("127.0.0.43", Some("Bearer good-token")),
-        )
-        .await
-        .unwrap();
-        assert_eq!(reply.status, status);
-    }
-    for bearer in [None, Some("Basic ignored")] {
+    for path in ["/game/login", "/login"] {
         assert_eq!(
-            https_request(port, "/game/login", post("127.0.0.43", bearer))
+            https_request(port, path, post("127.0.0.44", Some("Bearer good-token")))
                 .await
                 .unwrap()
                 .status,
-            200
+            200,
+            "{path}"
         );
     }
     feed.idle().await;
     assert_eq!(feed.sent(), before);
-    assert_eq!(
-        https_request(port, "/game/login", post("127.0.0.44", Some("Bearer good-token")))
-            .await
-            .unwrap()
-            .status,
-        200
-    );
-    feed.idle().await;
-    helper.helper.sync().settled(Duration::from_secs(5)).await;
-    assert_eq!(feed.sent(), before + 1);
-    assert!(helper.helper.list().contains(&"127.0.0.44".to_owned()));
-    assert!(!helper.helper.list().contains(&"127.0.0.43".to_owned()));
+    assert!(!helper.helper.list().contains(&"127.0.0.44".to_owned()));
 
     // A gateway with the wrong helper secret gets 401 and says so in its log
     let start_at = log_len();
@@ -837,7 +817,7 @@ async fn helper_and_gateway_as_processes_open_the_ports_for_a_logged_in_player()
             ok.then(|| (200, Vec::new(), b"20000".to_vec()))
         })
     });
-    let meta = start_upstream("metagame", Some(handler)).await;
+    let meta = start_upstream("backend", Some(handler)).await;
     let cert = make_cert();
     let gateway_port = dead_port().await;
     let mut gateway_command = command(
@@ -849,7 +829,7 @@ async fn helper_and_gateway_as_processes_open_the_ports_for_a_logged_in_player()
             ("GATEWAY_SECRET", GATEWAY_SECRET.into()),
             ("GATEWAY_BIND", "127.0.0.1".into()),
             ("GATEWAY_PORT", gateway_port.to_string()),
-            ("GATEWAY_METAGAME_URL", format!("http://127.0.0.1:{}", meta.port)),
+            ("GATEWAY_BACKEND_URL", format!("http://127.0.0.1:{}", meta.port)),
             ("GATEWAY_CONTENT_URL", format!("http://127.0.0.1:{}", dead_port().await)),
             ("GATEWAY_WS_URL", format!("http://127.0.0.1:{}", dead_port().await)),
             ("ALLOWLIST_URL", format!("http://127.0.0.1:{helper_port}")),
@@ -883,7 +863,7 @@ async fn helper_and_gateway_as_processes_open_the_ports_for_a_logged_in_player()
         200
     );
     let seen = &meta.seen()[before];
-    assert_eq!(seen.headers["x-dauntless-gateway"], GATEWAY_SECRET);
+    assert_eq!(seen.headers["x-reforged-gateway"], GATEWAY_SECRET);
     assert_eq!(seen.headers["x-forwarded-for"], "127.0.0.1");
 
     let until = tokio::time::Instant::now() + Duration::from_secs(5);
@@ -906,7 +886,7 @@ async fn helper_and_gateway_as_processes_open_the_ports_for_a_logged_in_player()
         ..Options::default()
     };
     assert_eq!(
-        https_request(gateway_port, "/undaunted/api/CreateInvite", admin)
+        https_request(gateway_port, "/reforged/api/CreateInvite", admin)
             .await
             .unwrap()
             .status,

@@ -14,7 +14,7 @@
   },
   {
    "label": "GET /content/v1/manifest",
-   "raw": "GET /content/v1/manifest HTTP/1.1\r\nHost: 127.0.0.1\r\nRange: bytes=0-9\r\nx-undaunted-user-api-key: UUK_fedcba9876543210fedcba9876543210fedcba9876543210\r\nConnection: close\r\n\r\n"
+   "raw": "GET /content/v1/manifest HTTP/1.1\r\nHost: 127.0.0.1\r\nRange: bytes=0-9\r\nx-reforged-user-api-key: RRK_fedcba9876543210fedcba9876543210fedcba9876543210\r\nConnection: close\r\n\r\n"
   },
   {
    "label": "POST /character",
@@ -42,36 +42,36 @@
    "local": "127.0.0.53"
   },
   {
-   "label": "GET /undaunted/api/ServerStatus",
-   "raw": "GET /undaunted/api/ServerStatus HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Undaunted-User-Api-Key: k3y-0123456789abcdef\r\nConnection: close\r\n\r\n"
+   "label": "GET /reforged/api/ServerStatus",
+   "raw": "GET /reforged/api/ServerStatus HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Undaunted-User-Api-Key: k3y-0123456789abcdef\r\nConnection: close\r\n\r\n"
   },
   {
-   "label": "HEAD /undaunted/api/ServerStatus",
-   "raw": "HEAD /undaunted/api/ServerStatus HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+   "label": "HEAD /reforged/api/ServerStatus",
+   "raw": "HEAD /reforged/api/ServerStatus HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
   },
   {
-   "label": "POST /undaunted/api/Register",
-   "raw": "POST /undaunted/api/Register HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 22\r\nConnection: close\r\n\r\n{\"Username\":\"Someone\"}"
+   "label": "POST /reforged/api/Register",
+   "raw": "POST /reforged/api/Register HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 22\r\nConnection: close\r\n\r\n{\"Username\":\"Someone\"}"
   },
   {
-   "label": "POST /undaunted/api/CreateInvite",
-   "raw": "POST /undaunted/api/CreateInvite HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 33\r\nConnection: close\r\n\r\n{\"InviteCode\":\"SECRET-CODE-1234\"}"
+   "label": "POST /reforged/api/CreateInvite",
+   "raw": "POST /reforged/api/CreateInvite HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 33\r\nConnection: close\r\n\r\n{\"InviteCode\":\"SECRET-CODE-1234\"}"
   },
   {
-   "label": "GET /UNDAUNTED/API/CREATEINVITE",
-   "raw": "GET /UNDAUNTED/API/CREATEINVITE HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+   "label": "GET /REFORGED/API/CREATEINVITE",
+   "raw": "GET /REFORGED/API/CREATEINVITE HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
   },
   {
-   "label": "POST /undaunted/api/RegistrationStatus",
-   "raw": "POST /undaunted/api/RegistrationStatus HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+   "label": "POST /reforged/api/RegistrationStatus",
+   "raw": "POST /reforged/api/RegistrationStatus HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
   },
   {
-   "label": "POST /undaunted/api/Register/../CreateInvite",
-   "raw": "POST /undaunted/api/Register/../CreateInvite HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+   "label": "POST /reforged/api/Register/../CreateInvite",
+   "raw": "POST /reforged/api/Register/../CreateInvite HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
   },
   {
-   "label": "GET /undaunted%2Fapi/CreateInvite",
-   "raw": "GET /undaunted%2Fapi/CreateInvite HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+   "label": "GET /reforged%2Fapi/CreateInvite",
+   "raw": "GET /reforged%2Fapi/CreateInvite HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
   },
   {
    "label": "GET /%zz",
@@ -86,8 +86,8 @@
    "raw": "TRACE /heartbeat HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
   },
   {
-   "label": "GET http://evil.example/undaunted/api/CreateInvite",
-   "raw": "GET http://evil.example/undaunted/api/CreateInvite HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+   "label": "GET http://evil.example/reforged/api/CreateInvite",
+   "raw": "GET http://evil.example/reforged/api/CreateInvite HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
   },
   {
    "label": "OPTIONS *",
@@ -95,7 +95,7 @@
   },
   {
    "label": "GET /party",
-   "raw": "GET /party HTTP/1.1\r\nHost: 127.0.0.1\r\nx-undaunted-gameserver-apikey: 0123456789abcdef\r\nConnection: close\r\n\r\n"
+   "raw": "GET /party HTTP/1.1\r\nHost: 127.0.0.1\r\nx-mysticparadox-gameserver-apikey: 0123456789abcdef\r\nConnection: close\r\n\r\n"
   },
   {
    "label": "GET /status/404",
@@ -143,6 +143,73 @@
    "raw": "GET /entitlementsv2?accountId=UID-1&token=eyJhbGciOiJSUzI1NiJ9.eyJ1c2VySWQiOiJVSUQtdGVzdCJ9.c2lnbmF0dXJlLW5vdC1yZWFsLXNpZ25hdHVyZS1ub3QtcmVhbA HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
   },
   {
+   "label": "GET /__origin/gamedev-prod.steelyard.ca/party/invites",
+   "raw": "GET /__origin/gamedev-prod.steelyard.ca/party/invites HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+  },
+  {
+   "label": "GET /__origin/gamedev-prod.steelyard.ca/content/v1/runtime/manifest",
+   "raw": "GET /__origin/gamedev-prod.steelyard.ca/content/v1/runtime/manifest HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+  },
+  {
+   "label": "POST /__origin/gamedev-prod.steelyard.ca/heartbeat",
+   "raw": "POST /__origin/gamedev-prod.steelyard.ca/heartbeat HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer good-token\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+   "local": "127.0.0.54"
+  },
+  {
+   "label": "POST /game/login (not a feed)",
+   "raw": "POST /game/login HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer good-token\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+   "local": "127.0.0.55"
+  },
+  {
+   "label": "POST /login (not a feed)",
+   "raw": "POST /login HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Bearer good-token\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+   "local": "127.0.0.56"
+  },
+  {
+   "label": "POST /__origin/gamedev-prod.steelyard.ca/reforged/api/CreateInvite",
+   "raw": "POST /__origin/gamedev-prod.steelyard.ca/reforged/api/CreateInvite HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+  },
+  {
+   "label": "GET /admin/v1/players",
+   "raw": "GET /admin/v1/players HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+  },
+  {
+   "label": "POST /launcher/v1/auth/register",
+   "raw": "POST /launcher/v1/auth/register HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
+  },
+  {
+   "label": "GET //internal//v1/metrics",
+   "raw": "GET //internal//v1/metrics HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+  },
+  {
+   "label": "GET /health/ready",
+   "raw": "GET /health/ready HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+  },
+  {
+   "label": "GET /reforged/api/ServerStatus with the admin key",
+   "raw": "GET /reforged/api/ServerStatus HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Reforged-Admin-Key: k\r\nConnection: close\r\n\r\n"
+  },
+  {
+   "label": "GET /party with the metrics token",
+   "raw": "GET /party HTTP/1.1\r\nHost: 127.0.0.1\r\nx-mysticparadox-metrics-token: t\r\nConnection: close\r\n\r\n"
+  },
+  {
+   "label": "GET /party with the game-server key",
+   "raw": "GET /party HTTP/1.1\r\nHost: 127.0.0.1\r\nX-MysticParadox-GameServer-ApiKey: k\r\nConnection: close\r\n\r\n"
+  },
+  {
+   "label": "GET /__origin/a..b/x",
+   "raw": "GET /__origin/a..b/x HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+  },
+  {
+   "label": "GET /__origin/gamedev-prod.steelyard.ca/__origin/other/x",
+   "raw": "GET /__origin/gamedev-prod.steelyard.ca/__origin/other/x HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+  },
+  {
+   "label": "GET /__origin",
+   "raw": "GET /__origin HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+  },
+  {
    "label": "upgrade GET //",
    "raw": "GET // HTTP/1.1\r\nHost: 127.0.0.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Protocol: xmpp\r\nOrigin: http://127.0.0.1\r\n\r\n",
    "send": "hello"
@@ -152,12 +219,12 @@
    "raw": "GET /refuse HTTP/1.1\r\nHost: 127.0.0.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"
   },
   {
-   "label": "upgrade GET /undaunted/api/ServerStatus",
-   "raw": "GET /undaunted/api/ServerStatus HTTP/1.1\r\nHost: 127.0.0.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"
+   "label": "upgrade GET /reforged/api/ServerStatus",
+   "raw": "GET /reforged/api/ServerStatus HTTP/1.1\r\nHost: 127.0.0.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"
   },
   {
    "label": "upgrade GET /xmpp",
-   "raw": "GET /xmpp HTTP/1.1\r\nHost: 127.0.0.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nx-undaunted-gameserver-apikey: k\r\n\r\n"
+   "raw": "GET /xmpp HTTP/1.1\r\nHost: 127.0.0.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nx-mysticparadox-gameserver-apikey: k\r\n\r\n"
   },
   {
    "label": "upgrade GET /a/../xmpp",
@@ -170,6 +237,10 @@
   {
    "label": "upgrade GET /xmpp h2c",
    "raw": "GET /xmpp HTTP/1.1\r\nHost: 127.0.0.1\r\nUpgrade: h2c\r\nConnection: Upgrade, HTTP2-Settings\r\nHTTP2-Settings: AAMAAABkAAQAoAAAAAIAAAAA\r\n\r\n"
+  },
+  {
+   "label": "upgrade GET /health/live",
+   "raw": "GET /health/live HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"
   }
  ]
 }

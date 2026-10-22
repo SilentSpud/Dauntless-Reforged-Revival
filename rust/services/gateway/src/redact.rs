@@ -42,11 +42,11 @@ fn replace_runs(text: &str, inside: impl Fn(char) -> bool, min: usize) -> String
     out
 }
 
-/// `/UUK_[0-9A-Za-z]+/g` becomes `<key>`.
+/// `/RRK_[0-9A-Za-z]+/g` becomes `<key>` (Reforged's account keys; DR's were `UUK_`).
 fn redact_account_keys(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut rest = text;
-    while let Some(start) = rest.find("UUK_") {
+    while let Some(start) = rest.find("RRK_") {
         let after = &rest[start + 4..];
         let length = after.bytes().take_while(u8::is_ascii_alphanumeric).count();
         if length == 0 {
@@ -194,7 +194,7 @@ mod tests {
         "eyJhbGciOiJSUzI1NiJ9.eyJ1c2VySWQiOiJVSUQtdGVzdCJ9.c2lnbmF0dXJlLW5vdC1yZWFsLXNpZ25hdHVyZS1ub3QtcmVhbA";
 
     fn fake_key() -> String {
-        format!("UUK_{}", "0123456789abcdef".repeat(3))
+        format!("RRK_{}", "0123456789abcdef".repeat(3))
     }
 
     #[test]
