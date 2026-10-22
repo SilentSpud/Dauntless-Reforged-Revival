@@ -1,10 +1,8 @@
 # Fuzz targets for untrusted input (MIGRATION_PLAN.md RX3; DR's M33, X9), with cargo-fuzz on nightly, from rust/fuzz:
 #   cargo +nightly fuzz run <target> -- -max_total_time=86400
-# Targets: http_body (JSON and form bodies, URL decoding in service-kit), proxy_headers (the shared
-# hop-by-hop rules), protocol_input (invites, server status, usernames and keys, runtime manifests; RS1),
-# allowlist_input (the allowlist helper's request body, state file and firewall settings; RS4) and launcher_input
-# (invites, server status, usernames and keys, read by the launcher; RA1). Each component row adds its own
-# target here.
+# One target per parser of untrusted input, named after its component (each file in fuzz_targets/ says what
+# it feeds); each component row adds its own target and a [[bin]] here, and the integration pass keeps
+# this file merged. The components' security pages (docs/security/) list their targets.
 # On Windows the AddressSanitizer runtime (clang_rt.asan_dynamic-x86_64.dll) must be on PATH: it is in
 # the Visual Studio install, VC/Tools/MSVC/<version>/bin/Hostx64/x64. A workspace of its own: cargo fuzz
 # needs nightly and its own build flags.
@@ -21,35 +19,16 @@ cargo-fuzz = true
 libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
 arbitrary = { version = "1", features = ["derive"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-http = "1"
 content = { path = "../services/content" }
+flate2 = "1"
 gateway = { path = "../services/gateway" }
+host = { path = "../services/host" }
+http = "1"
 protocol = { path = "../crates/protocol" }
 proxy = { path = "../crates/proxy" }
 serde_json = "1"
-url = "2"
 service-kit = { path = "../crates/service-kit" }
-
-[[bin]]
-name = "http_body"
-path = "fuzz_targets/http_body.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "proxy_headers"
-path = "fuzz_targets/proxy_headers.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "protocol_input"
-path = "fuzz_targets/protocol_input.rs"
-test = false
-doc = false
-bench = false
+url = "2"
 
 [[bin]]
 name = "allowlist_input"
@@ -59,8 +38,8 @@ doc = false
 bench = false
 
 [[bin]]
-name = "launcher_input"
-path = "fuzz_targets/launcher_input.rs"
+name = "content_news"
+path = "fuzz_targets/content_news.rs"
 test = false
 doc = false
 bench = false
@@ -80,8 +59,78 @@ doc = false
 bench = false
 
 [[bin]]
-name = "content_news"
-path = "fuzz_targets/content_news.rs"
+name = "gateway_capture"
+path = "fuzz_targets/gateway_capture.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "gateway_policy"
+path = "fuzz_targets/gateway_policy.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "host_gamedata_input"
+path = "fuzz_targets/host_gamedata_input.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "http_body"
+path = "fuzz_targets/http_body.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "launcher_files"
+path = "fuzz_targets/launcher_files.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "launcher_input"
+path = "fuzz_targets/launcher_input.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "launcher_net"
+path = "fuzz_targets/launcher_net.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "protocol_input"
+path = "fuzz_targets/protocol_input.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "proxy_headers"
+path = "fuzz_targets/proxy_headers.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "relay_input"
+path = "fuzz_targets/relay_input.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "runtime_input"
+path = "fuzz_targets/runtime_input.rs"
 test = false
 doc = false
 bench = false

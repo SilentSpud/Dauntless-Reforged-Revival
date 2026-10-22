@@ -25,10 +25,6 @@ pub const DIALOG_WORKSPACE_FOLDER: &str = "dialog_workspace_folder";
 pub const DIALOG_SDK_FOLDER: &str = "dialog_sdk_folder";
 pub const DIALOG_DUMPER_DLL: &str = "dialog_dumper_dll";
 pub const DIALOG_GAMEDATA_PACK: &str = "dialog_gamedata_pack";
-/// DR's two folder purposes, which `platform/dialogs.rs` still names until RA11 gives it Reforged's: both
-/// choose the game's folder (Reforged never downloads the game, so there is no install folder).
-pub const DIALOG_INSTALL_FOLDER: &str = DIALOG_GAME_FOLDER;
-pub const DIALOG_EXISTING_FOLDER: &str = DIALOG_GAME_FOLDER;
 
 #[cfg(test)]
 const USED: &[&str] = &[

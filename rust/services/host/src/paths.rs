@@ -1,10 +1,10 @@
-//! Where everything lives (`legacy/ReforgedHost/src/paths.ts`). The repository holds the code;
-//! `.workspace/` (git-ignored) holds what is the host's own: the pinned upstream source with the
-//! patches applied, the SDK generated from their game, game data, builds, configuration with
-//! secrets, certificates, the database and logs.
+//! Where everything lives (`legacy/ReforgedHost/src/paths.ts`). The repository holds the code,
+//! Mystic Paradox's included (`paradox/`, `native/`, RP2-RP4); what is the host's own is git-ignored:
+//! the SDK generated from their game, game data, exports and builds next to the code that uses them,
+//! and in `.workspace/` the configuration with secrets, certificates, the database and logs.
 //!
 //! The layout is the Node kit's, so a host set up with it keeps working. RH5 moves the code side
-//! (the services, the patches) to the server release; `.workspace/` stays where it is.
+//! (the services) to the server release; `.workspace/` stays where it is.
 
 use std::path::{Path, PathBuf};
 
@@ -70,13 +70,12 @@ pub struct Paths {
     /// The project's server preset (RH4), committed with the project.
     pub preset: PathBuf,
     pub host_kit: PathBuf,
-    pub upstream_pin: PathBuf,
-    pub patches_dir: PathBuf,
     pub gateway_dir: PathBuf,
     pub content_dir: PathBuf,
     pub workspace: PathBuf,
-    pub upstream: PathBuf,
-    pub marker: PathBuf,
+    pub paradox: PathBuf,
+    /// Where setup took the host's own files from before Mystic Paradox was part of the repository.
+    pub old_upstream: PathBuf,
     pub backend_dir: PathBuf,
     pub director_dir: PathBuf,
     pub runtime_source: PathBuf,
@@ -85,6 +84,7 @@ pub struct Paths {
     pub runtime_dll: PathBuf,
     pub loader_dir: PathBuf,
     pub loader_dll: PathBuf,
+    pub exporter_dir: PathBuf,
     pub exporter_dll: PathBuf,
     pub backend_game_data: PathBuf,
     pub director_game_data: PathBuf,
@@ -112,40 +112,38 @@ pub struct Paths {
 }
 
 impl Paths {
-    /// `root`: the Dauntless Reforged Revival checkout (the folder with `legacy/ReforgedHost/` and `upstream/`).
+    /// `root`: the Dauntless Reforged Revival checkout (the folder with `legacy/ReforgedHost/` and `paradox/`).
     pub fn new(root: impl Into<PathBuf>) -> Self {
         let root = root.into();
         let workspace = root.join(".workspace");
-        let upstream = workspace.join("Mystic-Paradox");
-        let runtime_source = upstream.join("ParadoxRuntime");
+        let paradox = root.join("paradox");
+        let native = root.join("native");
+        let runtime_source = native.join("paradox-runtime");
+        let loader_dir = native.join("runtime-loader");
+        let exporter_dir = native.join("catalog-exporter");
         let config = workspace.join("config");
         let tls = workspace.join("tls");
         let logs = workspace.join("logs");
         Self {
             preset: root.join("preset"),
             host_kit: root.join("legacy").join("ReforgedHost"),
-            upstream_pin: root.join("upstream").join("mystic-paradox.json"),
-            patches_dir: root.join("upstream"),
             gateway_dir: root.join("legacy").join("ReforgedGateway"),
             content_dir: root.join("legacy").join("ReforgedContent"),
-            marker: upstream.join(".reforged-patches.json"),
-            backend_dir: upstream.join("ParadoxBackend"),
-            director_dir: upstream.join("ParadoxDirector"),
+            old_upstream: workspace.join("Mystic-Paradox"),
+            backend_dir: paradox.join("backend"),
+            director_dir: paradox.join("director"),
             sdk_header: runtime_source.join("SDK.hpp"),
             sdk_dir: runtime_source.join("SDK"),
-            runtime_dll: runtime_source.join("x64").join("Release").join("MysticParadox.dll"),
-            loader_dir: upstream.join("tools").join("RuntimeLoader"),
-            loader_dll: join(&upstream, &["tools", "RuntimeLoader", "target", "release", "winmm.dll"]),
-            exporter_dll: join(
-                &upstream,
-                &["tools", "CatalogExporter", "x64", "Release", "CatalogExporter.dll"],
-            ),
-            backend_game_data: upstream.join("ParadoxBackend").join("game-data"),
-            director_game_data: upstream.join("ParadoxDirector").join("game-data"),
-            raw_game_data: join(&upstream, &["ParadoxBackend", "game-data", "raw"]),
-            exports: upstream.join("Items_Analysis"),
-            store_captures: upstream.join("DauntlessEndpointDocumentation"),
-            captures_pin: root.join("upstream").join("store-captures.json"),
+            runtime_dll: join(&runtime_source, &["x64", "Release", "MysticParadox.dll"]),
+            loader_dll: join(&loader_dir, &["target", "release", "winmm.dll"]),
+            exporter_dll: join(&exporter_dir, &["x64", "Release", "CatalogExporter.dll"]),
+            backend_game_data: join(&paradox, &["backend", "game-data"]),
+            director_game_data: join(&paradox, &["director", "game-data"]),
+            raw_game_data: join(&paradox, &["backend", "game-data", "raw"]),
+            // Mystic Paradox's generators read these from its root (paradox/).
+            exports: paradox.join("Items_Analysis"),
+            store_captures: paradox.join("DauntlessEndpointDocumentation"),
+            captures_pin: join(&paradox, &["backend", "store-captures.json"]),
             runtime_publish: workspace.join("runtime"),
             host_json: config.join("host.json"),
             cert_file: tls.join("gateway-cert.pem"),
@@ -161,8 +159,10 @@ impl Paths {
             systemd: config.join("systemd"),
             repo: root,
             workspace,
-            upstream,
+            paradox,
             runtime_source,
+            loader_dir,
+            exporter_dir,
             config,
             tls,
             logs,
@@ -175,11 +175,12 @@ fn join(base: &Path, parts: &[&str]) -> PathBuf {
 }
 
 /// The repository root: the first folder at or above `start` (at most 8 levels) that holds
-/// `upstream/mystic-paradox.json` and `legacy/ReforgedHost/`.
+/// `paradox/backend/package.json` and `legacy/ReforgedHost/`.
 pub fn find_repo_root(start: &Path) -> Result<PathBuf, HostError> {
     let mut dir = start;
     for _ in 0..8 {
-        if dir.join("upstream").join("mystic-paradox.json").exists() && dir.join("legacy").join("ReforgedHost").exists()
+        if dir.join("paradox").join("backend").join("package.json").exists()
+            && dir.join("legacy").join("ReforgedHost").exists()
         {
             return Ok(dir.to_path_buf());
         }
@@ -189,7 +190,7 @@ pub fn find_repo_root(start: &Path) -> Result<PathBuf, HostError> {
         }
     }
     Err(HostError::message(format!(
-        "Could not find the Dauntless Reforged Revival folder (with upstream/ and legacy/ReforgedHost/) above {}",
+        "Could not find the Dauntless Reforged Revival folder (with paradox/ and legacy/ReforgedHost/) above {}",
         start.display()
     )))
 }
@@ -232,19 +233,26 @@ mod tests {
         let ws = root.join(".workspace");
         assert_eq!(p.host_json, ws.join("config").join("host.json"));
         assert_eq!(p.cert_file, ws.join("tls").join("gateway-cert.pem"));
-        assert_eq!(p.backend_dir, ws.join("Mystic-Paradox").join("ParadoxBackend"));
+        assert_eq!(p.backend_dir, root.join("paradox").join("backend"));
         assert_eq!(
             p.runtime_dll,
-            ws.join("Mystic-Paradox")
-                .join("ParadoxRuntime")
-                .join("x64")
-                .join("Release")
-                .join("MysticParadox.dll")
+            join(
+                &root,
+                &["native", "paradox-runtime", "x64", "Release", "MysticParadox.dll"]
+            )
         );
+        assert_eq!(
+            p.loader_dll,
+            join(&root, &["native", "runtime-loader", "target", "release", "winmm.dll"])
+        );
+        assert_eq!(
+            p.captures_pin,
+            join(&root, &["paradox", "backend", "store-captures.json"])
+        );
+        assert_eq!(p.old_upstream, ws.join("Mystic-Paradox"));
         assert_eq!(p.gameserver_wrapper, ws.join("bin").join("reforged-gameserver"));
         assert_eq!(p.systemd, ws.join("config").join("systemd"));
         assert_eq!(p.host_kit, root.join("legacy").join("ReforgedHost"));
-        assert_eq!(p.upstream_pin, root.join("upstream").join("mystic-paradox.json"));
         assert!(game_exe_relative().ends_with("Dauntless-Win64-Shipping.exe"));
         assert!(game_exe_relative().starts_with("Archon"));
     }
@@ -253,9 +261,9 @@ mod tests {
     fn finds_the_checkout_above_a_folder_and_names_the_start_when_there_is_none() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path().join("Reforged");
-        std::fs::create_dir_all(root.join("upstream")).unwrap();
+        std::fs::create_dir_all(root.join("paradox").join("backend")).unwrap();
         std::fs::create_dir_all(root.join("legacy").join("ReforgedHost").join("dist")).unwrap();
-        std::fs::write(root.join("upstream").join("mystic-paradox.json"), "{}").unwrap();
+        std::fs::write(root.join("paradox").join("backend").join("package.json"), "{}").unwrap();
         let deep = root.join("legacy").join("ReforgedHost").join("dist");
         assert_eq!(find_repo_root(&deep).unwrap(), root);
         let elsewhere = dir.path().join("elsewhere");
