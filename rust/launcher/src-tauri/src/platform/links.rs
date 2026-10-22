@@ -4,7 +4,8 @@
 //! tauri-plugin-opener would bring zbus 5, whose parts are unmaintained). The page cannot open anything
 //! itself.
 //!
-//! RA2 moved the table to Reforged's targets with the bridge's `ExternalTarget`; RA11 owns the rest.
+//! RA2 moved the table to Reforged's targets with the bridge's `ExternalTarget`; RA11 checked it against
+//! `links.ts` (`FIXED_LINKS`, `isAllowedStaticUrl`, `isAllowedExternalUrl`) and `links.test.ts`.
 
 use crate::bridge::types::ExternalTarget;
 

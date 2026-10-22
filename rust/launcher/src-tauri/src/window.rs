@@ -1,5 +1,5 @@
 //! The launcher's one window: frameless, sized to fit the screen, and locked to the app's own page
-//! (rows L5 and L10).
+//! (rows L5, L10 and RA11), as Reforged's `createWindow` in `src/main.ts`.
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -13,8 +13,11 @@ use crate::platform::dialogs::KeepOpen;
 
 pub const MAIN: &str = "main";
 
-/// The page's ink (styles.css), so nothing flashes before it paints.
-const INK: Color = Color(0x01, 0x09, 0x0d, 0xff);
+/// The page's ink (styles.css, `#03080F`), so nothing flashes before it paints.
+const INK: Color = Color(0x03, 0x08, 0x0f, 0xff);
+
+/// The window is shown when the page has loaded, or after this long whatever happened.
+const SHOW_ANYWAY: std::time::Duration = std::time::Duration::from_secs(10);
 
 /// Pushed to the page whenever the window is maximised or restored.
 pub const WINDOW_STATE_EVENT: &str = "window-state";
@@ -73,6 +76,14 @@ pub fn create(app: &AppHandle) -> tauri::Result<WebviewWindow> {
             }
         })
         .build()?;
+
+    let late = window.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(SHOW_ANYWAY).await;
+        if !late.is_visible().unwrap_or(true) {
+            let _ = late.show();
+        }
+    });
 
     let handle = window.clone();
     window.on_window_event(move |event| match event {
