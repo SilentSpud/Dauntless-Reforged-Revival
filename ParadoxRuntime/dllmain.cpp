@@ -12372,6 +12372,77 @@ static void MpUncapSupplyStacks() {
     }
 }
 
+// [Dauntless Reforged Revival] On 17 Oct the arsenal twice showed an empty loadout ("Novo Equipamento", no armour,
+// power 0) and the HUD its placeholder weapon XP (8,888 / 100,000) while the character still wore its gear. Both
+// times the game had just repaired an inventory "state hash mismatch" (Ramsgate at 07:13:39, a hunt at 07:45:11):
+// the client's copy of the inventory disagreed with the server's, and the inventory was fetched again. This logs,
+// in the player's game, every inventory and loadout RPC or OnRep the client runs, with what the local loadout
+// resolves to at that moment: the active slot, the number of slots, and how many of the five equipped items
+// (weapon, helmet, chest, arms, legs) the game's own getters return. When the arsenal empties, the lines around
+// that moment show whether the refresh is what dropped the equipped items. It only reads and logs.
+static uintptr_t ResolveFunctionStartRva(uintptr_t Rva);   // defined further down
+static constexpr uintptr_t kClientLoadoutGetterRvas[5] = { 0x01BA4FF0, 0x01B9CA60, 0x01B9FF30, 0x01B9A620, 0x01BA08D0 };
+
+static bool ClientLoadoutGettersAreFunctions() {
+    static int s_state = -1;
+    if (s_state < 0) {
+        s_state = 1;
+        for (uintptr_t Rva : kClientLoadoutGetterRvas) {
+            if (ResolveFunctionStartRva(Rva) != Rva) { s_state = 0; break; }
+        }
+    }
+    return s_state == 1;
+}
+
+// No C++ objects in here: it runs under SEH.
+static void ReadClientLoadoutState(void* PlayerController, bool CallGetters,
+    int* OutActiveSlot, int* OutSlotCount, int* OutEquipped) {
+    *OutActiveSlot = -2; *OutSlotCount = -1; *OutEquipped = -1;
+    __try {
+        if (!PlayerController || !IsReadablePointer(PlayerController, 0x9D0)
+            || !IsRegisteredLiveObject(PlayerController)
+            || !reinterpret_cast<UObject*>(PlayerController)->IsA(AArchonPlayerController::StaticClass())) return;
+        AArchonLoadout* Loadout = reinterpret_cast<AArchonPlayerController*>(PlayerController)->LOADOUT;
+        if (!Loadout || !IsReadablePointer(Loadout, 0x690) || !IsRegisteredLiveObject(Loadout)) return;
+        *OutActiveSlot = Loadout->ActiveLoadoutSlotIndex;
+        *OutSlotCount = Loadout->LoadoutSlotDataArray.Num();
+        if (!CallGetters || !Loadout->LoadoutSlotDataArray.IsValidIndex(*OutActiveSlot)
+            || !Loadout->LoadoutSlotDataArray[*OutActiveSlot]) return;
+        int Equipped = 0;
+        for (uintptr_t Rva : kClientLoadoutGetterRvas) {
+            if (reinterpret_cast<void*(__fastcall*)(void*)>(Globals::BaseAddress + Rva)(Loadout)) ++Equipped;
+        }
+        *OutEquipped = Equipped;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        *OutEquipped = -3;
+    }
+}
+
+static void TraceClientInventoryEvent(UObject* Object, const std::string& FunctionName, const char* Phase) {
+    static const bool s_disabled = MpExeRelativeFlagPresent(L"DISABLE_CLIENT_INVENTORY_TRACE.flag");
+    if (Globals::AmServer || s_disabled) return;
+    const bool IsInventory = FunctionName.find("ArchonInventory.Client") != std::string::npos
+        || FunctionName.find("ArchonInventory.ServerHandleInventoryHashMismatch") != std::string::npos
+        || FunctionName.find("ArchonInventory.HandleItemStateUpdates") != std::string::npos
+        || FunctionName.find("ArchonInventory.OnRep") != std::string::npos;
+    const bool IsLoadout = FunctionName.find("ArchonLoadout.OnRep") != std::string::npos
+        || FunctionName.find("ArchonLoadout.Client") != std::string::npos
+        || FunctionName.find("ArchonLoadoutSlotData.OnRep") != std::string::npos;
+    if (!IsInventory && !IsLoadout) return;
+    static std::atomic<int> s_seq{ 0 };
+    const int Seq = s_seq.fetch_add(1, std::memory_order_relaxed);
+    if (Seq >= 600) return;
+    int ActiveSlot = -2, SlotCount = -1, Equipped = -1;
+    ReadClientLoadoutState(s_LastPossessedPC, ClientLoadoutGettersAreFunctions(), &ActiveSlot, &SlotCount, &Equipped);
+    MpLog(std::string("[ClientInventoryTrace #") + std::to_string(Seq) + "] " + Phase
+        + " fn=" + FunctionName
+        + " obj=" + MpPtr(Object) + "/" + SafeObjectNameForDiagnostic(Object)
+        + " loadout: activeSlot=" + std::to_string(ActiveSlot)
+        + " slots=" + std::to_string(SlotCount)
+        + " equippedResolved=" + std::to_string(Equipped) + "/5");
+}
+
 void ProcessEventClientHook(UObject* Object, UFunction* Function, void* Parms) {
     g_clientProcessEventCount.fetch_add(1, std::memory_order_relaxed);
     if (g_clientGameThreadId.load(std::memory_order_relaxed) == 0) {
@@ -12460,6 +12531,7 @@ void ProcessEventClientHook(UObject* Object, UFunction* Function, void* Parms) {
     }
 
     TraceArtificerDroneEvent("Client", "ENTER", Object, FunctionName, Parms);
+    TraceClientInventoryEvent(Object, FunctionName, "ENTER");
     const int EscalationFlowClientSeq = TraceEscalationFlowEnter(
         "Client", Object, FunctionName, Parms);
 
@@ -12811,6 +12883,7 @@ void ProcessEventClientHook(UObject* Object, UFunction* Function, void* Parms) {
 
     reinterpret_cast<void(*)(UObject*, UFunction*, void*)>(OrigProcessEventClient)(Object, Function, Parms);
     TraceArtificerDroneEvent("Client", "EXIT", Object, FunctionName, Parms);
+    TraceClientInventoryEvent(Object, FunctionName, "EXIT");
 
     // After the screen's own handler, so SetSplashImage / HandleGetPatchNotesPayloadSuccess cannot undo it.
     if (FunctionName.find("LoginScreen") != std::string::npos) {
