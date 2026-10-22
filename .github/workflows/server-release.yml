@@ -24,6 +24,9 @@ on:
   push:
     tags:
       - "server-v*"
+    # TEMPORARY: registers the workflow so Run workflow works on this branch before it is on main; removed before review
+    branches:
+      - claude/rh6-rh5-server-release-55884d
   workflow_dispatch:
     inputs:
       version:
