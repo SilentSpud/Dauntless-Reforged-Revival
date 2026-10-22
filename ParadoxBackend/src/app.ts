@@ -41,6 +41,7 @@ import { ReadMetagameServiceRole } from "./config/serviceRole";
 import { AdjustMetric, IncrementMetric, ObserveMetric } from "./observability/metrics";
 import { metricsRouter } from "./routes/metrics";
 import { GetP2PExtension } from "./extensions/p2p";
+import { reforgedApiRouter } from "./routes/reforgedApi";
 
 // Optional player-hosted hunt module (dedicated-only defaults when it is absent).
 const Extension = GetP2PExtension();
@@ -224,6 +225,8 @@ app.use("/", progressionRouter);
 app.use("/", loadoutRouter);
 app.use("/", friendsRouter);
 app.use("/", launcherAuthRouter);
+// [Dauntless Reforged Revival] Invites, account keys and the live server status for the launcher.
+app.use("/", reforgedApiRouter);
 app.use("/", launcherUpdatesRouter);
 app.use("/", launcherLogsRouter);
 app.use("/", adminLauncherLogsRouter);

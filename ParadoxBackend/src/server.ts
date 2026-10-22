@@ -28,6 +28,14 @@ import { SetServiceReadiness } from "./observability/serviceReadiness";
 import { GetP2PExtension } from "./extensions/p2p";
 
 const PORT = process.env.PORT?.trim() || "3000";
+// [Dauntless Reforged Revival] The address the HTTP listener binds. Unset keeps every interface (the
+// previous behaviour); the Reforged setup writes 127.0.0.1, so only the gateway, the deploy server and
+// the game servers on this machine reach it.
+const BIND_HOST = process.env.BIND_HOST?.trim() || undefined;
+// [Dauntless Reforged Revival] HTTP-only mode: the Reforged gateway terminates TLS with its own pinned
+// certificate and the launcher relays the game's traffic, so this process needs no HTTPS identity. The
+// realtime (XMPP) WebSocket is then served on the HTTP listener.
+const HTTP_ONLY = /^(1|true|yes|on)$/i.test(process.env.REFORGED_HTTP_ONLY?.trim() ?? "");
 
 // HTTPS listener for the game client. The injected DLL rewrites the official backend
 // hosts (*.steelyard.ca, *.steelyard.online, ...) to https://paradox.mysticfox.dev/__origin/...
@@ -92,8 +100,8 @@ async function Main(): Promise<void> {
     if (serviceRole !== "combined" && serviceRole !== "api") {
         throw new Error(`server.ts serves the combined or api role; ${serviceRole} has its own entry point.`);
     }
-    const ParadoxCtx = LoadTlsContext(PARADOX_CERT_PATH, PARADOX_KEY_PATH, "paradox.mysticfox.dev", PARADOX_KEY_PASSPHRASE);
-    if (process.env.NODE_ENV === "production" && ParadoxCtx == undefined) {
+    const ParadoxCtx = HTTP_ONLY ? undefined : LoadTlsContext(PARADOX_CERT_PATH, PARADOX_KEY_PATH, "paradox.mysticfox.dev", PARADOX_KEY_PASSPHRASE);
+    if (process.env.NODE_ENV === "production" && ParadoxCtx == undefined && !HTTP_ONLY) {
         throw new Error("Production API startup requires a valid HTTPS certificate and key.");
     }
     // API keys are HMAC-hashed under API_KEY_HASH_SECRET; refuse to start without it rather than reject every
@@ -107,15 +115,22 @@ async function Main(): Promise<void> {
     partyOutboxDispatcher.start();
     GetP2PExtension().server.start(serviceRole);
 
-    HttpServer = app.listen(PORT, () => {
-        logger.info(`Mystic Paradox Metagame (HTTP) on port ${PORT}`);
+    const OnHttpListening = () => {
+        logger.info(`Mystic Paradox Metagame (HTTP) on ${BIND_HOST ?? "every interface"}, port ${PORT}`);
         logger.info(`Clear Skies, Slayer.`);
-    });
+        if (HTTP_ONLY) SetServiceReadiness({ ready: true, reason: "HTTP_ONLY_BEHIND_GATEWAY", role: serviceRole });
+    };
+    HttpServer = BIND_HOST ? app.listen(Number(PORT), BIND_HOST, OnHttpListening) : app.listen(PORT, OnHttpListening);
     HttpServer.on("error", (error) => {
         HandleListenerError("HTTP", error, serviceRole);
     });
+    if (HTTP_ONLY) {
+        initRealtime(HttpServer as unknown as https.Server);
+    }
 
-    if (ParadoxCtx == undefined) {
+    if (HTTP_ONLY) {
+        logger.info("REFORGED_HTTP_ONLY: no HTTPS listener (the Reforged gateway terminates TLS)");
+    } else if (ParadoxCtx == undefined) {
         logger.error("No HTTPS certificate available - HTTPS listener not started (game client TLS will fail)");
     } else {
         try {
@@ -146,7 +161,7 @@ async function Main(): Promise<void> {
             if (process.env.NODE_ENV === "production") throw e;
         }
     }
-    if (ParadoxCtx == undefined && process.env.NODE_ENV !== "production") {
+    if (ParadoxCtx == undefined && !HTTP_ONLY && process.env.NODE_ENV !== "production") {
         SetServiceReadiness({ ready: true, reason: "HTTP_ONLY_DEVELOPMENT", role: serviceRole });
     }
 
@@ -167,6 +182,12 @@ async function Main(): Promise<void> {
     // A bind failure is logged and deliberately does NOT change readiness: the game is still playable
     // without a latency measurement, so a busy QoS port must never take the API down.
     const QOS_PORT = Number(process.env.QOS_PORT?.trim() || "80");
+    // [Dauntless Reforged Revival] QOS_PORT=0 turns this listener off: the launcher's local relay
+    // answers the region pings on the player's own PC (QOS_TARGET_URL points there).
+    if (QOS_PORT === 0) {
+        logger.info("QoS listener off (QOS_PORT=0)");
+        return;
+    }
     try {
         const QosServer = http.createServer((_req, res) => {
             res.statusCode = 200;

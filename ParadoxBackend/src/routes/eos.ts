@@ -124,7 +124,40 @@ eosRouter.post("/account/api/oauth/token", async (req, res) => {
     else if(process.env.AUTH_MODE === "APIKEY"){
         const ApiKey = req.body.exchange_code;
 
-        const UserId = await GetUserIDForAPIKey(ApiKey);
+        // [Dauntless Reforged Revival] As in LAUNCHER mode below: the client's second OAuth request
+        // (grant_type=client_credentials, no exchange_code) authenticates the game app, not a
+        // player, and gets the separate service token instead of a 500 from hashing nothing.
+        if((typeof ApiKey !== "string" || ApiKey.length === 0) && req.body?.grant_type === "client_credentials"){
+            logger.info("APIKEY auth: issuing client-credentials token");
+
+            res.json({
+                "access_token": SignMetagameJWTForUid(LAUNCHER_CLIENT_CREDENTIALS_USER_ID),
+                "token_type": "bearer",
+                "expires_at": "2085-09-09T01:01:01.703Z",
+                "features": ["Achievements", "AntiCheat", "Ecom", "Voice"],
+                "organization_id": "o-krlzxj88qrtb69fredeuaf887bl5az",
+                "product_id": "prod-jackal",
+                "sandbox_id": "jackal",
+                "deployment_id": "53565ba467df4edbb6f5a3d939a8b4f2",
+                "expires_in": 86400
+            });
+            return;
+        }
+
+        const UserId = typeof ApiKey === "string" && ApiKey.length > 0 && ApiKey.length <= 256
+            ? await GetUserIDForAPIKey(ApiKey)
+            : undefined;
+
+        // [Dauntless Reforged Revival] A banned or disabled launcher account cannot start a session.
+        if(UserId != undefined){
+            const Account = await GetRepositories().launcherAccounts.findByUserId(UserId);
+            if(Account !== undefined && !IsAccountEligible(Account)){
+                logger.warn(`APIKEY auth: account ${UserId} is not eligible`);
+                res.status(403);
+                res.send();
+                return;
+            }
+        }
 
         if(UserId != undefined){
             logger.info("Logging in a user by API key.");
