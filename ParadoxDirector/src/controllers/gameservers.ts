@@ -22,6 +22,7 @@ import { logger } from "../logger";
 import { loadGameData } from "../gameData/loader";
 import { PortPool } from "./portPool";
 import { CreateSerialGate, HubSupervisor, HubLogLevel } from "./hubSupervisor";
+import { HuntMemoryUnavailableError, MemoryAdmissionFromEnv } from "./memoryAdmission";
 
 // Hunt tables from ParadoxDirector/game-data (gameData/loader.ts), exported from the client by CatalogExporter.
 const PlayerHuntTable = loadGameData<any>("player_hunts_table.json");
@@ -225,6 +226,15 @@ function GetCurrentTrialsWeek(NowMs: number = Date.now()): string {
 // client connections for a grace period (accurate: never kills a hunt while anyone is still fighting).
 // We deliberately do NOT reap by wall-clock lifetime — big maps + long hunts must not be cut short.
 const MAX_CONCURRENT_HUNT_SERVERS = Number(process.env.MAX_CONCURRENT_HUNT_SERVERS ?? "3");
+
+// [Dauntless Reforged Revival] GAMESERVER_MEMORY_GUARD=1: a new hunt starts only when the machine has the
+// memory for it (memoryAdmission.ts); off without the setting.
+const { admission: HuntMemory, problems: HuntMemoryProblems } = MemoryAdmissionFromEnv();
+for (const Problem of HuntMemoryProblems) logger.warn(`[MemoryGuard] ${Problem}`);
+if (HuntMemory.enabled) {
+    const Status = HuntMemory.status();
+    logger.info(`[MemoryGuard] on: a new hunt needs ${Status.neededMb} MB available (now ${Status.availableMb ?? "unknown"} MB)`);
+}
 
 // [2026-07-19] Public Hunt Server Reuse (Part B). When enabled, a SHARED (public Hunting Grounds) request
 // for a player hunt id that already has a live, ready, non-full server JOINS that server instead of
@@ -443,6 +453,7 @@ async function StartServer(Map: string, Behemoth: string | undefined, Matchmaker
 
     let Port: number | undefined;
     const Id = crypto.randomUUID();
+    let ReleaseHuntMemory: () => void = () => {};
 
     if(IsRamsgate){
         Port = RAMSGATE_PORT;
@@ -457,10 +468,21 @@ async function StartServer(Map: string, Behemoth: string | undefined, Matchmaker
         if(CountHuntServers() >= MAX_CONCURRENT_HUNT_SERVERS){
             throw new NoHuntCapacityError(CountHuntServers(), MAX_CONCURRENT_HUNT_SERVERS);
         }
+        // [Dauntless Reforged Revival] Memory admission (memoryAdmission.ts): refused like a full cap, before
+        // any port or process is taken. The reservation covers what this hunt has yet to allocate.
+        try {
+            ReleaseHuntMemory = HuntMemory.reserve();
+        } catch (MemoryError) {
+            if (MemoryError instanceof HuntMemoryUnavailableError) {
+                logger.warn(`[MemoryGuard] refusing a new hunt (${CountHuntServers()} running): ${MemoryError.message}`);
+            }
+            throw MemoryError;
+        }
         Port = Ports.take(Id);
     }
 
     if(Port == undefined){
+        ReleaseHuntMemory();
         throw new Error("No free ports left!");
     }
     // TS does not narrow a `let` inside the exit closure below.
@@ -518,6 +540,7 @@ async function StartServer(Map: string, Behemoth: string | undefined, Matchmaker
     } catch (SpawnError) {
         // [2026-10-10 1.14.7] A synchronous spawn failure has no child and no exit event: return the lease.
         if (IsHunt) Ports.release(LeasedPort, Id);
+        ReleaseHuntMemory();
         LogStream.end();
         throw SpawnError;
     }
@@ -585,6 +608,7 @@ async function StartServer(Map: string, Behemoth: string | undefined, Matchmaker
     catch (Err: any) {
         NewGameserver.state = "failed";
         Gameservers = Gameservers.filter((Server) => Server !== NewGameserver);
+        ReleaseHuntMemory();
         // [2026-10-10 1.14.7] Return a hunt's port only when its process is really gone. A timed-out child
         // that is still alive is killed and its exit event releases the port (owner-checked); if that event
         // never arrives, the watchdog reclaims the lease once the pid is gone (ReclaimOrphanedPortLeases).
