@@ -7,7 +7,7 @@
 #      legacy/ReforgedGateway and legacy/ReforgedContent built with their node_modules, for as long as `start`
 #                        still runs them (until RS2 and RS3 flip start's switch; RS5 removes them) and setup makes
 #                        the gateway's certificate with their make-cert tool
-#      release.json      the version, commit and platform, and every file of the release with its SHA-256
+#      release.json      the version, commit, platform and repository, and every file of the release with its SHA-256
 #  - SHA256SUMS.txt for the archives, covered by a signed build provenance attestation on a published release
 #    (gh attestation verify <file> --repo <owner>/<repo>; reforged-host update runs it when gh is there)
 #
@@ -24,9 +24,6 @@ on:
   push:
     tags:
       - "server-v*"
-    # TEMPORARY: registers the workflow so Run workflow works on this branch before it is on main; removed before review
-    branches:
-      - claude/rh6-rh5-server-release-55884d
   workflow_dispatch:
     inputs:
       version:
@@ -148,8 +145,11 @@ jobs:
       # No build cache in a release: every file is built from this commit alone.
       # backend and director join this list once they are real (RB rows; RD8). Until RB14 the archive carries
       # the Node backend and Director instead (the Node build step below).
+      # REFORGED_RELEASE_REPOSITORY: where reforged-host looks for newer releases (this repository)
       - name: Build the release binaries
         working-directory: rust
+        env:
+          REFORGED_RELEASE_REPOSITORY: ${{ github.repository }}
         run: cargo build --release --locked --target "$TARGET" -p host -p gateway -p content --bins
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -191,9 +191,9 @@ jobs:
           echo "$COMMIT" > "$out/COMMIT"
           # release.json: what update reads, and every file with its SHA-256 (update removes the files an older
           # release had and this one has not, and checks what it installed)
-          node - "$out" "$VERSION" "$COMMIT" "$TARGET" "$PLATFORM" <<'EOF'
+          node - "$out" "$VERSION" "$COMMIT" "$TARGET" "$PLATFORM" "$GITHUB_REPOSITORY" <<'EOF'
           const fs = require("fs"), path = require("path"), crypto = require("crypto");
-          const [root, version, commit, target, platform] = process.argv.slice(2);
+          const [root, version, commit, target, platform, repository] = process.argv.slice(2);
           const files = [];
           (function walk(dir) {
             for (const e of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
@@ -205,7 +205,7 @@ jobs:
               } else if (e.isSymbolicLink()) throw new Error(`a symbolic link in the release: ${full}`);
             }
           })(root);
-          const manifest = { name: "reforged-revival-server", version, commit, target, platform, files };
+          const manifest = { name: "reforged-revival-server", version, commit, target, platform, repository, files };
           fs.writeFileSync(path.join(root, "release.json"), JSON.stringify(manifest, null, 2) + "\n");
           console.log(`release.json: ${files.length} files`);
           EOF
