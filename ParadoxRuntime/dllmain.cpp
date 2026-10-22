@@ -150,17 +150,126 @@ static const char* MpLogDir() {
 
 // [A/B 2026-07-16] Generic exe-relative sentinel-flag check (same convention as
 // MP_FORCE_WARP.flag): true iff <game-exe-dir>\<FileName> exists. Exe-relative so it works on
-// the VPS. Does a cheap GetFileAttributesW per call, so hot callers should cache the result.
+// the VPS.
+// [2026-10-10 1.14.7 CPU] Cached per name for 4 s. It used to call GetModuleFileNameW, build a std::wstring and
+// probe the file system on EVERY call, and about four call sites run every server frame (plus one per replicated
+// actor added to the graph). Now:
+//   * the exe directory is resolved once (MpResolveExeDirW, first thing in Init; never with a lock held) into POD
+//     storage published through an interlocked ready state;
+//   * each name's answer is kept in a fixed POD table (128 names x 64 chars) behind an SRWLOCK (constant-initialised,
+//     loader-lock safe); the lock covers only the table scan, never GetModuleFileNameW or the file probe;
+//   * a name is re-probed at most once every 4000 ms, so creating or deleting a live A/B flag (for example
+//     DISABLE_PLAYER_ROLE_GLOBAL_ROUTE.flag) takes effect within 4 s, and both of that flag's read sites see the
+//     same answer. A flag created and deleted again within 4 s may be missed. Call sites that keep the answer in a
+//     static (read-once flags) still read once and keep it for the process lifetime;
+//   * no heap and no CRT state, so it stays usable late in shutdown.
+// A name of 64+ chars, a full table, or UNCACHED_FLAG_FILES.flag (probed directly, once) probes on every call, as
+// before.
+static wchar_t g_MpExeDirW[MAX_PATH] = { 0 };
+static size_t g_MpExeDirLenW = 0;
+static volatile LONG g_MpExeDirState = 0;   // 0 = not resolved, 1 = being published, 2 = ready
+
+// Writes the exe path to Out and returns the length of its directory part (with the trailing separator); 0 on failure.
+static size_t MpExeDirFromModuleW(wchar_t (&Out)[MAX_PATH]) {
+    const DWORD n = GetModuleFileNameW(nullptr, Out, MAX_PATH);
+    if (n == 0 || n >= MAX_PATH) return 0;
+    size_t Len = 0;
+    for (DWORD i = 0; i < n; ++i) { if (Out[i] == L'\\' || Out[i] == L'/') Len = static_cast<size_t>(i) + 1; }
+    return Len;
+}
+
+static void MpResolveExeDirW() {
+    if (InterlockedCompareExchange(&g_MpExeDirState, 0, 0) == 2) return;
+    wchar_t Local[MAX_PATH];
+    const size_t Len = MpExeDirFromModuleW(Local);
+    if (Len == 0) return;   // stays unresolved: every probe looks the path up itself (the old behaviour)
+    if (InterlockedCompareExchange(&g_MpExeDirState, 1, 0) != 0) return;   // another thread publishes the same path
+    for (size_t i = 0; i < Len; ++i) g_MpExeDirW[i] = Local[i];
+    g_MpExeDirW[Len] = L'\0';
+    g_MpExeDirLenW = Len;
+    InterlockedExchange(&g_MpExeDirState, 2);
+}
+
+static bool MpProbeExeRelativeFile(const wchar_t* Name, size_t NameLen) {
+    wchar_t Path[MAX_PATH];
+    size_t DirLen = 0;
+    if (InterlockedCompareExchange(&g_MpExeDirState, 0, 0) == 2) {
+        DirLen = g_MpExeDirLenW;
+        for (size_t i = 0; i < DirLen; ++i) Path[i] = g_MpExeDirW[i];
+    } else {
+        DirLen = MpExeDirFromModuleW(Path);
+    }
+    if (DirLen == 0 || DirLen + NameLen + 1 > MAX_PATH) return false;
+    for (size_t i = 0; i < NameLen; ++i) Path[DirLen + i] = Name[i];
+    Path[DirLen + NameLen] = L'\0';
+    return GetFileAttributesW(Path) != INVALID_FILE_ATTRIBUTES;
+}
+
+struct MpFlagCacheEntry { wchar_t Name[64]; size_t Len; bool Present; ULONGLONG CheckedMs; };
+static MpFlagCacheEntry g_MpFlagCache[128] = {};
+static int g_MpFlagCacheCount = 0;
+static SRWLOCK g_MpFlagCacheLock = SRWLOCK_INIT;
+static volatile LONG g_MpFlagCacheMode = -1;   // -1 = not decided, 1 = cached, 0 = UNCACHED_FLAG_FILES.flag
+static constexpr ULONGLONG kMpFlagRecheckMs = 4000;
+
+// Decided once: UNCACHED_FLAG_FILES.flag is probed directly (never cached) on the first call.
+static LONG MpDecideFlagCacheMode() {
+    const LONG Mode = InterlockedCompareExchange(&g_MpFlagCacheMode, 0, 0);
+    if (Mode >= 0) return Mode;
+    static const wchar_t kOff[] = L"UNCACHED_FLAG_FILES.flag";
+    const LONG Decided = MpProbeExeRelativeFile(kOff, (sizeof(kOff) / sizeof(kOff[0])) - 1) ? 0 : 1;
+    InterlockedCompareExchange(&g_MpFlagCacheMode, Decided, -1);
+    return InterlockedCompareExchange(&g_MpFlagCacheMode, 0, 0);
+}
+
 bool MpExeRelativeFlagPresent(const wchar_t* FileName) {
     if (!FileName) { return false; }
-    wchar_t ExePath[MAX_PATH];
-    DWORD n = GetModuleFileNameW(nullptr, ExePath, MAX_PATH);
-    if (n == 0 || n >= MAX_PATH) { return false; }
-    for (int i = (int)n - 1; i >= 0; --i) {
-        if (ExePath[i] == L'\\' || ExePath[i] == L'/') { ExePath[i + 1] = L'\0'; break; }
+    size_t Len = 0;
+    while (FileName[Len] && Len < MAX_PATH) ++Len;
+    MpResolveExeDirW();
+    if (MpDecideFlagCacheMode() != 1 || Len >= 64) return MpProbeExeRelativeFile(FileName, Len);
+
+    const ULONGLONG Now = GetTickCount64();
+    int Slot = -1;
+    AcquireSRWLockExclusive(&g_MpFlagCacheLock);
+    for (int i = 0; i < g_MpFlagCacheCount; ++i) {
+        const MpFlagCacheEntry& E = g_MpFlagCache[i];
+        if (E.Len != Len) continue;
+        size_t k = 0;
+        while (k < Len && E.Name[k] == FileName[k]) ++k;
+        if (k == Len) { Slot = i; break; }
     }
-    std::wstring FlagPath = std::wstring(ExePath) + FileName;
-    return GetFileAttributesW(FlagPath.c_str()) != INVALID_FILE_ATTRIBUTES;
+    if (Slot < 0 && g_MpFlagCacheCount < static_cast<int>(sizeof(g_MpFlagCache) / sizeof(g_MpFlagCache[0]))) {
+        Slot = g_MpFlagCacheCount++;
+        MpFlagCacheEntry& E = g_MpFlagCache[Slot];
+        for (size_t k = 0; k < Len; ++k) E.Name[k] = FileName[k];
+        E.Name[Len] = L'\0';
+        E.Len = Len;
+        E.Present = false;
+        E.CheckedMs = 0;
+    }
+    if (Slot >= 0 && g_MpFlagCache[Slot].CheckedMs != 0 && Now - g_MpFlagCache[Slot].CheckedMs < kMpFlagRecheckMs) {
+        const bool Present = g_MpFlagCache[Slot].Present;
+        ReleaseSRWLockExclusive(&g_MpFlagCacheLock);
+        return Present;
+    }
+    ReleaseSRWLockExclusive(&g_MpFlagCacheLock);
+
+    const bool Present = MpProbeExeRelativeFile(FileName, Len);   // outside the lock
+    if (Slot >= 0) {
+        AcquireSRWLockExclusive(&g_MpFlagCacheLock);
+        g_MpFlagCache[Slot].Present = Present;
+        g_MpFlagCache[Slot].CheckedMs = Now ? Now : 1;
+        ReleaseSRWLockExclusive(&g_MpFlagCacheLock);
+    }
+    return Present;
+}
+
+static const char* MpFlagCacheModeText() {
+    const LONG Mode = InterlockedCompareExchange(&g_MpFlagCacheMode, 0, 0);
+    return Mode == 1 ? "ON (each flag file re-checked at most every 4 s)"
+        : Mode == 0 ? "OFF (UNCACHED_FLAG_FILES.flag: every check probes the file)"
+                    : "not decided yet";
 }
 
 /*
@@ -1541,6 +1650,7 @@ void MainThread() {
     InitLog("[MainThread] Built map part, calling MpLog...");
 
     MpLog(logMsg);
+    MpLog(std::string("[FlagCache] flag-file cache ") + MpFlagCacheModeText());
     InitLog("[MainThread] MpLog returned, entering UWorld wait loop");
 
     if (Globals::AmServer && Globals::AuthMode == Globals::ServerAuthMode::Invalid) {
@@ -4785,6 +4895,68 @@ static constexpr uint64_t kClientRolePumpStableChainMs = 750;
 // HasFinishedLoading compatibility override forces it (see IsLocalArchonControllerReadinessObject).
 static constexpr uint64_t kClientReadinessForceAfterMs = 20000;
 
+// [2026-10-10 1.14.7 CPU] ExpectedPlayerCount roster sync for ONE object (the world's GameMode or GameState).
+// Same checks, compare-then-write and one-time log text as the GObjects walk it replaces (see the roster block in
+// GameEngineTickHook); a null, unregistered, CDO or wrong-class pointer writes nothing.
+// (Ported from Mystic Paradox c7869b6 by Dauntless Reforged Revival, patch 0019.)
+static void MpSyncExpectedPlayerField(SDK::UObject* Obj, SDK::UClass* Cls, uintptr_t Offset, const char* Tag,
+    const char* OffsetText, bool& Logged, int32_t Value) {
+    if (!Obj || !Cls || !IsRegisteredLiveObject(Obj) || Obj->IsDefaultObject()
+        || !Obj->Class || !IsRegisteredLiveObject(Obj->Class) || !Obj->IsA(Cls)) {
+        return;
+    }
+    int32_t* Field = reinterpret_cast<int32_t*>(reinterpret_cast<uintptr_t>(Obj) + Offset);
+    if (!IsReadablePointer(Field, sizeof(int32_t))) return;
+    const int32_t Before = *Field;
+    if (Before == Value) return;
+    *Field = Value;
+    if (!Logged) {
+        Logged = true;
+        MpLog(std::string("[ExpectedPlayerCount@") + Tag + "] synchronized  instance=" + MpPtr(Obj)
+            + " class=" + Obj->Class->GetName()
+            + " before=" + std::to_string(Before)
+            + " after=" + std::to_string(Value)
+            + " offset=" + OffsetText);
+    }
+}
+
+// [2026-10-10 1.14.7 CPU] Read-only, one-shot cross-check for the world-pointer roster sync: walks GObjects ONCE and
+// logs how many non-CDO AArchonGameMode / AArchonGameState instances exist and whether each is the world's
+// AuthorityGameMode (+0x118) / GameState (+0x120). The fast path is accepted only once hub, Training and hunt logs
+// show gameModes=1 gameStates=1 with match=1 each. Called from the game thread (the tick hook) only.
+static void MpExpectedPlayerWorldCensus(const char* When) {
+    if (!SDK::UObject::GObjects) return;
+    SDK::UWorld* World = SDK::UWorld::GetWorld();
+    void* WorldGM = nullptr;
+    void* WorldGS = nullptr;
+    if (World && IsReadablePointer(World, 0x128)) {
+        WorldGM = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(World) + 0x118);
+        WorldGS = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(World) + 0x120);
+    }
+    int GameModes = 0, GameStates = 0, GameModeMatch = 0, GameStateMatch = 0;
+    std::string Detail;
+    const int Count = SDK::UObject::GObjects->Num();
+    for (int i = 0; i < Count; i++) {
+        SDK::UObject* Obj = SDK::UObject::GObjects->GetByIndex(i);
+        if (!Obj || Obj->IsDefaultObject()) continue;
+        const bool IsGM = Obj->IsA(SDK::AArchonGameMode::StaticClass());
+        const bool IsGS = !IsGM && Obj->IsA(SDK::AArchonGameState::StaticClass());
+        if (!IsGM && !IsGS) continue;
+        const bool Match = IsGM ? (Obj == WorldGM) : (Obj == WorldGS);
+        if (IsGM) { ++GameModes; if (Match) ++GameModeMatch; }
+        else { ++GameStates; if (Match) ++GameStateMatch; }
+        if (GameModes + GameStates <= 8) {
+            Detail += std::string(" ") + (IsGM ? "GM" : "GS") + "=" + MpPtr(Obj) + "/"
+                + (Obj->Class ? Obj->Class->GetName() : std::string("?")) + (Match ? "(world)" : "(NOT world)");
+        }
+    }
+    MpLog(std::string("[ExpectedPlayerCount] census ") + When
+        + " world=" + MpPtr(World) + " worldGM=" + MpPtr(WorldGM) + " worldGS=" + MpPtr(WorldGS)
+        + " gameModes=" + std::to_string(GameModes) + " match=" + std::to_string(GameModeMatch)
+        + " gameStates=" + std::to_string(GameStates) + " match=" + std::to_string(GameStateMatch)
+        + " objects=" + std::to_string(Count) + Detail);
+}
+
 // [1.14.7 FIX 2026-10-04] The engine pointer, captured from the tick hook itself.
 //
 // The manual net tick has always called 0x00A82CF0 with Networking::NetDriver as the first argument:
@@ -4835,12 +5007,12 @@ void GameEngineTickHook(UGameEngine* GameEngine, float DeltaTime, char CanRender
     // GObjects) and it carries the only fix lever this session produced, so it may run for either flag.
     // The membership report is the heavy one (a full GObjects walk plus an IsA pass per object, several
     // times a minute) and only ever runs for the diagnostics flag.
+    const bool HubRepDiag = Globals::AmServer && MpExeRelativeFlagPresent(L"ENABLE_HUB_REP_DIAGNOSTICS.flag");
     if (Globals::AmServer
-        && (MpExeRelativeFlagPresent(L"ENABLE_HUB_REP_DIAGNOSTICS.flag")
-            || MpExeRelativeFlagPresent(L"ENABLE_BASE_ACTOR_BOOTSTRAP.flag"))) {
+        && (HubRepDiag || MpExeRelativeFlagPresent(L"ENABLE_BASE_ACTOR_BOOTSTRAP.flag"))) {
         MpRouteBaseActorsToConnections();
     }
-    if (Globals::AmServer && MpExeRelativeFlagPresent(L"ENABLE_HUB_REP_DIAGNOSTICS.flag")) {
+    if (HubRepDiag) {
         MpReportReplicationMembership();
     }
 
@@ -4950,7 +5122,11 @@ void GameEngineTickHook(UGameEngine* GameEngine, float DeltaTime, char CanRender
     // [Group B cleanup 2026-07-13] Timed server LoadManager/lifecycle GObjects-dump block removed
     // (DumpLifecycleState + DumpLoadManagerViaGObjects — obsolete Phase-0 readiness scanners, gated off).
 
-    if (GetAsyncKeyState(VK_F7)) {
+    // [2026-10-10 1.14.7 CPU] F7 GObjects dump: client-only. GetAsyncKeyState reads the shared desktop key state, so
+    // F7 pressed in ANY window made every local hub/hunt walk all ~208k objects and then busy-wait on its game thread
+    // until the key was released (no tick, no net, no graph drive). This hook is installed only by InitServerHooks,
+    // so on today's builds the handler never runs at all.
+    if (!Globals::AmServer && GetAsyncKeyState(VK_F7)) {
         for (int i = 0; i < SDK::UObject::GObjects->Num(); i++)
         {
             SDK::UObject* Obj = SDK::UObject::GObjects->GetByIndex(i);
@@ -4989,9 +5165,16 @@ void GameEngineTickHook(UGameEngine* GameEngine, float DeltaTime, char CanRender
         // Ramsgate/Dojo use AArchonGameMode_City and AArchonGameMode_Island, both of which
         // inherit from AArchonGameMode, so IsA(AArchonGameMode::StaticClass()) covers them.
         //
-        // Rewritten every frame (cheap, ~one-time GObjects walk cost) as belt-and-braces against
-        // InitGame or replication restoring the native default of 1. We keep the existing
-        // UArchonLoadManager::LoadFailed compatibility hook unchanged.
+        // Rewritten every frame as belt-and-braces against InitGame or replication restoring the native
+        // default of 1. We keep the existing UArchonLoadManager::LoadFailed compatibility hook unchanged.
+        // [2026-10-10 1.14.7 CPU] The objects now come from the world itself: GWorld->AuthorityGameMode (+0x118)
+        // and GWorld->GameState (+0x120), the only GameMode the engine consults and the only GameState it
+        // replicates. The previous lookup walked every GObjects entry (~208k on Ramsgate) with two IsA calls each
+        // on EVERY frame (the old comment called that "cheap, ~one-time"; it was neither). Same values, same
+        // fields, same compare-then-write, same one-time log text. A frame with no readable world writes nothing
+        // and the next frame writes. MpExpectedPlayerWorldCensus logs a one-shot cross-check (10 s after listen
+        // and at the first K2_PostLogin). LEGACY_EXPECTED_PLAYER_WALK.flag (read once) restores the full walk.
+        // (Ported from Mystic Paradox c7869b6 by Dauntless Reforged Revival, patch 0019.)
         // [A/B 2026-07-16] DISABLE_EXPECTED_PLAYER_ZERO.flag — when present next to the game .exe,
         // skip synchronization so the native session/load-manager state is left intact for an
         // A/B. Cached once (this runs every tick). Default OFF (absent flag = roster sync).
@@ -5006,10 +5189,45 @@ void GameEngineTickHook(UGameEngine* GameEngine, float DeltaTime, char CanRender
                 + " launchRosterCount=" + std::to_string(s_launchExpectedPlayers));
         }
 
-        if (s_disableExpectedZero == 0 && SDK::UObject::GObjects) {
-            static bool s_loggedGameMode  = false;
-            static bool s_loggedGameState = false;
+        static int s_legacyExpectedWalk = -1;
+        if (s_legacyExpectedWalk < 0) {
+            s_legacyExpectedWalk = MpExeRelativeFlagPresent(L"LEGACY_EXPECTED_PLAYER_WALK.flag") ? 1 : 0;
+            MpLog(std::string("[ExpectedPlayerCount] lookup = ")
+                + (s_legacyExpectedWalk ? "full GObjects walk every frame (LEGACY_EXPECTED_PLAYER_WALK.flag present)"
+                                        : "world pointers GWorld+0x118 / +0x120 (default)"));
+        }
 
+        static bool s_loggedGameMode  = false;
+        static bool s_loggedGameState = false;
+        if (s_disableExpectedZero == 0 && s_legacyExpectedWalk == 0) {
+            SDK::UWorld* World = SDK::UWorld::GetWorld();
+            if (World && IsReadablePointer(World, 0x128)) {
+                const uintptr_t W = reinterpret_cast<uintptr_t>(World);
+                MpSyncExpectedPlayerField(*reinterpret_cast<SDK::UObject**>(W + 0x118), SDK::AArchonGameMode::StaticClass(),
+                    0x0498, "GameMode", "+0x0498", s_loggedGameMode, s_launchExpectedPlayers);
+                MpSyncExpectedPlayerField(*reinterpret_cast<SDK::UObject**>(W + 0x120), SDK::AArchonGameState::StaticClass(),
+                    0x02E8, "GameState", "+0x02E8", s_loggedGameState, s_launchExpectedPlayers);
+            }
+        }
+        // One-shot read-only census (both lookups): 10 s after the first listening frame, and once after the
+        // first K2_PostLogin (g_postLoginTimeMs is set by the server ProcessEvent hook).
+        {
+            static uint64_t s_censusListenMs = 0;
+            static bool s_censusListenDone = false;
+            static bool s_censusLoginDone = false;
+            const uint64_t NowMs = GetTickCount64();
+            if (s_censusListenMs == 0) s_censusListenMs = NowMs;
+            if (!s_censusListenDone && NowMs - s_censusListenMs >= 10000) {
+                s_censusListenDone = true;
+                MpExpectedPlayerWorldCensus("listen+10s");
+            }
+            if (!s_censusLoginDone && g_postLoginTimeMs.load(std::memory_order_relaxed) != 0) {
+                s_censusLoginDone = true;
+                MpExpectedPlayerWorldCensus("first-postlogin");
+            }
+        }
+
+        if (s_disableExpectedZero == 0 && s_legacyExpectedWalk == 1 && SDK::UObject::GObjects) {
             const int Count = SDK::UObject::GObjects->Num();
             for (int i = 0; i < Count; i++) {
                 SDK::UObject* Obj = SDK::UObject::GObjects->GetByIndex(i);
@@ -11989,24 +12207,40 @@ static void StartClientHitchSampler() {
 // pushes tens of thousands of UFunction calls through here, which showed as a 1-2 s hitch on open and close.
 // The name is now built once per UFunction and cached, keyed by address and validated by the object's
 // GUObjectArray index and FName, so a recycled address recomputes instead of returning a stale name.
+// [2026-10-10 1.14.7 CPU] Also validated by Outer (+0x20), which only makes the cache more conservative, and now
+// shared with the server ProcessEventHook (PE_FULLNAME_UNCACHED.flag reverts the server to a per-call build).
 // Entries are only ever added or rewritten in place for a different object - never erased - so the reference
 // a caller holds stays valid across the nested ProcessEvent calls its own OrigProcessEventClient makes.
-static const std::string& CachedFunctionFullName(UFunction* Function) {
-    static const std::string s_null = "null";
-    if (!Function) return s_null;
-    struct Entry { int32_t Index; int32_t NameIndex; uint32_t NameNumber; std::string Name; };
-    static thread_local std::unordered_map<const void*, Entry> s_names;
+// [2026-10-11 1.14.7 O3] The entry also carries the server hook's per-UFunction category mask (MpPeCategoryMask), computed
+// the first time the server asks and recomputed whenever the name is.
+// (Ported from Mystic Paradox c7869b6 by Dauntless Reforged Revival, patch 0019.)
+struct MpFunctionNameCacheEntry {
+    int32_t Index; int32_t NameIndex; uint32_t NameNumber; const void* Outer; std::string Name;
+    uint64_t PeMask; bool PeMaskValid;
+};
+static MpFunctionNameCacheEntry& CachedFunctionNameEntry(UFunction* Function) {
+    static thread_local std::unordered_map<const void*, MpFunctionNameCacheEntry> s_names;
     auto It = s_names.find(Function);
     if (It != s_names.end() && It->second.Index == Function->Index
-        && It->second.NameIndex == Function->Name.ComparisonIndex && It->second.NameNumber == Function->Name.Number) {
-        return It->second.Name;
+        && It->second.NameIndex == Function->Name.ComparisonIndex && It->second.NameNumber == Function->Name.Number
+        && It->second.Outer == Function->Outer) {
+        return It->second;
     }
-    Entry& Slot = s_names[Function];
+    MpFunctionNameCacheEntry& Slot = s_names[Function];
     Slot.Index = Function->Index;
     Slot.NameIndex = Function->Name.ComparisonIndex;
     Slot.NameNumber = Function->Name.Number;
+    Slot.Outer = Function->Outer;
     Slot.Name = Function->GetFullName();
-    return Slot.Name;
+    Slot.PeMask = 0;
+    Slot.PeMaskValid = false;
+    return Slot;
+}
+
+static const std::string& CachedFunctionFullName(UFunction* Function) {
+    static const std::string s_null = "null";
+    if (!Function) return s_null;
+    return CachedFunctionNameEntry(Function).Name;
 }
 
 void ProcessEventClientHook(UObject* Object, UFunction* Function, void* Parms) {
@@ -14481,6 +14715,66 @@ static void TraceTempestDamageExit(UObject* Object, void* Parms, const TempestDa
         + " return=" + TempestDamageDataSummary(P->ReturnValue));
 }
 
+/*
+ * [2026-10-11 1.14.7 O3 ProcessEvent categories] The server hook below tests every reflected call against ~30 name
+ * substrings, plus IsEscalationFlowFunction (~50 more) and BleedoutNoteEvent's prefilter - roughly 90 std::string::find
+ * calls per ProcessEvent, tens of thousands of times a second on a populated hub. All of those tests depend only on the
+ * UFunction's full name, so each one is now evaluated ONCE per UFunction (cached with the name, CachedFunctionNameEntry)
+ * into a bit of a 64-bit mask; a call site then runs its original test only when its bit is set. The bit is computed
+ * from the very predicate the site tests (or a strict superset of it), so for any name the outcome is identical; the
+ * original test is kept behind the bit as the authority. PE_CATEGORY_CACHE_OFF.flag (read once), or the uncached-name
+ * mode (PE_FULLNAME_UNCACHED.flag), sets every bit, which is exactly the old behaviour.
+ * Flag-gated developer paths (PE_NAME_DIAG, the damage multiplier, CORE_CAPTURE, the Tempest damage trace) are untouched:
+ * they cost nothing while their flag is absent.
+ * (Ported from Mystic Paradox c7869b6 by Dauntless Reforged Revival, patch 0019, with the categories this build tests.)
+ */
+enum MpPeCategory : int {
+    MpPeCat_PostEvent = 0,         // PostEvent (headless audio absorb)
+    MpPeCat_EscalationAuthState,   // EscalationGameModeComponent.AuthOnGameStateChanged
+    MpPeCat_HandleBehemothKilled,  // PlayerExperienceComponent.HandleBehemothKilled
+    MpPeCat_GrantWeaponXp,         // PlayerExperienceComponent.GrantWeaponExperience
+    MpPeCat_GrantPlayerXp,         // PlayerExperienceComponent.GrantPlayerExperience
+    MpPeCat_PerfectDodge,          // PerfectDodge
+    MpPeCat_Bleedout,              // Bleedout | FinishingHit | NoHealth (BleedoutNoteEvent's own first test)
+    MpPeCat_K2PostLogin,           // K2_PostLogin
+    MpPeCat_PostLogin,             // PostLogin
+    MpPeCat_Possession,            // AcknowledgePossession | CheckClientPossession | AcknowledgePawn
+    MpPeCat_VendorCamera,          // vendor_interactive_bp_C.UpdateCameraForAspect
+    MpPeCat_ClientRestart,         // == ClientRestart / ClientRetryClientRestart
+    MpPeCat_MustSpectate,          // == GameModeBase.MustSpectate
+    MpPeCat_PlayerCanRestart,      // == GameModeBase.PlayerCanRestart
+    MpPeCat_TryActivateAbility,    // ServerTryActivateAbility (covers ...WithEventData)
+    MpPeCat_EscalationFlow,        // IsEscalationFlowFunction
+    MpPeCat_DroneTrace,            // SetDronePositionActor (TraceArtificerDroneEvent's own first test)
+    MpPeCat_Count
+};
+static_assert(MpPeCat_Count <= 64, "MpPeCategory must fit the 64-bit mask");
+
+static uint64_t MpPeComputeCategoryMask(const std::string& N) {
+    auto Has = [&N](const char* Token) { return N.find(Token) != std::string::npos; };
+    uint64_t Mask = 0;
+    auto Set = [&Mask](int Bit, bool On) { if (On) Mask |= (1ull << Bit); };
+    Set(MpPeCat_PostEvent, Has("PostEvent"));
+    Set(MpPeCat_EscalationAuthState, Has("EscalationGameModeComponent.AuthOnGameStateChanged"));
+    Set(MpPeCat_HandleBehemothKilled, Has("PlayerExperienceComponent.HandleBehemothKilled"));
+    Set(MpPeCat_GrantWeaponXp, Has("PlayerExperienceComponent.GrantWeaponExperience"));
+    Set(MpPeCat_GrantPlayerXp, Has("PlayerExperienceComponent.GrantPlayerExperience"));
+    Set(MpPeCat_PerfectDodge, Has("PerfectDodge"));
+    Set(MpPeCat_Bleedout, Has("Bleedout") || Has("FinishingHit") || Has("NoHealth"));
+    Set(MpPeCat_K2PostLogin, Has("K2_PostLogin"));
+    Set(MpPeCat_PostLogin, Has("PostLogin"));
+    Set(MpPeCat_Possession, Has("AcknowledgePossession") || Has("CheckClientPossession") || Has("AcknowledgePawn"));
+    Set(MpPeCat_VendorCamera, Has("vendor_interactive_bp_C.UpdateCameraForAspect"));
+    Set(MpPeCat_ClientRestart, N == "Function Engine.PlayerController.ClientRestart"
+        || N == "Function Engine.PlayerController.ClientRetryClientRestart");
+    Set(MpPeCat_MustSpectate, N == "Function Engine.GameModeBase.MustSpectate");
+    Set(MpPeCat_PlayerCanRestart, N == "Function Engine.GameModeBase.PlayerCanRestart");
+    Set(MpPeCat_TryActivateAbility, Has("ServerTryActivateAbility"));
+    Set(MpPeCat_EscalationFlow, IsEscalationFlowFunction(N));
+    Set(MpPeCat_DroneTrace, Has("SetDronePositionActor"));
+    return Mask;
+}
+
 void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     // [1.12.0 REENTRANCY GUARD 2026-07-10] Safety-net against runaway ProcessEvent
     // recursion. Root cause of the FTUE crash was
@@ -14523,7 +14817,40 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     static UFunction* OnAirshipUpdated = nullptr;
     static UFunction* OnPostMitDealtAnyDamage = nullptr;
 
-    std::string FunctionName = Function ? Function->GetFullName() : "null";
+    // [2026-10-10 1.14.7 CPU] The full name (an Outer-chain walk with FName/FString/std::string allocations at each
+    // level) used to be built on EVERY reflected call. It now comes from the client's per-UFunction cache
+    // (CachedFunctionFullName: thread_local, validated by Index/FName/Outer, same "null" text). Every use below only
+    // reads it. PE_FULLNAME_UNCACHED.flag (read once) builds it per call as before.
+    // (Ported from Mystic Paradox c7869b6 by Dauntless Reforged Revival, patch 0019.)
+    static int s_peNameCacheMode = -1;
+    if (s_peNameCacheMode < 0) {
+        s_peNameCacheMode = MpExeRelativeFlagPresent(L"PE_FULLNAME_UNCACHED.flag") ? 0 : 1;
+        MpLog(std::string("[PENameCache] server full-name cache ")
+            + (s_peNameCacheMode ? "ON" : "OFF (PE_FULLNAME_UNCACHED.flag)"));
+    }
+    std::string FunctionNameUncached;
+    MpFunctionNameCacheEntry* PeNameEntry = (s_peNameCacheMode == 1 && Function) ? &CachedFunctionNameEntry(Function) : nullptr;
+    const std::string& FunctionName = s_peNameCacheMode == 1
+        ? (PeNameEntry ? PeNameEntry->Name : CachedFunctionFullName(nullptr))
+        : (FunctionNameUncached = Function ? Function->GetFullName() : std::string("null"));
+
+    // [2026-10-11 1.14.7 O3] Per-UFunction category mask (see MpPeCategory). ~0 = every test runs (the old behaviour).
+    static int s_peCategoryMode = -1;
+    if (s_peCategoryMode < 0) {
+        s_peCategoryMode = (s_peNameCacheMode == 1 && !MpExeRelativeFlagPresent(L"PE_CATEGORY_CACHE_OFF.flag")) ? 1 : 0;
+        MpLog(std::string("[PECategoryCache] server per-UFunction name-test mask ")
+            + (s_peCategoryMode ? "ON (PE_CATEGORY_CACHE_OFF.flag reverts)"
+                                : (s_peNameCacheMode == 1 ? "OFF (PE_CATEGORY_CACHE_OFF.flag)" : "OFF (PE_FULLNAME_UNCACHED.flag)")));
+    }
+    uint64_t PeMask = ~0ull;
+    if (s_peCategoryMode == 1 && PeNameEntry) {
+        if (!PeNameEntry->PeMaskValid) {
+            PeNameEntry->PeMask = MpPeComputeCategoryMask(PeNameEntry->Name);
+            PeNameEntry->PeMaskValid = true;
+        }
+        PeMask = PeNameEntry->PeMask;
+    }
+    auto PeMay = [PeMask](int Bit) { return ((PeMask >> Bit) & 1ull) != 0; };
 
     // [1.14.7 HEADLESS AUDIO 2026-10-03] A dedicated hub must not play sound. Removing the Wwise
     // output device crashes the process (measured: EXCEPTION_ACCESS_VIOLATION writing 0x...a4, round
@@ -14561,7 +14888,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
         }
     }
 
-    if (s_audioPostSuppression == 1 && FunctionName.find("PostEvent") != std::string::npos) {
+    if (s_audioPostSuppression == 1 && PeMay(MpPeCat_PostEvent) && FunctionName.find("PostEvent") != std::string::npos) {
         static std::atomic<int> s_audioPostAbsorbed{ 0 };
         const int AudioSeq = s_audioPostAbsorbed.fetch_add(1, std::memory_order_relaxed);
         if (AudioSeq < 5) {
@@ -14573,7 +14900,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     }
 
     TempestDamageDiagCall TempestDamageCall{};
-    TraceArtificerDroneEvent("Server", "ENTER", Object, FunctionName, Parms);
+    if (PeMay(MpPeCat_DroneTrace)) TraceArtificerDroneEvent("Server", "ENTER", Object, FunctionName, Parms);
 
     // [DEBUG ONLY 2026-07-26] Repro-speedup damage multiplier for local testing (e.g. reproducing
     // the 2-player escalation phase-1 stall without sitting through a doubled-health behemoth).
@@ -14663,13 +14990,13 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     // into the game Blueprint. Production captures have the multiplier flag absent.
     TempestDamageCall = TraceTempestDamageEnter(Object, FunctionName, Parms);
 
-    const int EscalationFlowServerSeq = TraceEscalationFlowEnter(
-        "Server", Object, FunctionName, Parms);
+    const int EscalationFlowServerSeq = PeMay(MpPeCat_EscalationFlow)
+        ? TraceEscalationFlowEnter("Server", Object, FunctionName, Parms) : -1;
 
     // [2026-07-25 AMP ROOT-CAUSE FIX] Observe the escalation round-finished transition so the deferred
     // pump can invoke SpawnPlayerBuffChoicesForFinishedRound, which the shipped Blueprint graph never
     // calls. Recording only - no dispatch from inside this hook. See TickEscalationBuffChoiceSpawn.
-    if (Function && Parms
+    if (Function && Parms && PeMay(MpPeCat_EscalationAuthState)
         && FunctionName.find("EscalationGameModeComponent.AuthOnGameStateChanged")
                != std::string::npos) {
         NoteEscalationStateChangeForBuffChoices(Object, Parms);
@@ -14681,7 +15008,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     // confirms whether the parallel Slayer-level award differs. No values are changed.
     int WeaponXpServerGrantSeq = -1;
     Params::PlayerExperienceComponent_GrantWeaponExperience* WeaponXpServerGrant = nullptr;
-    if (Function && Parms
+    if (Function && Parms && PeMay(MpPeCat_HandleBehemothKilled)
         && FunctionName.find("PlayerExperienceComponent.HandleBehemothKilled") != std::string::npos
         && IsReadablePointer(Parms, sizeof(Params::PlayerExperienceComponent_HandleBehemothKilled))) {
         static std::atomic<int> s_weaponXpServerKillCount{ 0 };
@@ -14704,7 +15031,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
         }
     }
 
-    if (Function && Parms
+    if (Function && Parms && PeMay(MpPeCat_GrantWeaponXp)
         && FunctionName.find("PlayerExperienceComponent.GrantWeaponExperience") != std::string::npos
         && IsReadablePointer(Parms, sizeof(Params::PlayerExperienceComponent_GrantWeaponExperience))) {
         static std::atomic<int> s_weaponXpServerGrantCount{ 0 };
@@ -14719,7 +15046,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
         }
     }
 
-    if (Function && Parms
+    if (Function && Parms && PeMay(MpPeCat_GrantPlayerXp)
         && FunctionName.find("PlayerExperienceComponent.GrantPlayerExperience") != std::string::npos
         && IsReadablePointer(Parms, sizeof(Params::PlayerExperienceComponent_GrantPlayerExperience))) {
         static std::atomic<int> s_playerXpServerGrantCount{ 0 };
@@ -14735,7 +15062,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     // Server-authoritative half of the Tempest perfect-dodge trace. If the passive modifier was
     // installed correctly, its OnPerfectDodge listener appears here and applies the Velocity stack.
     int TempestPerfectDodgeServerSeq = -1;
-    if (Function && FunctionName.find("PerfectDodge") != std::string::npos) {
+    if (Function && PeMay(MpPeCat_PerfectDodge) && FunctionName.find("PerfectDodge") != std::string::npos) {
         static std::atomic<int> s_tempestPerfectDodgeServerCount{ 0 };
         TempestPerfectDodgeServerSeq = s_tempestPerfectDodgeServerCount.fetch_add(1, std::memory_order_relaxed);
         if (TempestPerfectDodgeServerSeq < 64) {
@@ -14748,7 +15075,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     // [2026-07-19] Bleedout-domain capture. ALWAYS ON — the permanent-downed bug is intermittent and
     // there is no second chance to switch a flag on after it happens. Returns immediately for the
     // ~all functions that are not bleedout-related, so the cost is a few string searches.
-    BleedoutNoteEvent(FunctionName, Object);
+    if (PeMay(MpPeCat_Bleedout)) BleedoutNoteEvent(FunctionName, Object);
 
     // [2026-07-19 HANG DIAG] Always retain the raw innermost function/object pointers: these are two
     // cheap stores and remain useful in a production hang. The 160-byte name-ring write used to run on
@@ -14826,7 +15153,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     // — removed; the catalog is now dumped by the standalone CatalogExporter injectable, not the live server DLL.)
     {
         static std::atomic<bool> s_postLoginAnchor{ false };
-        if (Function && FunctionName.find("K2_PostLogin") != std::string::npos) {
+        if (Function && PeMay(MpPeCat_K2PostLogin) && FunctionName.find("K2_PostLogin") != std::string::npos) {
             bool expected = false;
             if (s_postLoginAnchor.compare_exchange_strong(expected, true)) {
                 g_postLoginTimeMs.store(GetTickCount64(), std::memory_order_relaxed);
@@ -14839,7 +15166,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     // server, so this reliably confirms each controller reached post-login (unlike the
     // never-installed AGameMode::PostLogin native hook). K2_PostLogin's parm0 is the new
     // APlayerController. A lifecycle snapshot is taken at each so the late-joiner boundary is visible.
-    if (Function && FunctionName.find("PostLogin") != std::string::npos) {
+    if (Function && PeMay(MpPeCat_PostLogin) && FunctionName.find("PostLogin") != std::string::npos) {
         static std::atomic<int> s_plSeq{ 0 };
         int Seq = s_plSeq.fetch_add(1, std::memory_order_relaxed);
         std::string ObjName = (Object && IsReadablePointer(Object, 0x40)) ? Object->GetName() : std::string("?");
@@ -14876,7 +15203,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     // _Implementation runs, to see whether P2's ack arrives while P1 is connected and whether it sticks.
     void* AckCapturePc = nullptr;
     void* AckPawnBefore = nullptr;
-    if (Function &&
+    if (Function && PeMay(MpPeCat_Possession) &&
         (FunctionName.find("AcknowledgePossession") != std::string::npos
             || FunctionName.find("CheckClientPossession") != std::string::npos
             || FunctionName.find("AcknowledgePawn") != std::string::npos)) {
@@ -14947,7 +15274,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     // [Group E2 cleanup 2026-07-13] [LevelVisMulti-SVR] ServerUpdateMultipleLevelsVisibility logger removed.
 
 
-    if (Function && FunctionName.find("vendor_interactive_bp_C.UpdateCameraForAspect")
+    if (Function && PeMay(MpPeCat_VendorCamera) && FunctionName.find("vendor_interactive_bp_C.UpdateCameraForAspect")
         != std::string::npos)
     {
         static std::atomic<int> s_vendorAbsorbCount{0};
@@ -15000,7 +15327,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     //   - NetDormancy = DORM_Never (0) - never dormant
     //   - NetUpdateFrequency = 60.0 - as high as gameplay ticking
     //   - NetPriority = 3.0 (AActor+0x0110) - high priority in the rep list
-    if (Function && (FunctionName == "Function Engine.PlayerController.ClientRestart"
+    if (Function && PeMay(MpPeCat_ClientRestart) && (FunctionName == "Function Engine.PlayerController.ClientRestart"
                      || FunctionName == "Function Engine.PlayerController.ClientRetryClientRestart")) {
         const int PAWN_DIAG_BUDGET = 8;   // per-login: first ClientRestart + a few retries
         int slot = g_pawnDiagCount.fetch_add(1, std::memory_order_relaxed);
@@ -15180,7 +15507,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     // Post-orig (return valid). Parms+0 = APlayerController*, Parms+0x8 = bool ReturnValue.
     static UFunction* CachedMustSpectate = nullptr;
     if ((CachedMustSpectate && Function == CachedMustSpectate) ||
-        (!CachedMustSpectate && Function && FunctionName == "Function Engine.GameModeBase.MustSpectate")) {
+        (!CachedMustSpectate && Function && PeMay(MpPeCat_MustSpectate) && FunctionName == "Function Engine.GameModeBase.MustSpectate")) {
         CachedMustSpectate = Function;
         if (Parms && IsReadablePointer(Parms, 0x10)) {
             UObject* PlayerObj = *reinterpret_cast<UObject**>(Parms);
@@ -15195,7 +15522,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     // UObject layout: Class @ +0x10, Name @ +0x18, Outer @ +0x20.
     static UFunction* CachedPlayerCanRestart = nullptr;
     if ((CachedPlayerCanRestart && Function == CachedPlayerCanRestart) ||
-        (!CachedPlayerCanRestart && Function && FunctionName == "Function Engine.GameModeBase.PlayerCanRestart")) {
+        (!CachedPlayerCanRestart && Function && PeMay(MpPeCat_PlayerCanRestart) && FunctionName == "Function Engine.GameModeBase.PlayerCanRestart")) {
         CachedPlayerCanRestart = Function;
 
         if (Parms && IsReadablePointer(Parms, 0x10)) {
@@ -15636,14 +15963,14 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
         }
     }
 
-    if (Function == ServerTryActivateAbilityWithEventData || (!ServerTryActivateAbilityWithEventData && FunctionName.contains("ServerTryActivateAbilityWithEventData"))) {
+    if (Function == ServerTryActivateAbilityWithEventData || (!ServerTryActivateAbilityWithEventData && PeMay(MpPeCat_TryActivateAbility) && FunctionName.contains("ServerTryActivateAbilityWithEventData"))) {
         ServerTryActivateAbilityWithEventData = Function;
 
         Params::AbilitySystemComponent_ServerTryActivateAbilityWithEventData* ActivateAbilityParams = (Params::AbilitySystemComponent_ServerTryActivateAbilityWithEventData*)Parms;
 
         ServerTryActivateAbilityInternal((UAbilitySystemComponent*)Object, ActivateAbilityParams->AbilityToActivate, ActivateAbilityParams->InputPressed, ActivateAbilityParams->PredictionKey, &ActivateAbilityParams->TriggerEventData);
     }
-    else if (Function == ServerTryActivateAbility || (!ServerTryActivateAbility && FunctionName.contains("ServerTryActivateAbility"))) {
+    else if (Function == ServerTryActivateAbility || (!ServerTryActivateAbility && PeMay(MpPeCat_TryActivateAbility) && FunctionName.contains("ServerTryActivateAbility"))) {
         ServerTryActivateAbility = Function;
 
         Params::AbilitySystemComponent_ServerTryActivateAbility* ActivateAbilityParams = (Params::AbilitySystemComponent_ServerTryActivateAbility*)Parms;
@@ -15688,7 +16015,7 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
     // the general OrigProcessEvent dispatch (function tail) is preserved.
     reinterpret_cast<void(*)(UObject*, UFunction*, void*)>(OrigProcessEvent)(Object, Function, Parms);
     TraceTempestDamageExit(Object, Parms, TempestDamageCall);
-    TraceArtificerDroneEvent("Server", "EXIT", Object, FunctionName, Parms);
+    if (PeMay(MpPeCat_DroneTrace)) TraceArtificerDroneEvent("Server", "EXIT", Object, FunctionName, Parms);
 
     if (WeaponXpServerGrant && WeaponXpServerGrantSeq >= 0 && WeaponXpServerGrantSeq < 256) {
         MpLog("[WeaponXP][ServerGrant] EXIT seq=" + std::to_string(WeaponXpServerGrantSeq)
@@ -21650,6 +21977,10 @@ void InitServerHooks() {
 
 void Init() {
     InitLog("[Init] Entry");
+    // [2026-10-10 1.14.7 CPU] Resolve the exe directory for the flag-file cache once and decide the cache mode
+    // (UNCACHED_FLAG_FILES.flag) before anything reads a flag; no lock is held here (see MpExeRelativeFlagPresent).
+    MpResolveExeDirW();
+    MpDecideFlagCacheMode();
 
     Globals::AmServer = std::string(GetCommandLineA()).contains("-server");
     Globals::BaseAddress = (uintptr_t)GetModuleHandleA(nullptr);
