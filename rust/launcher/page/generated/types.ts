@@ -11,11 +11,34 @@ export type StatusInstance = { id: string, kind: InstanceKind, title: string, ma
  * ISO string, or null when the server sent something unreadable
  */
 startedAt: string | null, };
+export type GameDataKind = "real" | "synthetic" | "missing" | "unknown";
+export type StatusGame = { 
+/**
+ * At most 64 characters
+ */
+build: string, 
+/**
+ * 0 to 100,000,000, or null when the server sent none or something unreadable
+ */
+changelist: number | null, };
 export type ServerStatus = { name: string, online: boolean, version: string, commit: string, 
 /**
  * Only https URLs survive parsing
  */
-sourceUrl: string | null, registration: RegistrationMode | null, playersOnline: number, players: Array<StatusPlayer>, instances: Array<StatusInstance>, contentPort: number | null, uptimeSeconds: number, 
+sourceUrl: string | null, registration: RegistrationMode | null, playersOnline: number, players: Array<StatusPlayer>, instances: Array<StatusInstance>, uptimeSeconds: number, 
+/**
+ * Null when the server names no build
+ */
+game: StatusGame | null, gameData: GameDataKind, 
+/**
+ * True only when the server says so
+ */
+chat: boolean, 
+/**
+ * The port of a separate content server, which only Dauntless Revived's servers in private mode
+ * named. Kept in the contract; Reforged's launcher does not read it (RD5).
+ */
+contentPort: number | null, 
 /**
  * The server hid who is online (playersOnline 0, no players, no instances): its answer to a
  * launcher without an account key there, or with one it did not accept.

@@ -12,7 +12,9 @@ use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use protocol::invite::ServerMode;
-use protocol::status::{InstanceKind, PlayerWhere, RegistrationMode, ServerStatus, StatusInstance, StatusPlayer};
+use protocol::status::{
+    GameDataKind, InstanceKind, PlayerWhere, RegistrationMode, ServerStatus, StatusGame, StatusInstance, StatusPlayer,
+};
 use ts_rs::{Config, TS};
 
 use super::spec::{Arg, COMMANDS, SETTINGS_KEYS};
@@ -43,6 +45,8 @@ fn declarations() -> String {
         RegistrationMode,
         StatusPlayer,
         StatusInstance,
+        GameDataKind,
+        StatusGame,
         ServerStatus,
         Language,
         GameLanguage,

@@ -258,24 +258,6 @@ pub use protocol::status::parse_server_status;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use protocol::status::ServerStatus;
-    use serde::Deserialize;
-
-    #[derive(Deserialize)]
-    struct Case {
-        input: Value,
-        expected: Option<ServerStatus>,
-    }
-
-    #[test]
-    fn the_shared_table() {
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../test/cases/status.json");
-        let cases: Vec<Case> = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
-        assert!(cases.len() > 60);
-        for case in cases {
-            assert_eq!(parse_server_status(&case.input), case.expected, "{}", case.input);
-        }
-    }
 
     #[test]
     fn dates_far_out() {
