@@ -19,6 +19,7 @@ import { GetTrackCurve, ResolveProgressionTrackId } from "./progression";
 import { ResolveProgressionGrant } from "../skuProgression";
 import { logger } from "../logger";
 import { loadGameData } from "../gameData/loader";
+import { EffectivePrice } from "../platinumStoreFree";
 
 // [2026-07-24] Lady Luck's Store (the Trials/Arena reward shop). Confirmed real endpoint contract:
 // GET /product/skus/public?requiredTags=ladyluckstore returns exactly this shape
@@ -263,10 +264,12 @@ export async function PurchaseStoreSku(userId: string, characterId: string, stor
         ? crypto.createHash("sha256").update(`${TransactionScope}:${userId}:${skuId}`).digest("hex").slice(0, 32).toUpperCase()
         : crypto.randomBytes(16).toString("hex").toUpperCase();
 
-    const StackedItemsToRemove = Sku.prices.map((p) => ({
-        catalogId: CURRENCY_ID_MAP[p.currencyId] ?? p.currencyId.toUpperCase(),
-        quantity: p.price,
-    }));
+    const StackedItemsToRemove = Sku.prices
+        .filter((p) => EffectivePrice(p) > 0)
+        .map((p) => ({
+            catalogId: CURRENCY_ID_MAP[p.currencyId] ?? p.currencyId.toUpperCase(),
+            quantity: EffectivePrice(p),
+        }));
 
     const InstancedItemsToAdd: any[] = [];
     const StackedItemsToAdd: any[] = [];
