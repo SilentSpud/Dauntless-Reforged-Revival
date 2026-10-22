@@ -8,6 +8,7 @@ pub mod auth;
 pub mod branding;
 pub mod client;
 pub mod config;
+pub mod input;
 pub mod limits;
 pub mod log;
 pub mod news;

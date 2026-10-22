@@ -17,11 +17,11 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use protocol::manifest::{
-    DEFAULT_CHANGELIST, MAX_RUNTIME_FILE_BYTES, RUNTIME_FILE_NAMES, RuntimeFile, RuntimeManifest,
-};
-use serde_json::{Value, json};
+use protocol::manifest::{RUNTIME_FILE_NAMES, RuntimeFile, RuntimeManifest};
+use serde_json::json;
 use sha2::{Digest, Sha256};
+
+pub use crate::input::{parse_runtime_index, parse_runtime_json};
 
 use crate::auth::Clock;
 use crate::log;
@@ -52,93 +52,6 @@ impl RuntimeStatus {
             Self::None(reason) | Self::Invalid(reason) => Some(reason),
         }
     }
-}
-
-fn is_version(text: &str) -> bool {
-    (1..=48).contains(&text.len())
-        && text
-            .bytes()
-            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'+' | b'-'))
-}
-
-fn is_sha256(text: &str) -> bool {
-    text.len() == 64 && text.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
-}
-
-/// `JSON.stringify(x)` in an error message, `undefined` for a missing value.
-fn shown(value: Option<&Value>) -> String {
-    value.map_or_else(|| "undefined".to_owned(), service_kit::jsjson::stringify)
-}
-
-/// `ParseRuntimeIndex`: the index when `raw` is exactly the expected shape, else the reason.
-pub fn parse_runtime_index(raw: &Value) -> Result<RuntimeManifest, String> {
-    let Value::Object(object) = raw else {
-        return Err("runtime.json must be an object".into());
-    };
-    let version = object
-        .get("version")
-        .and_then(Value::as_str)
-        .map_or("", service_kit::js::trim);
-    if !is_version(version) {
-        return Err("version must be 1-48 letters, digits, dots, dashes, plus signs or underscores".into());
-    }
-    // A list is an object to JavaScript too: it has no changelist, so the default applies
-    let changelist = match object.get("build") {
-        Some(Value::Object(build)) => build.get("changelist"),
-        _ => None,
-    };
-    let changelist = match changelist {
-        None => DEFAULT_CHANGELIST,
-        Some(value) => match service_kit::js::safe_integer(Some(value)) {
-            Some(n) if n > 0 => n as u64,
-            _ => return Err("build.changelist must be a positive whole number".into()),
-        },
-    };
-    let Some(Value::Array(entries)) = object.get("files") else {
-        return Err("files must be a list".into());
-    };
-    let mut files: Vec<RuntimeFile> = Vec::new();
-    let empty = serde_json::Map::new();
-    for entry in entries {
-        let entry = entry.as_object().unwrap_or(&empty);
-        let name = match entry.get("name") {
-            Some(Value::String(name)) if RUNTIME_FILE_NAMES.contains(&name.as_str()) => name.clone(),
-            other => {
-                return Err(format!(
-                    "unknown file {} (only {})",
-                    shown(other),
-                    RUNTIME_FILE_NAMES.join(" and ")
-                ));
-            }
-        };
-        if files.iter().any(|other| other.name == name) {
-            return Err(format!("{name} is listed twice"));
-        }
-        let size = match service_kit::js::safe_integer(entry.get("size")) {
-            Some(size) if size >= 1 && size as u64 <= MAX_RUNTIME_FILE_BYTES => size as u64,
-            _ => return Err(format!("{name}: size must be 1 to {MAX_RUNTIME_FILE_BYTES} bytes")),
-        };
-        let sha256 = match entry.get("sha256") {
-            Some(Value::String(sha256)) if is_sha256(sha256) => sha256.clone(),
-            _ => return Err(format!("{name}: sha256 must be 64 lowercase hex characters")),
-        };
-        files.push(RuntimeFile { name, size, sha256 });
-    }
-    for name in RUNTIME_FILE_NAMES {
-        if !files.iter().any(|f| f.name == name) {
-            return Err(format!("{name} is missing from the list"));
-        }
-    }
-    Ok(RuntimeManifest::new(version.to_owned(), changelist, files))
-}
-
-/// runtime.json's bytes as Node reads them (`readFileSync(f, "utf8")`, a leading BOM dropped,
-/// `JSON.parse`), then [`parse_runtime_index`]. The error is the reason, as the log shows it.
-pub fn parse_runtime_json(bytes: &[u8]) -> Result<RuntimeManifest, String> {
-    let text = String::from_utf8_lossy(bytes);
-    let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
-    let raw = service_kit::jsjson::parse(text).map_err(|error| format!("runtime.json: {error}"))?;
-    parse_runtime_index(&raw).map_err(|error| format!("runtime.json: {error}"))
 }
 
 pub fn sha256_hex(data: &[u8]) -> String {
@@ -324,6 +237,8 @@ impl RuntimeStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use protocol::manifest::DEFAULT_CHANGELIST;
+    use serde_json::Value;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicI64, Ordering};
 

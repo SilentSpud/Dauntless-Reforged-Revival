@@ -18,7 +18,7 @@ use serde_json::{Value, json};
 
 use crate::log;
 
-pub const BRANDING_PREFIX: &str = "/content/v1/branding/";
+pub use crate::input::{BRANDING_PREFIX, slice_utf16};
 pub const MAX_IMAGE_BYTES: u64 = 25 * 1024 * 1024;
 const MAX_BACKGROUNDS: usize = 50;
 const MAX_CREDIT: usize = 200;
@@ -78,17 +78,6 @@ pub fn magic_matches(head: &[u8], content_type: &str) -> bool {
 /// JavaScript's `\s`.
 fn is_js_space(c: char) -> bool {
     c.is_whitespace() && c != '\u{85}' || c == '\u{feff}'
-}
-
-/// The first `max` UTF-16 units, as `slice(0, max)` (a cut surrogate pair loses its half).
-pub fn slice_utf16(text: &str, max: usize) -> String {
-    let mut units = 0;
-    text.chars()
-        .take_while(|c| {
-            units += c.len_utf16();
-            units <= max
-        })
-        .collect()
 }
 
 pub fn clean_credit(value: Option<&Value>) -> Option<String> {

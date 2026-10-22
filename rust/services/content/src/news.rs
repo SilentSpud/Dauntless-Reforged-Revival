@@ -16,22 +16,12 @@ use std::time::Duration;
 
 use serde_json::{Value, json};
 
-use crate::branding::slice_utf16;
+pub use crate::input::{NewsItem as Item, parse_news as parse};
 use crate::log;
 
-const MAX_ITEMS: usize = 50;
-const MAX_TITLE: usize = 200;
-const MAX_BODY: usize = 10000;
 const MAX_FILE_BYTES: u64 = 1024 * 1024;
 const RECHECK_MS: i64 = 5 * 1000;
 const REMOTE_RECHECK_MS: i64 = 60 * 1000;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Item {
-    pub date: String,
-    pub title: String,
-    pub body: String,
-}
 
 /// `GitHubNewsUrl`: an HTTPS file URL on raw.githubusercontent.com, or an error that stops the start.
 pub fn github_news_url(value: Option<&str>) -> Result<Option<String>, String> {
@@ -52,78 +42,6 @@ pub fn github_news_url(value: Option<&str>) -> Result<Option<String>, String> {
         return Err(error());
     }
     Ok(Some(url.as_str().to_owned()))
-}
-
-fn clean_text(value: &str, max: usize, keep_newlines: bool) -> String {
-    let text = value.replace("\r\n", "\n").replace('\r', "\n");
-    let text: String = if keep_newlines {
-        text.chars()
-            .filter(|c| !matches!(*c as u32, 0x00..=0x08 | 0x0b..=0x1f | 0x7f))
-            .collect()
-    } else {
-        text.chars()
-            .map(|c| if (c as u32) < 0x20 || c == '\x7f' { ' ' } else { c })
-            .collect()
-    };
-    slice_utf16(service_kit::js::trim(&text), max)
-}
-
-/// `ParseNews`: the items, newest first; a document of the wrong shape is an error, a bad item is
-/// skipped with a warning.
-pub fn parse(raw: &Value) -> Result<Vec<Item>, String> {
-    let list = match raw {
-        Value::Array(list) => list,
-        Value::Object(o) => match o.get("items") {
-            Some(Value::Array(list)) => list,
-            _ => return Err("news file must be {\"items\": [...]} or an array".into()),
-        },
-        _ => return Err("news file must be {\"items\": [...]} or an array".into()),
-    };
-    let mut items = Vec::new();
-    for entry in list {
-        let Some(entry) = entry.as_object() else {
-            log::warn("news item skipped: not an object", json!({}));
-            continue;
-        };
-        let (Some(date), Some(title)) = (
-            entry.get("date").and_then(Value::as_str),
-            entry.get("title").and_then(Value::as_str),
-        ) else {
-            log::warn("news item skipped: needs a date and a title", json!({}));
-            continue;
-        };
-        let Some(when) = service_kit::js::date_parse(date) else {
-            log::warn(
-                "news item skipped: date not understood",
-                json!({"date": slice_utf16(date, 40)}),
-            );
-            continue;
-        };
-        let title = clean_text(title, MAX_TITLE, false);
-        if title.is_empty() {
-            log::warn("news item skipped: empty title", json!({}));
-            continue;
-        }
-        let Some(date) = chrono::DateTime::from_timestamp_millis(when) else {
-            log::warn(
-                "news item skipped: date not understood",
-                json!({"date": slice_utf16(date, 40)}),
-            );
-            continue;
-        };
-        items.push(Item {
-            date: date.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string(),
-            title,
-            body: entry
-                .get("body")
-                .and_then(Value::as_str)
-                .map_or_else(String::new, |b| clean_text(b, MAX_BODY, true)),
-        });
-    }
-    // Newest first; the sort is stable, so same-day items keep the file's order
-    items.sort_by(|a, b| b.date.cmp(&a.date));
-    items.truncate(MAX_ITEMS);
-    Ok(items)
 }
 
 fn to_json(items: &[Item]) -> Value {

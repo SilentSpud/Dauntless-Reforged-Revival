@@ -25,19 +25,19 @@ use axum::http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode};
 use axum::response::Response;
 use bytes::Bytes;
 use futures_util::StreamExt;
-use protocol::manifest::{RUNTIME_FILE_NAMES, RUNTIME_MANIFEST_PATH};
 use serde_json::{Map, Value, json};
 use tokio::io::AsyncReadExt;
 
+pub use crate::input::{KEY_HEADER, RUNTIME_FILES_PREFIX};
+
 use crate::auth::{AuthCache, LookupResult};
-use crate::branding::{BRANDING_PREFIX, Branding, MAX_IMAGE_BYTES, is_safe_image_name};
+use crate::branding::{Branding, MAX_IMAGE_BYTES, is_safe_image_name};
+use crate::input::{Route, header_text, if_none_match_hits, is_runtime_file_name};
 use crate::limits::{Refusal, Slot, StreamLimiter};
 use crate::log;
 use crate::news::News;
 use crate::runtime::{RuntimeStatus, RuntimeStore};
 
-pub const RUNTIME_FILES_PREFIX: &str = "/content/v1/runtime/files/";
-pub const KEY_HEADER: &str = "x-reforged-user-api-key";
 const READ_CHUNK: usize = 256 * 1024;
 
 pub struct Deps {
@@ -74,68 +74,6 @@ impl App {
 
 pub fn router(state: AppState) -> axum::Router {
     axum::Router::new().fallback(handle).with_state(state)
-}
-
-/// `IfNoneMatchHits`: "*" or a list of entity tags, weak ones included (RFC 9110 13.1.2).
-pub fn if_none_match_hits(header: Option<&str>, etag: &str) -> bool {
-    let Some(header) = header else {
-        return false;
-    };
-    service_kit::js::trim(header) == "*"
-        || header.split(',').any(|tag| {
-            let tag = service_kit::js::trim(tag);
-            tag.strip_prefix("W/").unwrap_or(tag) == etag
-        })
-}
-
-/// The route a request path names, before the method is looked at (`IsKnownRoute` and the order
-/// `CreateContentHandler` tries them in).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Route<'a> {
-    RuntimeManifest,
-    Branding,
-    News,
-    BrandingImage(&'a str),
-    RuntimeFile(&'a str),
-    Unknown,
-}
-
-impl Route<'_> {
-    /// The path up to any `?`, as it came (no decoding, no dot segments removed).
-    pub fn of(path_only: &str) -> Route<'_> {
-        if path_only == RUNTIME_MANIFEST_PATH {
-            Route::RuntimeManifest
-        } else if path_only == "/content/v1/branding" {
-            Route::Branding
-        } else if path_only == "/content/v1/news" {
-            Route::News
-        } else if let Some(name) = path_only.strip_prefix(BRANDING_PREFIX) {
-            Route::BrandingImage(name)
-        } else if let Some(name) = path_only.strip_prefix(RUNTIME_FILES_PREFIX) {
-            Route::RuntimeFile(name)
-        } else {
-            Route::Unknown
-        }
-    }
-}
-
-/// A runtime file name: exactly one of the two, letter case included (no decoding, no folders, no
-/// lookalikes).
-pub fn is_runtime_file_name(name: &str) -> bool {
-    RUNTIME_FILE_NAMES.contains(&name)
-}
-
-/// A header as Node's `req.headers` gives it: repeated lines joined with ", ", each byte a Latin-1
-/// character.
-pub fn header_text(headers: &HeaderMap, name: &str) -> Option<String> {
-    let mut values = headers.get_all(name).iter().peekable();
-    values.peek()?;
-    Some(
-        values
-            .map(|v| v.as_bytes().iter().map(|&b| b as char).collect::<String>())
-            .collect::<Vec<_>>()
-            .join(", "),
-    )
 }
 
 // ---- The request log ----
@@ -204,7 +142,7 @@ impl Drop for Logged {
             .info
             .path
             .clone()
-            .unwrap_or_else(|| crate::branding::slice_utf16(&self.path_only, 200));
+            .unwrap_or_else(|| crate::input::slice_utf16(&self.path_only, 200));
         fields.insert("path".into(), json!(path));
         fields.insert("status".into(), json!(self.status));
         fields.insert("ms".into(), json!(self.started.elapsed().as_millis() as u64));
@@ -530,42 +468,4 @@ async fn runtime_file(
     info.bytes = Some((Arc::new(AtomicU64::new(0)), file.size));
     reply.body = file_body(opened, file.size);
     Some(slot)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn conditional_headers() {
-        let tag = "\"abc\"";
-        assert!(!if_none_match_hits(None, tag));
-        assert!(if_none_match_hits(Some(" * "), tag));
-        assert!(if_none_match_hits(Some("\"x\", \"abc\""), tag));
-        assert!(if_none_match_hits(Some("W/\"abc\""), tag));
-        assert!(!if_none_match_hits(Some("\"abcd\""), tag));
-        assert!(!if_none_match_hits(Some("*, \"x\""), tag));
-    }
-
-    #[test]
-    fn routes_are_matched_on_the_raw_path() {
-        assert_eq!(Route::of("/content/v1/runtime/manifest"), Route::RuntimeManifest);
-        assert_eq!(Route::of("/content/v1/runtime/manifest/"), Route::Unknown);
-        assert_eq!(
-            Route::of("/content/v1/runtime/files/%2e%2e/runtime.json"),
-            Route::RuntimeFile("%2e%2e/runtime.json")
-        );
-        assert_eq!(Route::of("/content/v1/branding/"), Route::BrandingImage(""));
-        assert_eq!(Route::of("/content/v1/files/x"), Route::Unknown);
-        assert!(is_runtime_file_name("winmm.dll") && !is_runtime_file_name("winmm.DLL"));
-    }
-
-    #[test]
-    fn repeated_headers_are_joined_as_node_joins_them() {
-        let mut headers = HeaderMap::new();
-        headers.append(KEY_HEADER, HeaderValue::from_static("RRK_a"));
-        headers.append(KEY_HEADER, HeaderValue::from_static("RRK_b"));
-        assert_eq!(header_text(&headers, KEY_HEADER).as_deref(), Some("RRK_a, RRK_b"));
-        assert_eq!(header_text(&headers, "if-none-match"), None);
-    }
 }

@@ -26,6 +26,8 @@ pub enum LookupResult {
     Unavailable(String),
 }
 
+pub use crate::input::is_plausible_key;
+
 pub type Lookup = Arc<dyn Fn(String) -> BoxFuture<'static, LookupResult> + Send + Sync>;
 pub type Clock = Arc<dyn Fn() -> i64 + Send + Sync>;
 
@@ -34,12 +36,6 @@ pub fn hash_key(key: &str) -> String {
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect()
-}
-
-/// Printable ASCII without spaces, at most 256 characters. Anything else can't be a key and is
-/// refused without asking the backend (and can't be smuggled into the header sent to it).
-pub fn is_plausible_key(key: &str) -> bool {
-    (1..=256).contains(&key.len()) && key.bytes().all(|b| (0x21..=0x7e).contains(&b))
 }
 
 #[derive(Default)]

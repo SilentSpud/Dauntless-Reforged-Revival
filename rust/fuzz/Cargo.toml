@@ -64,5 +64,26 @@ test = false
 doc = false
 bench = false
 
+[[bin]]
+name = "content_request"
+path = "fuzz_targets/content_request.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "content_runtime_index"
+path = "fuzz_targets/content_runtime_index.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "content_news"
+path = "fuzz_targets/content_news.rs"
+test = false
+doc = false
+bench = false
+
 [workspace]
 members = ["."]
