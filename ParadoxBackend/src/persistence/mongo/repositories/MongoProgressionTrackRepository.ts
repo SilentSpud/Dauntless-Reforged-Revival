@@ -150,7 +150,7 @@ export class MongoProgressionTrackRepository implements ProgressionTrackReposito
         };
     }
 
-    async setConfirmedFremiumRank(userId: string, progressionId: string, rank: number): Promise<ProgressionTrackRecord> {
+    async setConfirmedFremiumRank(userId: string, progressionId: string, rank: number, session?: ClientSession): Promise<ProgressionTrackRecord> {
         const Db = await GetMongoDb();
         const Now = new Date().toISOString();
         const Id = this.TrackId(userId, progressionId);
@@ -172,12 +172,43 @@ export class MongoProgressionTrackRepository implements ProgressionTrackReposito
                     createdAt: Now
                 }
             },
-            { upsert: true, returnDocument: "after" }
+            { upsert: true, returnDocument: "after", session }
         );
 
         const Doc = Result as any;
         if (Doc == undefined) {
             throw new Error(`ProgressionTrack setConfirmedFremiumRank upsert for ${Id} unexpectedly returned no document.`);
+        }
+
+        return {
+            userId: Doc.userId,
+            progressionId: Doc.progressionId,
+            progress: Doc.progress,
+            confirmedFremiumRank: Doc.confirmedFremiumRank,
+            confirmedPremiumRank: Doc.confirmedPremiumRank,
+            updateVersion: Doc.updateVersion,
+            createdAt: Doc.createdAt,
+            updatedAt: Doc.updatedAt
+        };
+    }
+
+    async resetForPrestige(userId: string, progressionId: string, amount: number, session?: ClientSession): Promise<ProgressionTrackRecord | undefined> {
+        const Db = await GetMongoDb();
+        const Now = new Date().toISOString();
+        const Id = this.TrackId(userId, progressionId);
+
+        const Result = await Db.collection(Collections.ProgressionTracks).findOneAndUpdate(
+            { _id: Id as any, progress: { $gte: amount } },
+            {
+                $inc: { progress: -amount, updateVersion: 1 },
+                $set: { userId, progressionId, confirmedFremiumRank: 0, confirmedPremiumRank: 0, updatedAt: Now }
+            },
+            { session, returnDocument: "after" }
+        );
+
+        const Doc = Result as any;
+        if (Doc == undefined) {
+            return undefined;
         }
 
         return {

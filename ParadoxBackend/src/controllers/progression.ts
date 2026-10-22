@@ -447,6 +447,73 @@ export async function ConfirmPublicProgressionRank(userId: string, progressionId
     return { ok: true, record: Record };
 }
 
+// [Dauntless Reforged Revival] Weapon reforge. A reforge on the 1.14.7 game server
+// (UPlayerExperienceComponent::ServerPrestigeExperience) takes 100 Aethersparks through POST /inventory and
+// then sends DELETE /progression/<user>/ExperienceTrack_Weapon_<weapon>, with no other call. That route
+// did not exist (404), so the weapon was never reset and its reforge level never rose: the player paid,
+// and after the next load the weapon was back where it was (seen on the VPS 2026-10-20: two reforges of
+// the axe, -100 sparks each, both DELETEs answered 404).
+// Handled here as the reset plus the reforge level the game reads from the weapon's prestige track
+// (PrestigeTrack_Weapon_<weapon>, named by the experience track's row): the experience track loses the
+// XP of its full curve (any XP above it stays) and its confirmed ranks go back to 0; the prestige track
+// moves up one rank on its own served curve, progress and confirmed rank together. The reset is guarded
+// on the weapon being at its last rank, so a repeated request does not count a second reforge.
+export const WEAPON_EXPERIENCE_TRACK_PREFIX = "ExperienceTrack_Weapon_";
+export const WEAPON_PRESTIGE_TRACK_PREFIX = "PrestigeTrack_Weapon_";
+
+export function PrestigeTrackFor(experienceTrackId: string): string | undefined {
+    if (!experienceTrackId.startsWith(WEAPON_EXPERIENCE_TRACK_PREFIX)) return undefined;
+    return WEAPON_PRESTIGE_TRACK_PREFIX + experienceTrackId.slice(WEAPON_EXPERIENCE_TRACK_PREFIX.length);
+}
+
+// The highest rank of `curve` that `progress` reaches (0 below its first rank).
+export function RankForProgress(curve: { maxRank: number; cumulativeXpForRank: Map<number, number> }, progress: number): number {
+    let Rank = 0;
+    for (const [RankId, Cumulative] of [...curve.cumulativeXpForRank.entries()].sort((a, b) => a[0] - b[0])) {
+        if (progress >= Cumulative) Rank = RankId;
+        else break;
+    }
+    return Rank;
+}
+
+export type PrestigeResult =
+    | { ok: true; experience: ProgressionTrackRecord; prestige: ProgressionTrackRecord; prestigeRank: number }
+    | { ok: false; reason: "unknown_track" | "not_max_rank" };
+
+export async function PrestigeExperienceTrack(
+    userId: string,
+    experienceTrackId: string,
+    unitOfWork: Pick<UnitOfWork, "withTransaction"> = GetUnitOfWork()
+): Promise<PrestigeResult> {
+    const PrestigeTrackId = PrestigeTrackFor(experienceTrackId);
+    const ExperienceCurve = TrackCurves().get(experienceTrackId);
+    const PrestigeCurve = PrestigeTrackId === undefined ? undefined : TrackCurves().get(PrestigeTrackId);
+    if (PrestigeTrackId === undefined || ExperienceCurve === undefined || PrestigeCurve === undefined ||
+        !IsApprovedXpProgressionTrack(experienceTrackId) || !IsApprovedXpProgressionTrack(PrestigeTrackId)) {
+        return { ok: false, reason: "unknown_track" };
+    }
+    const FullCurveXp = ExperienceCurve.cumulativeXpForRank.get(ExperienceCurve.maxRank) ?? 0;
+
+    return unitOfWork.withTransaction(async (repos, session) => {
+        const Experience = await repos.progressionTracks.resetForPrestige(userId, experienceTrackId, FullCurveXp, session);
+        if (Experience === undefined) {
+            return { ok: false, reason: "not_max_rank" } as const;
+        }
+
+        const Before = await repos.progressionTracks.get(userId, PrestigeTrackId, session);
+        const BeforeProgress = Before?.progress ?? 0;
+        const NextRank = Math.min(RankForProgress(PrestigeCurve, BeforeProgress) + 1, PrestigeCurve.maxRank);
+        const Cost = (PrestigeCurve.cumulativeXpForRank.get(NextRank) ?? 0) - BeforeProgress;
+        if (Cost > 0) {
+            await repos.progressionTracks.increment(userId, PrestigeTrackId, Cost, session);
+        }
+        const Prestige = await repos.progressionTracks.setConfirmedFremiumRank(userId, PrestigeTrackId, NextRank, session);
+
+        logger.info(`[Reforge] user=${userId} track=${experienceTrackId} reset (-${FullCurveXp} -> ${Experience.progress}) ${PrestigeTrackId} rank=${NextRank} progress ${BeforeProgress} -> ${Prestige.progress}`);
+        return { ok: true, experience: Experience, prestige: Prestige, prestigeRank: NextRank } as const;
+    });
+}
+
 export async function QueryEncounteredContent(userId: string, characterId: string, categoriesToQuery: number[]){
     logger.info(`Querying ${categoriesToQuery.length} categories for userId ${userId} and characterId ${characterId}`);
 

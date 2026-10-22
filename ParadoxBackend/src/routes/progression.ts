@@ -16,7 +16,7 @@ import { loadGameData } from "../gameData/loader";
 import { WidenHuntPassWindows } from "./system";
 import { HasParadoxBackendAuth } from "../middleware/HasParadoxBackendAuth";
 import { logger } from "../logger";
-import { AddEncounteredContent, GetBreadcrumbsForCharacterIdAndUserId, GetPlayerJourney, QueryEncounteredContent, SavePlayerJourney, SetBreadcrumbsForCharacterIdAndUserId, GrantProgressionXp, GetPersistedProgressionForUser, CaptureProgressionObjectiveEvent, GetPersistedObjectivesForUser, ConfirmPublicProgressionRank, IsAuthorizedProgressionReader, IsAuthorizedProgressionReporter, IsApprovedXpProgressionTrack, IsValidProgressionGrantId, ProgressionGrantConflictError, IsCharacterOwnedByUser } from "../controllers/progression";
+import { AddEncounteredContent, GetBreadcrumbsForCharacterIdAndUserId, GetPlayerJourney, QueryEncounteredContent, SavePlayerJourney, SetBreadcrumbsForCharacterIdAndUserId, GrantProgressionXp, GetPersistedProgressionForUser, CaptureProgressionObjectiveEvent, GetPersistedObjectivesForUser, ConfirmPublicProgressionRank, PrestigeExperienceTrack, IsAuthorizedProgressionReader, IsAuthorizedProgressionReporter, IsApprovedXpProgressionTrack, IsValidProgressionGrantId, ProgressionGrantConflictError, IsCharacterOwnedByUser } from "../controllers/progression";
 import { GetUnlockedNodeIds, GrantSlayersPathRewards } from "../controllers/slayersPath";
 import { IsPrestigeSourceTrack } from "../controllers/wallet";
 import { MonitorProgressionReport, MonitorProgressionServed, MonitorSourceOf } from "../diagnostics/economyMonitor";
@@ -602,6 +602,42 @@ progressionRouter.post("/progression/:userId/:progressionId/:rank/confirm/public
             confirmed_fremium_rank: Updated.confirmedFremiumRank,
             confirmed_premium_rank: Updated.confirmedPremiumRank,
             confirmed_date: Updated.updatedAt,
+        }
+    });
+});
+
+// [Dauntless Reforged Revival] Weapon reforge: the game server resets a maxed weapon track with
+// DELETE /progression/<user>/ExperienceTrack_Weapon_<weapon> (see PrestigeExperienceTrack). Game server only.
+progressionRouter.delete("/progression/:userId/:progressionId", HasParadoxBackendAuth, async (req: any, res) => {
+    const RequestedUserId = String(req.params.userId);
+    const ProgressionId = String(req.params.progressionId);
+    if(req.AuthData?.IsGameserver !== true){
+        logger.warn(`Rejected reforge without gameserver auth (userId=${RequestedUserId}, track=${ProgressionId})`);
+        res.status(403).json({ code: null, message: "Forbidden", payload: {} });
+        return;
+    }
+    if(RequestedUserId.length === 0 || RequestedUserId === NO_PLAYER_SENTINEL){
+        res.status(400).json({ code: null, message: "Bad Request", payload: {} });
+        return;
+    }
+
+    const Result = await PrestigeExperienceTrack(RequestedUserId, ProgressionId);
+    if(!Result.ok){
+        logger.warn(`[Reforge] rejected user=${RequestedUserId} track=${ProgressionId}: ${Result.reason}`);
+        res.status(Result.reason === "unknown_track" ? 400 : 409).json({ code: null, message: `Rejected: ${Result.reason}`, payload: {} });
+        return;
+    }
+
+    res.status(200).json({
+        code: null,
+        message: "OK",
+        payload: {
+            phx_account_id: RequestedUserId,
+            progression_id: ProgressionId,
+            progress: Result.experience.progress,
+            confirmed_fremium_rank: Result.experience.confirmedFremiumRank,
+            confirmed_premium_rank: Result.experience.confirmedPremiumRank,
+            confirmed_date: Result.experience.updatedAt,
         }
     });
 });

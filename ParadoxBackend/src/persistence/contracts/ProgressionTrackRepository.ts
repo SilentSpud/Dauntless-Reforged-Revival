@@ -58,7 +58,15 @@ export interface ProgressionTrackRepository {
      * happen but must be handled without fabricating a progress value), creates it with
      * progress:0 rather than inventing a number.
      */
-    setConfirmedFremiumRank(userId: string, progressionId: string, rank: number): Promise<ProgressionTrackRecord>;
+    setConfirmedFremiumRank(userId: string, progressionId: string, rank: number, session?: ClientSession): Promise<ProgressionTrackRecord>;
+
+    /**
+     * [Dauntless Reforged Revival] Weapon reforge (prestige): takes `amount` off `progress` and sets both
+     * confirmed ranks back to 0, in one update filter-guarded on progress >= `amount`. Returns `undefined`
+     * when the filter does not match (the track is not at its last rank), so a repeated request does not
+     * reset the weapon twice.
+     */
+    resetForPrestige(userId: string, progressionId: string, amount: number, session?: ClientSession): Promise<ProgressionTrackRecord | undefined>;
 
     /** Appends one raw mastery/objective event. Append-only — never updates or dedupes here. */
     appendObjectiveEvent(event: ProgressionObjectiveEventRecord): Promise<void>;

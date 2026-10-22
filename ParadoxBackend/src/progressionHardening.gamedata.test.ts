@@ -13,7 +13,7 @@ import {
     IsAuthorizedProgressionReporter,
     IsCharacterOwnedByUser
 } from "./controllers/progression";
-import { CaptureProgressionObjectiveEvent } from "./controllers/progression";
+import { CaptureProgressionObjectiveEvent, GetTrackCurve, PrestigeExperienceTrack, PrestigeTrackFor, RankForProgress } from "./controllers/progression";
 
 const Track = {
     userId: "user-1",
@@ -292,4 +292,56 @@ test("a duplicate-key transaction race retries outside the aborted session", asy
     assert.equal(Attempts, 2);
     assert.equal(Increments, 1);
     assert.equal(Result.replayed, true);
+});
+
+// [Dauntless Reforged Revival] Weapon reforge: DELETE /progression/<user>/ExperienceTrack_Weapon_<weapon>.
+function FakeReforgeUnitOfWork(initial: Record<string, number>) {
+    const Rows = new Map<string, any>(Object.entries(initial).map(([Id, Progress]) => [Id, { ...Track, progressionId: Id, progress: Progress, confirmedFremiumRank: 0 }]));
+    const progressionTracks: any = {
+        get: async (_u: string, Id: string) => Rows.get(Id) ? { ...Rows.get(Id) } : undefined,
+        increment: async (_u: string, Id: string, Amount: number) => {
+            const Row = Rows.get(Id) ?? { ...Track, progressionId: Id, progress: 0, confirmedFremiumRank: 0 };
+            Row.progress += Amount; Rows.set(Id, Row); return { ...Row };
+        },
+        setConfirmedFremiumRank: async (_u: string, Id: string, Rank: number) => {
+            const Row = Rows.get(Id) ?? { ...Track, progressionId: Id, progress: 0, confirmedFremiumRank: 0 };
+            Row.confirmedFremiumRank = Math.max(Row.confirmedFremiumRank, Rank); Rows.set(Id, Row); return { ...Row };
+        },
+        resetForPrestige: async (_u: string, Id: string, Amount: number) => {
+            const Row = Rows.get(Id);
+            if (Row === undefined || Row.progress < Amount) return undefined;
+            Row.progress -= Amount; Row.confirmedFremiumRank = 0; Row.confirmedPremiumRank = 0; return { ...Row };
+        }
+    };
+    return { Rows, unitOfWork: { withTransaction: async (fn: any) => fn({ progressionTracks }, undefined) } };
+}
+
+test("a weapon reforge resets the maxed weapon and raises its reforge level each time", async () => {
+    const Full = GetTrackCurve("ExperienceTrack_Weapon_Axe")!.cumulativeXpForRank.get(GetTrackCurve("ExperienceTrack_Weapon_Axe")!.maxRank)!;
+    const Prestige = GetTrackCurve("PrestigeTrack_Weapon_Axe")!;
+    const { Rows, unitOfWork } = FakeReforgeUnitOfWork({ ExperienceTrack_Weapon_Axe: Full });
+
+    const First = await PrestigeExperienceTrack("user-1", "ExperienceTrack_Weapon_Axe", unitOfWork);
+    assert.equal(First.ok, true);
+    assert.equal(Rows.get("ExperienceTrack_Weapon_Axe").progress, 0);
+    assert.equal(First.ok && First.prestigeRank, 2);
+    assert.equal(RankForProgress(Prestige, Rows.get("PrestigeTrack_Weapon_Axe").progress), 2);
+
+    // Not maxed again yet: a repeated request does not count a second reforge.
+    assert.deepEqual(await PrestigeExperienceTrack("user-1", "ExperienceTrack_Weapon_Axe", unitOfWork), { ok: false, reason: "not_max_rank" });
+    assert.equal(RankForProgress(Prestige, Rows.get("PrestigeTrack_Weapon_Axe").progress), 2);
+
+    // Maxed again: the second reforge reaches the next level (the reported bug: it stayed at the first).
+    Rows.get("ExperienceTrack_Weapon_Axe").progress = Full + 40;
+    const Second = await PrestigeExperienceTrack("user-1", "ExperienceTrack_Weapon_Axe", unitOfWork);
+    assert.equal(Second.ok && Second.prestigeRank, 3);
+    assert.equal(Rows.get("ExperienceTrack_Weapon_Axe").progress, 40, "XP above the full curve stays");
+    assert.equal(Rows.get("PrestigeTrack_Weapon_Axe").confirmedFremiumRank, 3);
+    assert.equal(RankForProgress(Prestige, Rows.get("PrestigeTrack_Weapon_Axe").progress), 3);
+});
+
+test("only weapon experience tracks can be reforged", async () => {
+    const { unitOfWork } = FakeReforgeUnitOfWork({ ExperienceTrack_PlayerLevel: 999999 });
+    assert.deepEqual(await PrestigeExperienceTrack("user-1", "ExperienceTrack_PlayerLevel", unitOfWork), { ok: false, reason: "unknown_track" });
+    assert.equal(PrestigeTrackFor("ExperienceTrack_Weapon_Hammer"), "PrestigeTrack_Weapon_Hammer");
 });
