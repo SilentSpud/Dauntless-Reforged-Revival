@@ -1255,6 +1255,7 @@ name = "reforged-fuzz"
 version = "0.0.0"
 dependencies = [
  "arbitrary",
+ "chrono",
  "gateway",
  "http",
  "libfuzzer-sys",
@@ -1262,6 +1263,7 @@ dependencies = [
  "proxy",
  "serde_json",
  "service-kit",
+ "url",
 ]
 
 [[package]]

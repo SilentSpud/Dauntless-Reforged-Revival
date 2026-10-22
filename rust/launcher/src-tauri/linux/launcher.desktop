@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories={{categories}}
+Comment={{comment}}
+Exec={{exec}} %u
+StartupWMClass={{exec}}
+Icon={{icon}}
+Name={{name}}
+GenericName=Game Launcher
+Terminal=false
+Type=Application
+MimeType=x-scheme-handler/reforged-revival;
