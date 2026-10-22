@@ -434,7 +434,11 @@ mod tests {
         assert_eq!(fake.calls.load(Ordering::SeqCst), 1);
         now.fetch_add(60_000, Ordering::SeqCst);
         *fake.answer.lock().unwrap() = (304, String::new(), None);
-        news.refresh_remote().await;
+        let (_, lines) = crate::log::tests::captured_async(news.refresh_remote()).await;
+        assert!(
+            !lines.iter().any(|l| l.contains("GitHub news unavailable")),
+            "a 304 is not an error"
+        );
         assert_eq!(fake.if_none_match.lock().unwrap().as_deref(), Some("\"v1\""));
         assert_eq!(titles(&news.body()).len(), 2);
         for (status, body) in [

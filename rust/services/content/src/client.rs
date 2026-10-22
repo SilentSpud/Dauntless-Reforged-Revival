@@ -49,7 +49,8 @@ pub async fn get(url: &str, headers: &[(&str, &str)], timeout: Duration, max_bod
             .request(request)
             .await
             .map_err(|e| format!("fetch failed: {e}"))?;
-        if response.status().is_redirection() {
+        // What fetch follows (and `redirect: "error"` refuses); a 304 is an answer
+        if matches!(response.status().as_u16(), 301 | 302 | 303 | 307 | 308) {
             return Err("fetch failed: unexpected redirect".to_owned());
         }
         let (parts, body) = response.into_parts();
