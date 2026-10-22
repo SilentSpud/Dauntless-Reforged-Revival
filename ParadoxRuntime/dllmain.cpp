@@ -50,6 +50,8 @@
 #include "SDK/base_gameobject_bp_parameters.hpp"
 
 #include <cwchar>
+#include <clocale>  // [Reforged 0031] server locale
+#include <cwctype>
 #include <fstream>
 #include <iomanip>
 #include <intrin.h>
@@ -1008,6 +1010,73 @@ static bool MpOsCommandLineHas(const wchar_t* Param) {
     return Os != nullptr && Param != nullptr && wcsstr(Os, Param) != nullptr;
 }
 
+// [Reforged 0031] Behemoth part breaks under a decimal-comma locale. Dauntless Revived traced parts that stay
+// attached on the player's screen after a rewarded break (Gnasher/Embermane tails there) to hosted servers
+// whose Windows culture writes decimals with a comma (de-DE there; pt-BR on a Brazilian host): the server
+// misreads decimal-point values such as "105.6". Their fix (UndauntedInternalServer/ServerLocale.h, commit
+// 9245d3f) runs the server with -CULTURE=en-US and the CRT's "C" locale. Here the culture goes into the
+// engine's FCommandLine (HookFCommandLineGet) and the locale is set on the game's own CRT (ucrtbase.dll),
+// since this DLL links its own static CRT. Server role only; DISABLE_SERVER_LOCALE_FIX.flag beside the game
+// executable turns it off.
+static int g_serverLocaleFix = -1;
+static bool MpServerLocaleFixEnabled() {
+    if (g_serverLocaleFix < 0) g_serverLocaleFix = MpExeRelativeFlagPresent(L"DISABLE_SERVER_LOCALE_FIX.flag") ? 0 : 1;
+    return g_serverLocaleFix == 1;
+}
+
+static bool MpHasCultureSwitch(const std::wstring& CmdLine) {
+    std::wstring Lower = CmdLine;
+    for (wchar_t& c : Lower) c = (wchar_t)towlower(c);
+    return Lower.find(L"-culture=") != std::wstring::npos;
+}
+
+using CrtSetLocaleFn = char* (__cdecl*)(int, const char*);
+using CrtConfigThreadLocaleFn = int (__cdecl*)(int);
+
+static std::string MpDecimalPointOf(HMODULE Crt) {
+    using LocaleConvFn = struct lconv* (__cdecl*)();
+    LocaleConvFn Conv = Crt ? (LocaleConvFn)GetProcAddress(Crt, "localeconv") : nullptr;
+    struct lconv* L = Conv ? Conv() : nullptr;
+    return (L && L->decimal_point) ? std::string(L->decimal_point) : std::string("?");
+}
+
+static void MpConfigureServerLocale() {
+    if (!MpServerLocaleFixEnabled()) {
+        InitLog("[ServerLocale] DISABLE_SERVER_LOCALE_FIX.flag present - culture and CRT locale left as they are");
+        return;
+    }
+    wchar_t UserLocale[LOCALE_NAME_MAX_LENGTH] = L"?";
+    if (!GetUserDefaultLocaleName(UserLocale, LOCALE_NAME_MAX_LENGTH)) wcscpy_s(UserLocale, L"?");
+    std::string UserLocaleA;
+    for (const wchar_t* c = UserLocale; *c; ++c) UserLocaleA += (char)*c;
+
+    // Our own static CRT.
+    _configthreadlocale(_ENABLE_PER_THREAD_LOCALE);
+    setlocale(LC_ALL, "C");
+    _configthreadlocale(_DISABLE_PER_THREAD_LOCALE);
+    setlocale(LC_ALL, "C");
+
+    // The game's CRT (the engine parses with it).
+    HMODULE Ucrt = GetModuleHandleA("ucrtbase.dll");
+    if (!Ucrt) Ucrt = LoadLibraryA("ucrtbase.dll");
+    CrtSetLocaleFn GameSetLocale = Ucrt ? (CrtSetLocaleFn)GetProcAddress(Ucrt, "setlocale") : nullptr;
+    CrtConfigThreadLocaleFn GameConfig = Ucrt ? (CrtConfigThreadLocaleFn)GetProcAddress(Ucrt, "_configthreadlocale") : nullptr;
+    const std::string Before = MpDecimalPointOf(Ucrt);
+    const char* GameNumeric = nullptr;
+    if (GameSetLocale) {
+        if (GameConfig) GameConfig(_ENABLE_PER_THREAD_LOCALE);
+        GameSetLocale(LC_ALL, "C");
+        if (GameConfig) GameConfig(_DISABLE_PER_THREAD_LOCALE);
+        GameNumeric = GameSetLocale(LC_ALL, "C");
+    }
+    const std::string After = MpDecimalPointOf(Ucrt);
+    InitLog(std::string("[ServerLocale] windows_user_locale=") + UserLocaleA
+        + " game_crt=" + (GameSetLocale ? "ucrtbase" : "not-found")
+        + " decimal_before='" + Before + "' decimal_after='" + After + "'"
+        + " numeric=" + (GameNumeric ? GameNumeric : "?")
+        + " commandline_culture=en-US");
+}
+
 static const wchar_t* HookFCommandLineGet() {
     const wchar_t* Orig = OrigFCommandLineGet ? OrigFCommandLineGet() : nullptr;
     if (!Orig) return Orig;
@@ -1040,6 +1109,11 @@ static const wchar_t* HookFCommandLineGet() {
             && MpOsCommandLineHas(L"-nullrhi")) {
             g_engineCmdLineServed += L" -nullrhi";
             MpLog("[CommandLine] appended -nullrhi to the engine FCommandLine (server role)");
+        }
+        // [Reforged 0031] Server culture pinned to en-US (see MpConfigureServerLocale).
+        if (Globals::AmServer && MpServerLocaleFixEnabled() && !MpHasCultureSwitch(g_engineCmdLineServed)) {
+            g_engineCmdLineServed += L" -CULTURE=en-US";
+            MpLog("[CommandLine] appended -CULTURE=en-US to the engine FCommandLine (server role)");
         }
     }
     if (!g_engineCmdLineLoggedOnce) {
@@ -21718,6 +21792,7 @@ void InitServerHooks() {
     // line: without it the engine's own FCommandLine never carries -nullrhi (see HookFCommandLineGet),
     // so a dedicated hub initialised a hardware D3D11 device even with -nullrhi on the OS line.
     InstallEngineCommandLineHook();
+    MpConfigureServerLocale();
 
     InstallServerHeadlessSetup();
     // The optional player-hosted mode's server hooks (P2PHooks.h; nothing without the module).
