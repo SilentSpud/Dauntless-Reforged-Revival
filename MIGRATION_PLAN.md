@@ -29,24 +29,34 @@ for each piece are written down.
 
 ## What's left
 
-Updated by the wave 0 integration pass, 2026-10-22. Wave 0 merged into `plan`: RR1
-([#1](https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/1)), RR2
-([#5](https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/5)), RX1
-([#2](https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/2),
-[#3](https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/3),
-[#4](https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/4)); RP1 is `reforged` at `24e60c8` in the fork.
+Updated by the wave 1 integration pass, 2026-10-22. Merged into `plan`: wave 0 (RR1 [#1], RR2 [#5], RX1 [#2], [#3],
+[#4]; RP1 is `reforged` at `24e60c8` in the fork) and wave 1 (RR3 and RR4 [#6], RS1 [#8], RS4 [#9], RH1 [#10], RP2–RP4
+[#11], RA1–RA2 [#12]). The integration commit re-points the launcher's status parsing at `protocol` (RS1 extended the
+type) and adds RH1's fixture `secrets.env` files, which the root `.gitignore` had kept out of its PR.
 
-| Area | Done | Next (wave 1 unless said) | Waiting on the maintainer |
+[#1]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/1
+[#2]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/2
+[#3]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/3
+[#4]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/4
+[#5]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/5
+[#6]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/6
+[#8]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/8
+[#9]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/9
+[#10]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/10
+[#11]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/11
+[#12]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/12
+
+| Area | Done | Next (wave 2 unless said) | Waiting on the maintainer |
 | --- | --- | --- | --- |
-| Repository and CI | RR1, RR2 | RR3 CI, RR4 Dependabot; RR1's Linux check runs in RR3's first CI | — |
-| Paradox fork | RP1 | RP2–RP4 | — |
-| Gateway, allowlist, content | RX1 delta list | RS1, RS4; RS2, RS3 in wave 2 | RS4's nft check on Debian 13 |
-| Host kit | — | RH1; RH2–RH4 in wave 2 | — |
-| Launcher | RX1 delta lists | RA1–RA2; RA3–RA9, RA11 in wave 2 | RA10 spike (Linux machine with the game), not started |
+| Repository and CI | RR1–RR4 | RR5 at 3.0.0 | Make `CI ok` the required check in branch protection |
+| Paradox fork | RP1–RP4 | Fixes only (RD2); RX2's lists in wave 3 | Build `native/` with a host SDK (RP3's runtime check) |
+| Gateway, allowlist, content | RX1, RS1, RS4 | RS2 content, RS3 gateway | RS4's nft check on Debian 13 and an elevated Windows Firewall check (commands in [#9]) |
+| Host kit | RH1 | RH2 `start`, RH3 `setup` and friends, RH4 game-data commands | — |
+| Launcher | RX1, RA1–RA2 | RA3, RA4 + RA5, RA6, RA7, RA8, RA9 + RA11 | RA10 spike (Linux machine with the game), not started; a real 1.5.1 profile for RA8 |
 | Backend and Director | — | After the gate (RD17) | Cut-off date (RD16) |
 
-Local notes from wave 0, not plan changes: on the maintainer's Windows PC two of Content's test ports fall in
-Windows' reserved range, and the npm config refuses git-sourced packages, which blocks the launcher's `npm ci`.
+Local notes, not plan changes: on the maintainer's Windows PC two of Content's test ports fall in Windows'
+reserved range, and the npm config refuses git-sourced packages, which blocks the launcher's `npm ci`.
 
 ## 1. End state
 
@@ -157,8 +167,8 @@ those top-level files, so the attribution stays next to the code that came from 
 | --- | --- | --- | --- |
 | ~~RR1~~ | ~~Copy `rust/` (workspace files, `rust-toolchain.toml`, `deny.toml`, `.cargo/config.toml`, `clippy.toml`, `rustfmt.toml`, `crates/protocol`, `crates/proxy`, `crates/service-kit`, `crates/store`, `fuzz/` targets for those crates) in one commit (RD6)~~ | R4, X6 | `cargo test --workspace`, `cargo deny check`, `cargo clippy` pass on Windows and Linux |
 | ~~RR2~~ | ~~`git mv` `ReforgedGateway`, `ReforgedContent`, `ReforgedLauncher`, `ReforgedHost` to `legacy/`~~ | R5 | Today's npm tests pass from `legacy/` |
-| RR3 | CI by family behind one required check: Rust (fmt, clippy, test, deny, short fuzz) on Windows and Linux, the launcher page, the Paradox fork's Node tests, legacy Node | R8 | A Rust-only PR skips the Node jobs and the other way round |
-| RR4 | Dependabot entries for `cargo` (`/rust`), the page and `paradox/*`, under the current policy; each npm entry under `legacy/` removed with its folder | X6 | Dependabot opens a `cargo` PR |
+| ~~RR3~~ | ~~CI by family behind one required check: Rust (fmt, clippy, test, deny, short fuzz) on Windows and Linux, the launcher page, the Paradox fork's Node tests, legacy Node~~ | R8 | A Rust-only PR skips the Node jobs and the other way round |
+| ~~RR4~~ | ~~Dependabot entries for `cargo` (`/rust`), the page and `paradox/*`, under the current policy; each npm entry under `legacy/` removed with its folder~~ | X6 | Dependabot opens a `cargo` PR |
 | RR5 | Move the launcher page to `rust/launcher/ui` once Electron is deleted (RA16); path sweep for `legacy/` and `upstream/` | R7, R10 | No reference to a deleted path |
 
 ### 4.2 The Paradox fork (RP)
@@ -166,9 +176,9 @@ those top-level files, so the attribution stays next to the code that came from 
 | # | What | Verify |
 | --- | --- | --- |
 | ~~RP1~~ | ~~In the fork: branch `reforged` from `00d3be8`, patches 0001–0033 as 33 commits, in order; push it~~ | The tree equals what `npm run upstream` produces today (`.reforged-patches.json` set) |
-| RP2 | Merge the fork's `reforged` branch as a subtree at `paradox/` | `git log paradox/` shows Paradox's commits and the 33 patch commits |
-| RP3 | `git mv` the backend and Director to `paradox/backend`, `paradox/director`, the runtime and loader to `native/`; delete what Reforged does not use (`ParadoxLauncher`, `tools/`, `scripts/` at the top level, Paradox's deployment docs); Paradox's top-level files (`ADDITIONAL_TERMS.md`, licence, `NOTICE.md`) stay under `paradox/` | The backend and Director tests pass; the runtime builds from `native/` with a host's SDK |
-| RP4 | `ReforgedHost` (still Node) builds from `paradox/` instead of downloading; delete `upstream/` and `npm run upstream`; move `store-captures.json` to `paradox/backend`; attribution in `NOTICE.md` and the READMEs; a `docs/` note on how Freeza's runtime patches are applied to `native/` after the cut-off (RD16) | `npm run setup` on a clean host with no network access to Paradox's repository |
+| ~~RP2~~ | ~~Merge the fork's `reforged` branch as a subtree at `paradox/`~~ | `git log paradox/` shows Paradox's commits and the 33 patch commits |
+| ~~RP3~~ | ~~`git mv` the backend and Director to `paradox/backend`, `paradox/director`, the runtime and loader to `native/`; delete what Reforged does not use (`ParadoxLauncher`, `tools/`, `scripts/` at the top level, Paradox's deployment docs); Paradox's top-level files (`ADDITIONAL_TERMS.md`, licence, `NOTICE.md`) stay under `paradox/`~~ | The backend and Director tests pass; the runtime builds from `native/` with a host's SDK |
+| ~~RP4~~ | ~~`ReforgedHost` (still Node) builds from `paradox/` instead of downloading; delete `upstream/` and `npm run upstream`; move `store-captures.json` to `paradox/backend`; attribution in `NOTICE.md` and the READMEs; a `docs/` note on how Freeza's runtime patches are applied to `native/` after the cut-off (RD16)~~ | `npm run setup` on a clean host with no network access to Paradox's repository |
 
 ### 4.3 Gateway, allowlist and content (RS)
 
@@ -176,17 +186,17 @@ The file-by-file delta each row carries over is in `docs/port/delta-servers.md` 
 
 | # | What | From DR | Delta | Verify |
 | --- | --- | --- | --- | --- |
-| RS1 | `protocol`: the `reforged-revival://` scheme only, `RRK_` keys, runtime manifest type; a `dauntless-revived://` invite parses to a typed refusal the page can word; the manifest serialises in the Node field order (`version`, `build { name, changelist }`, `files [{ name, size, sha256 }]`); `contentPort` stays in the status type | X4 | Section 2 | DR's protocol tests plus Reforged's `invite.test.ts` cases as Rust tests; the manifest byte for byte against a body recorded from the Node content server |
+| ~~RS1~~ | ~~`protocol`: the `reforged-revival://` scheme only, `RRK_` keys, runtime manifest type; a `dauntless-revived://` invite parses to a typed refusal the page can word; the manifest serialises in the Node field order (`version`, `build { name, changelist }`, `files [{ name, size, sha256 }]`); `contentPort` stays in the status type~~ | X4 | Section 2 | DR's protocol tests plus Reforged's `invite.test.ts` cases as Rust tests; the manifest byte for byte against a body recorded from the Node content server |
 | RS2 | Content server: copy `services/content`, drop the game zip, add the runtime manifest and the two-file download, auth against the backend's key check | S1 | `runtime.ts`, `app.ts`, `auth.ts`, `config.ts` | Reforged's content tests ported; the Electron launcher downloads a runtime from the Rust server |
 | RS3 | Gateway: copy `services/gateway`, apply `policy.ts` (Paradox and `/reforged/api` admin routes, host-only headers), config, feed and server deltas; `gateway make-cert` replaces `tools/make-cert.js`; DR's Node `capture.ts` ported in for RB2 (RD19); DR's feed backoff kept and `/game/login` feeding checked against the fork (RD20); **load the existing certificate, never regenerate** | S2 | `policy.ts`, `config.ts`, `gateway.ts`, `feed.ts`, `server.ts`, `make-cert.js`, DR's `capture.ts` | Reforged's gateway tests ported; DR's parity test re-pointed at Reforged's Node gateway; an existing invite's `fp` still matches |
-| RS4 | Allowlist helper: DR's `allowlist` bin with Reforged's game-port range (`ports.ts`) and its nftables variant (`nft.ts`) for the Linux VPS, as RD20 sets out (one atomic transaction, `lo` rule, `nft -f -` or a private file, `ALLOWLIST_*` names) | S3 | `ports.ts`, `nft.ts`, `config.ts`, `firewall.ts` | Rule contents after login and logout on Windows and on Debian 13 (nft) |
+| ~~RS4~~ | ~~Allowlist helper: DR's `allowlist` bin with Reforged's game-port range (`ports.ts`) and its nftables variant (`nft.ts`) for the Linux VPS, as RD20 sets out (one atomic transaction, `lo` rule, `nft -f -` or a private file, `ALLOWLIST_*` names)~~ | S3 | `ports.ts`, `nft.ts`, `config.ts`, `firewall.ts` | Rule contents after login and logout on Windows and on Debian 13 (nft) |
 | RS5 | Catch-up of Reforged's Node gateway and content commits since the copy (RX2), then delete `legacy/ReforgedGateway` and `legacy/ReforgedContent` | X3 | — | Every commit on the list ported or marked not applicable |
 
 ### 4.4 Host kit (RH)
 
 | # | What | Verify |
 | --- | --- | --- |
-| RH1 | `services/host` skeleton on `service-kit`: `paths`, `envfile`, `hostconfig` (`host.json`), `clap` commands with today's names and options | Reforged's host kit tests for config and paths ported; a `host.json` written by the Node kit reads back unchanged |
+| ~~RH1~~ | ~~`services/host` skeleton on `service-kit`: `paths`, `envfile`, `hostconfig` (`host.json`), `clap` commands with today's names and options~~ | Reforged's host kit tests for config and paths ported; a `host.json` written by the Node kit reads back unchanged |
 | RH2 | `start`: the Rust services with `--env-file` (DR X7), the backend and Director (Node until RB14), the database when managed (MongoDB until RB14, Postgres after), the allowlist helper in public mode; one process tree, clean stop on Ctrl+C including the game servers; today's control contract kept (`REFORGED_CONTROL=stdin`, `REFORGED_SERVER_READY`, the port 61000 probe; RD23) | Every service up; nothing left running after stop, on Windows and Linux |
 | RH3 | `setup`, `invite`, `doctor`, `multipliers`; the MongoDB replica-set setup (`mongo.ts`) until RB14, then a managed Postgres (install, `initdb`, a role and database for the backend, loopback only) or `--postgres-url`; `backup` with `pg_dump` | A fresh private and a fresh public setup on Windows |
 | RH4 | `gamedata`, `preset`, `progression`, `publish-runtime`, `gamepack`, `captures`; until RB11 `gamedata` runs the Node generators in `paradox/backend/scripts`, after it the `backend gamedata` subcommands | The generators give byte-identical files to the Node kit's from the same export |
@@ -225,8 +235,8 @@ The file-by-file delta is in `docs/port/delta-launcher-platform.md` (RA4–RA12)
 
 | # | What | From DR | Verify |
 | --- | --- | --- | --- |
-| RA1 | Copy `src-tauri` without `offline/`, `controller/offline.rs`, `client_mods.rs`, `net/autoregion.rs` and the 1.4.4 manifest and DLL pins (RD5); the app's identifier, name and `userData` folder are Reforged's | L4–L7 | It builds on Windows and Linux and opens today's page with a stub bridge |
-| RA2 | Bridge, generated TS types and isolation hook re-generated for Reforged's command list (`ipc-validate.ts`, `preload.ts`; the list is in `docs/port/delta-launcher-controller.md`), minus the `revived/` commands; new argument kinds for an index, a fixed name list and objects, in `spec.rs`, the hook and its generator; `copy_text` a command (RD22); `controller/game.rs`, `controller/runtime.rs`, `controller/host.rs` registered as stubs so RA12 and RA13 never share `mod.rs` | L6, L7, L9 | Every command the page uses is in the bridge spec; a refused command never reaches Rust |
+| ~~RA1~~ | ~~Copy `src-tauri` without `offline/`, `controller/offline.rs`, `client_mods.rs`, `net/autoregion.rs` and the 1.4.4 manifest and DLL pins (RD5); the app's identifier, name and `userData` folder are Reforged's~~ | L4–L7 | It builds on Windows and Linux and opens today's page with a stub bridge |
+| ~~RA2~~ | ~~Bridge, generated TS types and isolation hook re-generated for Reforged's command list (`ipc-validate.ts`, `preload.ts`; the list is in `docs/port/delta-launcher-controller.md`), minus the `revived/` commands; new argument kinds for an index, a fixed name list and objects, in `spec.rs`, the hook and its generator; `copy_text` a command (RD22); `controller/game.rs`, `controller/runtime.rs`, `controller/host.rs` registered as stubs so RA12 and RA13 never share `mod.rs`~~ | L6, L7, L9 | Every command the page uses is in the bridge spec; a refused command never reaches Rust |
 | RA3 | Language files split (en, pt-BR) and the backend's text built from them; the 1.4.4 strings removed, a refusal string for `dauntless-revived://` invites added | L13–L15 | Reforged's `i18n.test.ts` passes on the split files |
 | RA4 | Invite, status, username on `protocol` (RS1) | L11, L12 | Shared test tables with the servers |
 | RA5 | Pinned TLS, HTTP client, host API | L19–L21 | Reforged's `pinned.test.ts` cases; register and status against the Rust gateway |
@@ -302,12 +312,12 @@ still run as two tracks (RD12) and the backend still waits for the gate (RD17); 
 | 0 | ~~RR1 copy of `rust/`~~ | — | — |
 | 0 | ~~RR2 moves to `legacy/`~~ | — | — |
 | 0 | RA10 spike: 1.14.7 under Proton with the runtime loaded | — | Linux machine with the game |
-| 1 | RP2–RP4 | RP1, RR2 | — |
-| 1 | RR3 CI, RR4 Dependabot (the `paradox/` job waits for RP3 to exist, it does not block) | RR1, RR2 | — |
-| 1 | RS1 protocol | RR1, RX1 | — |
-| 1 | RS4 allowlist helper | RR1, RX1 | nft rules on Debian 13 |
-| 1 | RA1–RA2 launcher skeleton and bridge | RR1, RX1 | — |
-| 1 | RH1 host kit skeleton | RR1 | — |
+| 1 | ~~RP2–RP4~~ | RP1, RR2 | — |
+| 1 | ~~RR3 CI, RR4 Dependabot (the `paradox/` job waits for RP3 to exist, it does not block)~~ | RR1, RR2 | — |
+| 1 | ~~RS1 protocol~~ | RR1, RX1 | — |
+| 1 | ~~RS4 allowlist helper~~ | RR1, RX1 | nft rules on Debian 13 |
+| 1 | ~~RA1–RA2 launcher skeleton and bridge~~ | RR1, RX1 | — |
+| 1 | ~~RH1 host kit skeleton~~ | RR1 | — |
 | 2 | RS2 content | RS1, RX1 | — |
 | 2 | RS3 gateway | RS1, RS4 (same crate), RX1 | — |
 | 2 | RH2 `start` (starts the Node services and MongoDB until the Rust ones exist) | RH1 | — |
