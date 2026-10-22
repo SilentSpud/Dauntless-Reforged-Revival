@@ -4,7 +4,7 @@
 //! moves here.
 //!
 //! RA1 and RA2 set the seams: the app's identity, the window, every command the page calls (`bridge/`)
-//! and a stub for every module a later row fills (`stub`), so each of those rows only fills its own files.
+//! and a stub for every module a later row filled, so each of those rows only filled its own files.
 //! Until RA13 wires the controller to them, the network and platform layers are not called outside their
 //! tests.
 
@@ -16,7 +16,6 @@ mod core;
 mod net;
 #[allow(dead_code, reason = "RA13's controller uses the platform layer")]
 mod platform;
-mod stub;
 mod window;
 
 use bridge::backend::Backend;

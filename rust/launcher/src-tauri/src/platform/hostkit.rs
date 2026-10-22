@@ -230,7 +230,7 @@ pub fn find_dumps(root: &Path) -> Vec<HostDump> {
             ))
         })
         .collect();
-    out.sort_by(|a, b| b.0.cmp(&a.0));
+    out.sort_by_key(|(modified, _)| std::cmp::Reverse(*modified));
     out.into_iter().map(|(_, dump)| dump).collect()
 }
 

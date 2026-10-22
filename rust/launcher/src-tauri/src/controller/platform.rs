@@ -1,7 +1,8 @@
 //! What the controller needs from the app and the operating system (`Platform` in `controller.ts`). The
 //! app passes `TauriPlatform`; the tests pass fakes, so the whole controller runs without a window.
 //! Reforged's members are here from RA2 on (`choose_dll`, `choose_pack`, `emit_host_kit`,
-//! `emit_host_server`, `inject`); DR's device signals are gone, as in Reforged.
+//! `emit_host_server`); DR's device signals are gone, as in Reforged. Nothing loads a DLL into another
+//! process: the Host page's DLLs go through the runtime loader's list (RD9, `platform::loader_session`).
 
 use std::future::Future;
 use std::path::{Path, PathBuf};
@@ -49,8 +50,6 @@ pub trait Platform: Send + Sync {
     fn find_tailscale(&self) -> bool;
     fn find_running_clients(&self) -> Boxed<Vec<u32>>;
     fn prepare_game_launch(&self) -> Boxed<Prepared>;
-    /// Loads a DLL into a running process (RD9; RA12).
-    fn inject(&self, pid: u32, dll: PathBuf) -> Boxed<Result<(), crate::platform::injector::InjectError>>;
     /// The Visual C++ and DirectX files the game needs that Windows lacks.
     fn missing_runtimes(&self) -> (Vec<String>, Vec<String>);
 }
@@ -155,10 +154,6 @@ impl Platform for TauriPlatform {
                 Err(_) => Prepared::Missing,
             }
         })
-    }
-
-    fn inject(&self, pid: u32, dll: PathBuf) -> Boxed<Result<(), crate::platform::injector::InjectError>> {
-        Box::pin(crate::platform::injector::inject(pid, dll))
     }
 
     fn missing_runtimes(&self) -> (Vec<String>, Vec<String>) {

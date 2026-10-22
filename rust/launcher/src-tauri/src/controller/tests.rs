@@ -2,7 +2,7 @@
 //! Reforged server (`test/fakes.ts`): invite -> ServerStatus -> Register -> the player's own Dauntless
 //! 1.14.7 -> the server's runtime (asked, then installed and checked) -> Play (relay, Engine.ini, launch
 //! arguments, environment) -> the game's exit stops the relay. Public mode runs over a fake TLS gateway,
-//! private mode over plain HTTP on loopback. The Host page's cases are RA12's; the Dauntless Revived case
+//! private mode over plain HTTP on loopback. The Host page's cases are RA12's, at the end; the Dauntless Revived case
 //! is replaced by the RD22 ones at the end (a saved 1.4.4 server is shown disabled).
 
 use std::collections::{HashMap, HashSet};
@@ -38,7 +38,6 @@ use crate::net::pinned::certificate_fingerprint;
 use crate::net::pinned::tests::{acceptor, certificate};
 use crate::platform::dialogs::FolderPurpose;
 use crate::platform::game_folder::{GAME_VERSION_TEXT, StoreEnv};
-use crate::platform::injector::InjectError;
 use crate::platform::keystore::Encryptor;
 use crate::platform::launch::LaunchRuntime;
 
@@ -354,9 +353,6 @@ impl Platform for Fake {
     fn prepare_game_launch(&self) -> Boxed<Prepared> {
         Box::pin(async { Prepared::Native })
     }
-    fn inject(&self, _: u32, _: PathBuf) -> Boxed<Result<(), InjectError>> {
-        Box::pin(async { Ok(()) })
-    }
     fn missing_runtimes(&self) -> (Vec<String>, Vec<String>) {
         (self.missing_vc.lock().unwrap().clone(), Vec::new())
     }
@@ -448,6 +444,8 @@ impl Harness {
                 ]),
                 store_env: Some(StoreEnv::default()),
                 qos_port: None,
+                host_probe: None,
+                dump_root: None,
             },
         );
         Self {
@@ -1090,56 +1088,428 @@ async fn notices_errors_and_updates() {
     assert!(!hx.c.may_install_update());
 }
 
-/// The Host page's commands reach `host.rs`, which answers RA12's stubs until that row lands.
-#[tokio::test(flavor = "multi_thread")]
-async fn the_host_page_commands_reach_host_rs() {
+// ---------------------------------------------------------------- the Host page (RA12)
+
+/// A workspace in the planned layout with the fake `reforged-host` (`fixtures/host`) in it.
+fn host_workspace(root: &Path) -> PathBuf {
+    std::fs::create_dir_all(root.join("paradox")).unwrap();
+    std::fs::copy(
+        crate::platform::hostkit::fixtures::exe("fake-host-kit"),
+        root.join(crate::platform::hostkit::HOST_BINARY),
+    )
+    .unwrap();
+    root.to_path_buf()
+}
+
+/// `host.json` and both game data sets, so the server may start.
+fn configure_workspace(ws: &Path) {
+    use crate::platform::hostkit::{BACKEND_GAME_DATA, DIRECTOR_GAME_DATA, WorkspacePaths};
+    let w = WorkspacePaths::new(ws);
+    std::fs::create_dir_all(w.host_json.parent().unwrap()).unwrap();
+    std::fs::write(&w.host_json, r#"{"mode":"private","name":"Friday Hunts"}"#).unwrap();
+    for (dir, files) in [
+        (&w.backend_game_data, &BACKEND_GAME_DATA[..]),
+        (&w.director_game_data, &DIRECTOR_GAME_DATA[..]),
+    ] {
+        std::fs::create_dir_all(dir).unwrap();
+        for file in files {
+            std::fs::write(dir.join(file), b"{}").unwrap();
+        }
+    }
+}
+
+fn host_error(detail: &str) -> ActionResult {
+    ActionResult::Err(LauncherError::with_detail(ErrorCode::HostFailed, detail))
+}
+
+/// A harness whose Host page sees no server on port 61000 unless it started one, and its own dump root.
+fn host_harness() -> Harness {
     let hx = Harness::new();
-    let ra12 = ActionResult::Err(LauncherError::with_detail(ErrorCode::Unknown, "not_implemented:RA12"));
+    let probe: crate::platform::hostserver::Probe = Arc::new(|| Box::pin(async { false }));
+    // Rebuilt with the seams: the Host state is made with the controller
+    let dumps = hx.user.path().join("dumps");
+    let c = Controller::with_seams(
+        hx.fake.clone(),
+        Config {
+            user_data: hx.user.path().to_path_buf(),
+            documents: None,
+            resources_dir: PathBuf::from("resources"),
+            host: crate::platform::settings::Platform::current(),
+            app_version: "0.0.0-test".into(),
+            packaged: false,
+            language: Language::En,
+            system_locale: "en-US".into(),
+            game_config_dir: hx.config.path().to_path_buf(),
+            relay_port: hx.relay_port,
+            exe_pin: (EXE_RELATIVE_PATH.into(), sha(EXE_DATA)),
+            status_poll: Duration::from_secs(60),
+            encryptor: Arc::new(Plain),
+            legacy_encryptor: None,
+        },
+        Seams {
+            spawn: {
+                let log = hx.spawns.clone();
+                Some(Arc::new(
+                    move |dir: &Path, args: &[String], _: Option<&LaunchRuntime>, env: &[(OsString, OsString)]| {
+                        log.lock()
+                            .unwrap()
+                            .push((dir.to_path_buf(), args.to_vec(), env.to_vec()));
+                        Ok(std::process::id())
+                    },
+                ))
+            },
+            env: Some(vec![
+                ("PATH".into(), "/usr/bin".into()),
+                ("REFORGED_BACKEND_URL".into(), "https://x.invalid".into()),
+                ("MysticParadox_Profile".into(), "development".into()),
+            ]),
+            store_env: Some(StoreEnv::default()),
+            qos_port: None,
+            host_probe: Some(probe),
+            dump_root: Some(dumps),
+        },
+    );
+    Harness { c, ..hx }
+}
+
+async fn until(what: impl Fn() -> bool) {
+    for _ in 0..250 {
+        if what() {
+            return;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    panic!("timed out");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_host_page_drives_reforged_host_setup_server_invite_and_stop() {
+    let hx = host_harness();
+    hx.c.init().await;
+    assert_eq!(hx.c.host_server_start().await, host_error("workspace"));
+
+    // A folder without reforged-host is not a workspace
+    let not_one = hx.temp();
+    hx.pick("workspace", &not_one);
+    assert_eq!(hx.c.host_choose_workspace().await, host_error("workspace"));
+    let ws = host_workspace(&hx.temp().join("Reforged"));
+    hx.pick("workspace", &ws);
+    assert_eq!(hx.c.host_choose_workspace().await, ActionResult::Ok);
+    let kit = hx.c.host_kit().await;
+    assert!(kit.workspace_ok);
+    assert!(!kit.server_config.configured);
+    assert!(!kit.requirements.is_empty(), "the requirements are looked at");
+    assert_eq!(hx.c.host_open(HostFolder::Workspace), ActionResult::Ok);
+    assert_eq!(hx.c.host_open(HostFolder::HostLogs), host_error("folder"));
+
+    // The server needs host.json and the game data
+    assert_eq!(hx.c.host_server_start().await, host_error("not_configured"));
+    // The fake host kit fails setup with an Error: line: that line is the page's detail, and the job failed
+    let setup = HostSetupRequest {
+        name: "Friday Hunts".into(),
+        mode: crate::bridge::types::HostServerMode::Private,
+        public_host: None,
+    };
+    assert_eq!(
+        hx.c.host_setup(setup).await,
+        host_error("game data is missing: reforged-host gamedata")
+    );
+    let job = hx.c.host_kit().await.job.unwrap();
+    assert_eq!(job.state, crate::bridge::types::HostJobState::Failed);
+    assert!(job.log_file.unwrap().ends_with("launcher-setup.log"));
+    assert_eq!(hx.c.host_create_invite(None).await, host_error("server_not_running"));
+
+    configure_workspace(&ws);
+    assert_eq!(hx.c.host_server_start().await, ActionResult::Ok);
+    until(|| hx.c.host_server_view().state == HostServerState::Running).await;
+    assert!(hx.c.st().host_server_up);
+    assert!(
+        !hx.c
+            .host_server_view()
+            .lines
+            .iter()
+            .any(|l| l.contains("REFORGED_SERVER_READY")),
+        "the ready line is not shown"
+    );
+    // Setup refuses a running server; the invite's link reaches the view only
     let setup = HostSetupRequest {
         name: "x".into(),
         mode: crate::bridge::types::HostServerMode::Private,
         public_host: None,
     };
-    for answer in [
-        hx.c.host_choose_workspace().await,
-        hx.c.host_choose_dumper().await,
-        hx.c.host_import_gamedata().await,
-        hx.c.host_import_sdk_folder().await,
-        hx.c.host_download_project().await,
-        hx.c.host_action(HostAction::BuildRuntime).await,
-        hx.c.host_open(HostFolder::Workspace),
-        hx.c.host_server_start().await,
-        hx.c.host_server_stop().await,
-        hx.c.host_setup(setup).await,
-        hx.c.host_create_invite(None).await,
-        hx.c.host_update().await,
-        hx.c.host_set_multipliers(None).await,
-    ] {
-        assert_eq!(answer, ra12);
-    }
-    assert!(hx.c.host_kit().await.requirements.is_empty());
-    assert_eq!(hx.c.host_server_view().state, HostServerState::Stopped);
+    assert_eq!(hx.c.host_setup(setup).await, host_error("server_running"));
+    assert_eq!(hx.c.host_create_invite(Some("Sam".into())).await, ActionResult::Ok);
+    let view = hx.c.host_server_view();
+    let invite = view.invite.unwrap();
+    assert_eq!(invite.link, "reforged-revival://join/abc");
+    assert_eq!(invite.for_name.as_deref(), Some("Sam"));
+    assert!(!view.lines.iter().any(|l| l.contains("reforged-revival://")));
+    let log = std::fs::read_to_string(ws.join(".workspace").join("logs").join("launcher-invite.log")).unwrap();
+    assert!(!log.contains("reforged-revival://"), "the link is never logged");
+
+    // The launcher's shutdown stops the server it started
+    hx.c.shutdown().await;
+    until(|| hx.c.host_server_view().state == HostServerState::Stopped).await;
+    assert!(!hx.c.st().host_server_up);
 }
 
-/// RA12's seams: a game started for Dumper-7 is not a failed launch, and its loader goes back.
 #[tokio::test(flavor = "multi_thread")]
-async fn a_dumper_7_session_exit_is_not_a_failure_and_the_loader_is_put_back() {
-    let hx = Harness::new();
-    let dir = hx.temp();
-    let (aside, loader) = (dir.join("winmm.dll.rr-off"), dir.join("winmm.dll"));
-    std::fs::write(&aside, b"loader").unwrap();
-    {
-        let mut st = hx.c.st();
-        st.dumping = true;
-        st.dump_restore = Some((aside.clone(), loader.clone()));
-    }
-    hx.c.game.ended(Some(1));
-    for _ in 0..100 {
-        if loader.exists() {
-            break;
-        }
-        tokio::time::sleep(Duration::from_millis(20)).await;
-    }
-    assert!(loader.exists() && !aside.exists());
+async fn host_tools_turned_on_take_the_project_folder_beside_the_game() {
+    use crate::bridge::types::SettingsPatch;
+    let hx = host_harness();
+    let game = hx.game();
+    hx.c.init().await;
+    assert_eq!(hx.c.use_game_path(&game.to_string_lossy()).await, ActionResult::Ok);
+    let beside = game.parent().unwrap().join("Reforged");
+    assert_eq!(
+        hx.c.host_kit().await.project_target.as_deref(),
+        Some(beside.to_string_lossy().as_ref())
+    );
+    // Not there yet: the automatic look says nothing, the page's button says why
+    hx.c.set_settings(SettingsPatch {
+        host_tools: Some(true),
+        ..SettingsPatch::default()
+    })
+    .await;
+    assert_eq!(hx.c.s().host_workspace, None);
     assert_eq!(hx.c.snapshot().last_error, None);
+    assert_eq!(hx.c.host_download_project().await, host_error("project_missing"));
+
+    host_workspace(&beside);
+    hx.c.set_settings(SettingsPatch {
+        host_tools: Some(false),
+        ..SettingsPatch::default()
+    })
+    .await;
+    hx.c.set_settings(SettingsPatch {
+        host_tools: Some(true),
+        ..SettingsPatch::default()
+    })
+    .await;
+    assert_eq!(
+        hx.c.s().host_workspace.as_deref(),
+        Some(beside.to_string_lossy().as_ref())
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn import_sdk_takes_the_newest_dump_and_multipliers_are_private_only() {
+    let hx = host_harness();
+    hx.c.init().await;
+    let ws = host_workspace(&hx.temp().join("Reforged"));
+    hx.pick("workspace", &ws);
+    assert_eq!(hx.c.host_choose_workspace().await, ActionResult::Ok);
+    assert_eq!(
+        hx.c.host_action(HostAction::ImportSdk).await,
+        host_error("game data is missing: reforged-host gamedata")
+    );
+
+    // Mystic Paradox's source is in the checkout (RD1)
+    let source = crate::platform::hostkit::WorkspacePaths::new(&ws).runtime_source;
+    std::fs::create_dir_all(&source).unwrap();
+    std::fs::write(source.join("dllmain.cpp"), b"//").unwrap();
+    assert_eq!(hx.c.host_action(HostAction::ImportSdk).await, host_error("no_dump"));
+    let dump = hx.user.path().join("dumps").join("Dauntless-1.14.7").join("CppSDK");
+    std::fs::create_dir_all(dump.join("SDK")).unwrap();
+    std::fs::write(dump.join("SDK.hpp"), b"#pragma once").unwrap();
+    std::fs::write(dump.join("SDK").join("Engine_functions.cpp"), b"//").unwrap();
+    assert_eq!(hx.c.host_action(HostAction::ImportSdk).await, ActionResult::Ok);
+    assert!(source.join("SDK").join("Engine_functions.cpp").exists());
+    assert_eq!(hx.c.snapshot().notice, Some(NoticeCode::SdkImported));
+
+    assert_eq!(hx.c.host_set_multipliers(None).await, host_error("not_configured"));
+    configure_workspace(&ws);
+    std::fs::write(
+        crate::platform::hostkit::WorkspacePaths::new(&ws).host_json,
+        r#"{"mode":"public","name":"x"}"#,
+    )
+    .unwrap();
+    assert_eq!(hx.c.host_set_multipliers(None).await, host_error("multipliers_public"));
+    assert_eq!(
+        hx.c.host_action(HostAction::CopyExports).await,
+        host_error("no_exports")
+    );
+}
+
+/// RD9: before every ordinary PLAY, a `mystic_loader.ini` or a Host tools DLL beside the loader is
+/// refused, and a session a closed launcher left behind is undone at the next start.
+#[tokio::test(flavor = "multi_thread")]
+async fn play_refuses_a_leftover_ini_or_host_tools_dll_beside_the_loader() {
+    use crate::platform::loader_session::{LOADER_INI, RECORD_FILE};
+    let mut host = Host::new("LAN Party");
+    host.registration = "OPEN";
+    let (_lan, port) = lan(host).await;
+    let hx = host_harness();
+    let local = hx.temp();
+    for (name, data) in make_runtime(3) {
+        std::fs::write(local.join(name), data).unwrap();
+    }
+    hx.pick("runtime", &local);
+    hx.c.init().await;
+    let text = invite(ServerMode::Private, "127.0.0.1", port, None, "OPEN-ANYONE", "LAN Party");
+    assert_eq!(hx.c.submit_invite(&text, false, false).await, ActionResult::Ok);
+    assert!(matches!(hx.c.register("Leftover").await, RegisterOutcome::Ok { .. }));
+    let game = hx.game();
+    assert_eq!(hx.c.use_game_path(&game.to_string_lossy()).await, ActionResult::Ok);
+    assert_eq!(hx.c.choose_local_runtime().await, ActionResult::Ok);
+    let win64 = game.join("Archon").join("Binaries").join("Win64");
+
+    std::fs::write(win64.join(LOADER_INI), "evil.dll\r\n").unwrap();
+    std::fs::write(win64.join("evil.dll"), b"x").unwrap();
+    let refused = ActionResult::Err(LauncherError::with_detail(
+        ErrorCode::LoaderLeftovers,
+        "evil.dll, mystic_loader.ini",
+    ));
+    assert_eq!(hx.c.play().await, refused);
+    assert!(hx.spawns.lock().unwrap().is_empty(), "the game did not start");
+    assert!(!hx.relay_active());
+    std::fs::remove_file(win64.join(LOADER_INI)).unwrap();
+
+    // Without an ini the loader would not load evil.dll; the host's own tools are refused all the same
+    let dumper = hx.temp().join("Dumper-7.dll");
+    std::fs::write(&dumper, b"dumper").unwrap();
+    let text = dumper.to_string_lossy().into_owned();
+    hx.c.update_settings(|map| super::stored::set_text(map, "dumperDll", Some(&text)))
+        .await;
+    std::fs::write(win64.join("Dumper-7.dll"), b"left over").unwrap();
+    std::fs::write(win64.join("CatalogExporter.dll"), b"left over").unwrap();
+    let refused = ActionResult::Err(LauncherError::with_detail(
+        ErrorCode::LoaderLeftovers,
+        "CatalogExporter.dll, Dumper-7.dll",
+    ));
+    assert_eq!(hx.c.play().await, refused);
+    std::fs::remove_file(win64.join("Dumper-7.dll")).unwrap();
+    std::fs::remove_file(win64.join("CatalogExporter.dll")).unwrap();
+
+    assert_eq!(hx.c.play().await, ActionResult::Ok, "a clean folder plays");
+    hx.exit(0).await;
+
+    // A session the launcher did not finish (it was closed with the game running)
+    let session = crate::platform::loader_session::begin(
+        crate::platform::loader_session::SessionKind::Dump,
+        &win64,
+        &dumper,
+        &hx.user.path().join(RECORD_FILE),
+        &[],
+    )
+    .unwrap();
+    drop(session);
+    assert!(!win64.join("MysticParadox.dll").exists());
+    assert_eq!(
+        hx.c.play().await,
+        ActionResult::Err(LauncherError::with_detail(
+            ErrorCode::LoaderLeftovers,
+            "Dumper-7.dll, mystic_loader.ini, MysticParadox.dll.rr-dump-off",
+        ))
+    );
+    hx.c.init().await;
+    assert!(!win64.join(LOADER_INI).exists() && !win64.join("Dumper-7.dll").exists());
+    assert!(win64.join("MysticParadox.dll").exists(), "the runtime is back");
+    assert_eq!(hx.c.play().await, ActionResult::Ok);
+    hx.exit(0).await;
+    hx.c.shutdown().await;
+}
+
+/// RD9: a Dumper-7 session places the DLL and the ini beside the loader, starts the game without the
+/// runtime and without the runtime's variables, and both go when the game exits; its exit code is not a
+/// failed launch.
+#[cfg(windows)]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_dumper_7_session_loads_through_the_loader_list_and_cleans_up() {
+    use crate::platform::loader_session::{LOADER_INI, ini_entries};
+    let hx = host_harness();
+    let game = hx.game();
+    let win64 = game.join("Archon").join("Binaries").join("Win64");
+    for (name, data) in make_runtime(4) {
+        std::fs::write(win64.join(name), data).unwrap();
+    }
+    hx.c.init().await;
+    assert_eq!(hx.c.use_game_path(&game.to_string_lossy()).await, ActionResult::Ok);
+    assert_eq!(hx.c.host_action(HostAction::InjectDumper).await, host_error("dumper"));
+    let dumper = hx.temp().join("Dumper-7.dll");
+    std::fs::write(&dumper, b"dumper").unwrap();
+    let text = dumper.to_string_lossy().into_owned();
+    hx.c.update_settings(|map| super::stored::set_text(map, "dumperDll", Some(&text)))
+        .await;
+
+    assert_eq!(hx.c.host_action(HostAction::InjectDumper).await, ActionResult::Ok);
+    let (dir, args, env) = hx.spawns.lock().unwrap().last().cloned().unwrap();
+    assert_eq!(dir, win64);
+    assert_eq!(args, ["-NoEAC", "-EpicPortal", "-DisableEOS"]);
+    assert!(env.iter().all(|(k, _)| {
+        let k = k.to_string_lossy().to_ascii_uppercase();
+        !k.starts_with("REFORGED_") && !k.starts_with("MYSTICPARADOX_")
+    }));
+    assert_eq!(env_of(&env, "PATH").len(), 1);
+    let ini = std::fs::read_to_string(win64.join(LOADER_INI)).unwrap();
+    assert_eq!(ini_entries(&ini), ["Dumper-7.dll"]);
+    assert_eq!(std::fs::read(win64.join("Dumper-7.dll")).unwrap(), b"dumper");
+    assert!(
+        !win64.join("MysticParadox.dll").exists(),
+        "no runtime in a dump session"
+    );
+    assert!(win64.join("winmm.dll").exists(), "the loader stays");
+    assert_eq!(
+        hx.c.host_action(HostAction::InjectDumper).await,
+        host_error("game_running")
+    );
+    hx.c.dismiss_error();
+
+    // Dumper-7's console ends the game with a code of its own
+    hx.c.game.ended(Some(1));
+    until(|| !win64.join(LOADER_INI).exists() && win64.join("MysticParadox.dll").exists()).await;
+    assert!(!win64.join("Dumper-7.dll").exists());
+    assert!(hx.c.loader_leftovers(&win64).is_empty());
+    assert_eq!(hx.c.snapshot().last_error, None);
+}
+
+/// RD9: a CatalogExporter session starts the game as PLAY does, with the runtime, and CatalogExporter on
+/// the loader's list after it.
+#[cfg(windows)]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_catalog_exporter_session_plays_with_the_exporter_on_the_loader_list() {
+    use crate::platform::loader_session::{LOADER_INI, ini_entries};
+    let mut host = Host::new("LAN Party");
+    host.registration = "OPEN";
+    let (_lan, port) = lan(host).await;
+    let hx = host_harness();
+    let local = hx.temp();
+    for (name, data) in make_runtime(6) {
+        std::fs::write(local.join(name), data).unwrap();
+    }
+    hx.pick("runtime", &local);
+    hx.c.init().await;
+    let text = invite(ServerMode::Private, "127.0.0.1", port, None, "OPEN-ANYONE", "LAN Party");
+    assert_eq!(hx.c.submit_invite(&text, false, false).await, ActionResult::Ok);
+    assert!(matches!(hx.c.register("Exporter").await, RegisterOutcome::Ok { .. }));
+    let game = hx.game();
+    assert_eq!(hx.c.use_game_path(&game.to_string_lossy()).await, ActionResult::Ok);
+    assert_eq!(hx.c.choose_local_runtime().await, ActionResult::Ok);
+    let win64 = game.join("Archon").join("Binaries").join("Win64");
+    let ws = host_workspace(&hx.temp().join("Reforged"));
+    hx.pick("workspace", &ws);
+    assert_eq!(hx.c.host_choose_workspace().await, ActionResult::Ok);
+    assert_eq!(
+        hx.c.host_action(HostAction::InjectExporter).await,
+        host_error("exporter")
+    );
+    let exporter = crate::platform::hostkit::WorkspacePaths::new(&ws).exporter_dll;
+    std::fs::create_dir_all(exporter.parent().unwrap()).unwrap();
+    std::fs::write(&exporter, b"exporter").unwrap();
+
+    assert_eq!(hx.c.host_action(HostAction::InjectExporter).await, ActionResult::Ok);
+    assert!(hx.relay_active(), "started as PLAY starts it");
+    let (_, args, _) = hx.spawns.lock().unwrap().last().cloned().unwrap();
+    assert_ne!(args, ["-NoEAC", "-EpicPortal", "-DisableEOS"]);
+    let ini = std::fs::read_to_string(win64.join(LOADER_INI)).unwrap();
+    assert_eq!(ini_entries(&ini), ["CatalogExporter.dll"]);
+    assert!(win64.join("MysticParadox.dll").exists(), "the runtime loads first");
+    assert!(win64.join("export_flags.txt").exists());
+
+    hx.exit(0).await;
+    until(|| !win64.join(LOADER_INI).exists()).await;
+    assert!(!win64.join("CatalogExporter.dll").exists());
+    assert_eq!(hx.c.play().await, ActionResult::Ok, "an ordinary PLAY afterwards");
+    hx.exit(0).await;
+    hx.c.shutdown().await;
 }

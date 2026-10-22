@@ -19,13 +19,13 @@
 //!   ported from DR's `controller/mod.rs` at e1c5fec and Reforged's `controller.ts`);
 //! - `game.rs`: the game folder (RA13, on RA9's `platform::game_folder`);
 //! - `runtime.rs`: the server's game runtime (RA13, on RA7's `net::runtime_files`);
-//! - `host.rs`: the Host page (RA12, on `platform::hostkit`, `hostserver`, `requirements`, `injector`).
-//!   It reads and sets `State::host_server_up`, `State::dumping` and `State::dump_restore`, which this
-//!   file acts on when the game exits, a runtime is installed and the launcher shuts down.
+//! - `host.rs`: the Host page (RA12, on `platform::hostkit`, `hostserver`, `requirements` and
+//!   `loader_session`). It reads and sets `State::host_server_up`, `State::dumping` and
+//!   `State::loader_session`, which this file acts on when the game exits, a runtime is installed and the
+//!   launcher shuts down; PLAY asks it for the runtime loader's leftovers first (RD9).
 
 pub mod game;
 pub mod host;
-#[allow(dead_code, reason = "the Host page (RA12) uses the Host members")]
 pub mod platform;
 pub mod runtime;
 pub mod stored;
@@ -72,12 +72,14 @@ use crate::net::verify::{Abort, HashCache};
 use crate::platform::dialogs::KeepOpen;
 use crate::platform::game_config::{ApplyConfig, apply_game_config};
 use crate::platform::game_folder::StoreEnv;
+use crate::platform::hostserver::Probe;
 use crate::platform::keystore::{BackupFile, Encryptor, KeySlot, KeyStore, KeyStoreError, backup_file_text};
 use crate::platform::launch::{
     GameProcess, LaunchRuntime, LaunchSettings, STATUS_CONTROL_C_EXIT, Spawn, build_launch_args, describe_launch,
     game_exit_detail, launch_environment,
 };
 use crate::platform::links::{PROJECT_URL, fixed_link_url, is_allowed_external_url};
+use crate::platform::loader_session::{LoaderSession, SessionKind};
 use crate::platform::log;
 use crate::platform::settings::{Platform as HostPlatform, SettingsStore};
 
@@ -88,7 +90,7 @@ pub struct Config {
     pub user_data: PathBuf,
     /// Where the automatic account key backups go (`Documents/Dauntless Reforged Revival/Account Keys`)
     pub documents: Option<PathBuf>,
-    #[allow(dead_code, reason = "the Host page (RA12) reads its resources from here")]
+    #[allow(dead_code, reason = "Reforged's; nothing reads the app's resources yet")]
     pub resources_dir: PathBuf,
     pub host: HostPlatform,
     pub app_version: String,
@@ -118,6 +120,10 @@ pub struct Seams {
     pub store_env: Option<StoreEnv>,
     /// The relay's extra QoS listener; None for none
     pub qos_port: Option<u16>,
+    /// Does a Host page server answer on port 61000? None: look
+    pub host_probe: Option<Probe>,
+    /// Where Dumper-7's SDKs are; None: `C:\Dumper-7`
+    pub dump_root: Option<PathBuf>,
 }
 
 impl Default for Seams {
@@ -127,6 +133,8 @@ impl Default for Seams {
             env: None,
             store_env: None,
             qos_port: Some(DEFAULT_QOS_PORT),
+            host_probe: None,
+            dump_root: None,
         }
     }
 }
@@ -173,8 +181,9 @@ struct State {
     host_server_up: bool,
     /// The game was started for Dumper-7 (`host.rs`): its exit code is not a failed launch
     dumping: bool,
-    /// The runtime loader set aside for a Dumper-7 session: (where it is now, where it goes back)
-    dump_restore: Option<(PathBuf, PathBuf)>,
+    /// What a Dumper-7 or CatalogExporter session placed beside the runtime loader (`host.rs`, RD9),
+    /// removed when the game exits
+    loader_session: Option<LoaderSession>,
 }
 
 impl State {
@@ -212,7 +221,7 @@ impl State {
             shutting_down: false,
             host_server_up: false,
             dumping: false,
-            dump_restore: None,
+            loader_session: None,
         }
     }
 
@@ -313,6 +322,8 @@ pub struct Controller {
     settings: tokio::sync::Mutex<SettingsStore>,
     keys: KeyStore,
     game: GameProcess,
+    /// The Host page (`host.rs`)
+    host: host::HostState,
     /// The executable's hash by size and time (`userData/file-hashes.json`)
     hashes: tokio::sync::Mutex<HashCache>,
     state: Mutex<State>,
@@ -342,6 +353,7 @@ impl Controller {
         );
         let hashes = HashCache::load(config.user_data.join("file-hashes.json"));
         let game = GameProcess::with_spawn(seams.spawn.clone());
+        let host = host::HostState::with(seams.host_probe.clone(), seams.dump_root.clone());
         let rt = tokio::runtime::Handle::try_current().unwrap_or_else(|_| {
             let tauri::async_runtime::RuntimeHandle::Tokio(handle) = tauri::async_runtime::handle();
             handle
@@ -353,6 +365,7 @@ impl Controller {
             settings: tokio::sync::Mutex::new(settings),
             keys,
             game,
+            host,
             hashes: tokio::sync::Mutex::new(hashes),
             state: Mutex::new(State::new(stored)),
             background: Mutex::new(Vec::new()),
@@ -365,6 +378,7 @@ impl Controller {
                 this.game_changed(running, code);
             }
         });
+        controller.host_attach();
         controller
     }
 
@@ -389,7 +403,7 @@ impl Controller {
         }
         if let Some(this) = self.me.upgrade() {
             self.rt.spawn(async move {
-                this.restore_after_dump().await;
+                this.restore_after_session().await;
                 this.stop_relay().await;
                 this.inspect_runtime().await;
                 this.publish();
@@ -397,19 +411,12 @@ impl Controller {
         }
     }
 
-    /// Puts back the runtime loader a Dumper-7 session set aside (`restoreAfterDump`).
-    async fn restore_after_dump(&self) {
-        let Some((from, to)) = self.st().dump_restore.take() else {
-            return;
-        };
-        if tokio::fs::try_exists(&to).await.unwrap_or(false) {
-            return;
-        }
-        if let Err(error) = tokio::fs::rename(&from, &to).await {
-            log::error(&format!(
-                "could not put the runtime loader back: {}",
-                log::describe_error(&error)
-            ));
+    /// Ends the loader session the game ran with, if any (`restoreAfterDump`): the ini and the DLL go,
+    /// a Dumper-7 session's runtime comes back.
+    async fn restore_after_session(&self) {
+        let session = self.st().loader_session.take();
+        if let Some(session) = session {
+            self.end_loader_session(session).await;
         }
     }
 
@@ -417,13 +424,6 @@ impl Controller {
 
     fn st(&self) -> MutexGuard<'_, State> {
         lock(&self.state)
-    }
-
-    /// A stub's answer, logged so a developer sees which row a call is waiting for (`host.rs` until RA12).
-    fn stub(&self, what: &str, row: &'static str) -> crate::stub::NotImplemented {
-        let stub = crate::stub::not_implemented(row);
-        log::warn(&format!("{what}: {stub}"));
-        stub
     }
 
     fn s(&self) -> Stored {
@@ -459,8 +459,11 @@ impl Controller {
 
     pub async fn init(&self) {
         self.refresh_key_flag();
+        // Before the runtime is looked at: a Dumper-7 session a closed launcher left set it aside
+        self.recover_loader_session().await;
         self.inspect_game(true).await;
         self.inspect_runtime().await;
+        self.ensure_host_workspace(true).await;
         self.publish();
         let Some(this) = self.me.upgrade() else { return };
         if self.server().is_some() {
@@ -1472,6 +1475,12 @@ impl Controller {
     }
 
     pub async fn play(&self) -> ActionResult {
+        self.play_with(None).await
+    }
+
+    /// PLAY; with `exporter`, the game also loads CatalogExporter through the runtime loader's list
+    /// (the Host page's export session, RD9).
+    async fn play_with(&self, exporter: Option<PathBuf>) -> ActionResult {
         {
             let st = self.st();
             if st.shutting_down || st.is_busy() {
@@ -1487,12 +1496,12 @@ impl Controller {
         if !self.begin_busy(|st| !st.is_busy() && !st.shutting_down) {
             return ActionResult::err(ErrorCode::Busy);
         }
-        let outcome = self.play_now(&sv).await;
+        let outcome = self.play_now(&sv, exporter).await;
         self.end_busy();
         result(outcome)
     }
 
-    async fn play_now(&self, sv: &StoredServer) -> Outcome {
+    async fn play_now(&self, sv: &StoredServer, exporter: Option<PathBuf>) -> Outcome {
         // The runtime needs the Visual C++ runtime; a PC without it is warned in the log only, as in 1.x
         // (RD22): the game itself says what is missing
         let (missing_vc, _) = self.p.missing_runtimes();
@@ -1540,6 +1549,17 @@ impl Controller {
             return Err(self.fail(code, None));
         }
 
+        // Before anything in the folder changes. Nothing but the runtime rides along: no loader list, no
+        // Host tools DLL beside the loader (RD9)
+        let leftovers = self.loader_leftovers(&dir);
+        if !leftovers.is_empty() {
+            log::warn(&format!(
+                "PLAY refused: beside the runtime loader: {}",
+                leftovers.join(", ")
+            ));
+            return Err(self.fail(ErrorCode::LoaderLeftovers, Some(leftovers.join(", "))));
+        }
+
         // The runtime: a local build, or the server's files checked again by hash
         if let Some(local) = self.s().local_runtime_dir
             && let Err(error) = install_local_runtime(Path::new(&local), &dir).await
@@ -1566,10 +1586,18 @@ impl Controller {
             return Err(self.fail(code, None));
         }
 
-        let port = self.start_relay(sv).await?;
-        let launched = self.launch_game(sv, &key, &account, &dir, port).await;
+        if let Some(exporter) = exporter {
+            let session = self.begin_loader_session(SessionKind::Export, &dir, &exporter)?;
+            self.st().loader_session = Some(session);
+        }
+
+        let launched = match self.start_relay(sv).await {
+            Ok(port) => self.launch_game(sv, &key, &account, &dir, port).await,
+            Err(error) => Err(error),
+        };
         if launched.is_err() {
             self.stop_relay().await;
+            self.restore_after_session().await;
         }
         launched
     }
@@ -1724,6 +1752,7 @@ impl Controller {
 
     /// The settings after the patch; a refused patch (`commands::set_settings`) changes nothing.
     pub async fn set_settings(&self, patch: SettingsPatch) -> Settings {
+        let host_tools_on = patch.host_tools == Some(true) && !self.s().host_tools;
         self.update_settings(|map| {
             let mut put = |field: &str, value: Option<Value>| {
                 if let Some(value) = value {
@@ -1749,6 +1778,9 @@ impl Controller {
             );
         })
         .await;
+        if host_tools_on {
+            self.ensure_host_workspace(true).await;
+        }
         self.publish();
         Self::settings_of(&self.s())
     }
@@ -1787,15 +1819,9 @@ impl Controller {
     /// page's server stops, the background downloads finish, then polling, the task and the relay stop
     /// (RD22).
     pub async fn shutdown(&self) {
-        let host_server_up = {
-            let mut st = self.st();
-            st.shutting_down = true;
-            st.host_server_up
-        };
+        self.st().shutting_down = true;
         // The server the Host page started stops with the launcher (the page says so)
-        if host_server_up && let ActionResult::Err(error) = self.host_server_stop().await {
-            log::warn(&format!("host: server not stopped: {:?}", error.code));
-        }
+        self.host_shutdown().await;
         let background: Vec<JoinHandle<()>> = lock(&self.background).drain(..).collect();
         for task in background {
             let _ = task.await;

@@ -197,6 +197,9 @@ pub enum ErrorCode {
     RateLimited,
     RelayPortBusy,
     RelayFailed,
+    /// PLAY refused: a `mystic_loader.ini` or a Host tools DLL is beside the runtime loader (RD9); the
+    /// detail lists the files
+    LoaderLeftovers,
     /// A Host tools action failed (detail says which)
     HostFailed,
     Unknown,
@@ -866,14 +869,14 @@ pub enum ExternalTarget {
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum HostAction {
-    /// Start the game without the runtime and load Dumper-7 into it
+    /// Start the game without the runtime, with Dumper-7 on the runtime loader's list (RD9)
     InjectDumper,
     /// Copy the newest Dumper-7 CppSDK into the runtime source
     ImportSdk,
     BuildRuntime,
     BuildLoader,
     BuildExporter,
-    /// Load CatalogExporter into the running game
+    /// Start the game as PLAY does, with CatalogExporter on the runtime loader's list (RD9)
     InjectExporter,
     /// Copy the exporter's Items_Analysis into the workspace
     CopyExports,

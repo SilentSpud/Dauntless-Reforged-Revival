@@ -27,9 +27,9 @@ pub const POSTGRES_MINIMUM: u32 = 17;
 
 /// What the checks look at, so the tests can give their own.
 pub struct Probes<'a> {
-    pub env: &'a dyn Fn(&str) -> Option<OsString>,
-    pub exists: &'a dyn Fn(&Path) -> bool,
-    pub list_dir: &'a dyn Fn(&Path) -> Vec<String>,
+    pub env: &'a (dyn Fn(&str) -> Option<OsString> + Sync),
+    pub exists: &'a (dyn Fn(&Path) -> bool + Sync),
+    pub list_dir: &'a (dyn Fn(&Path) -> Vec<String> + Sync),
 }
 
 pub fn list_dir(dir: &Path) -> Vec<String> {
@@ -69,7 +69,7 @@ fn path_dirs(env: &dyn Fn(&str) -> Option<OsString>) -> Vec<PathBuf> {
 /// Folder names that are versions, newest first ("10.0" after "9.4"; anything else last).
 fn newest_first(mut names: Vec<String>) -> Vec<String> {
     let key = |name: &str| -> Vec<u64> { name.split('.').map(|p| p.parse().unwrap_or(0)).collect() };
-    names.sort_by(|a, b| key(b).cmp(&key(a)));
+    names.sort_by_key(|name| std::cmp::Reverse(key(name)));
     names
 }
 
