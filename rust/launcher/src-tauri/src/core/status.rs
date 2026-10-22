@@ -8,7 +8,7 @@
 )]
 
 use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
-use protocol::status::{InstanceKind, PlayerWhere, RegistrationMode, ServerStatus, StatusInstance, StatusPlayer};
+use protocol::status::{InstanceKind, PlayerWhere, StatusInstance, StatusPlayer};
 use serde_json::{Map, Value};
 
 use super::text::{is_js_space, is_unsafe_char, js_length};
@@ -252,59 +252,13 @@ fn objects(value: Option<&Value>, max: usize) -> impl Iterator<Item = &Map<Strin
         .filter_map(Value::as_object)
 }
 
-pub fn parse_server_status(raw: &Value) -> Option<ServerStatus> {
-    let raw = raw.as_object()?;
-    let name = clean_text(raw.get("name"), 64)?;
-    let players: Vec<StatusPlayer> = objects(raw.get("players"), MAX_PLAYERS_LISTED)
-        .filter_map(player)
-        .collect();
-    let instances: Vec<StatusInstance> = objects(raw.get("instances"), MAX_INSTANCES_LISTED)
-        .filter_map(instance)
-        .collect();
-    let registration = match raw.get("registration").and_then(Value::as_str) {
-        Some("OPEN") => Some(RegistrationMode::Open),
-        Some("INVITECODE") => Some(RegistrationMode::Invitecode),
-        Some("NONE") => Some(RegistrationMode::None),
-        _ => None,
-    };
-    let content_port = clean_int(raw.get("contentPort"), 0, 65535)
-        .filter(|port| *port >= 1)
-        .and_then(|port| u16::try_from(port).ok());
-    let players_online = clean_int(raw.get("playersOnline"), 0, 100_000)
-        .map_or_else(|| u32::try_from(players.len()).unwrap_or(u32::MAX), clamp_u32);
-    let status = ServerStatus {
-        name,
-        online: raw.get("online") == Some(&Value::Bool(true)),
-        version: clean_text(raw.get("version"), 48).unwrap_or_default(),
-        commit: clean_text(raw.get("commit"), 64).unwrap_or_default(),
-        source_url: clean_https_url(raw.get("sourceUrl")),
-        registration,
-        players_online,
-        players,
-        instances,
-        content_port,
-        uptime_seconds: clamp_u32(clean_int(raw.get("uptimeSeconds"), 0, 100 * 365 * 24 * 3600).unwrap_or(0)),
-        // Only an explicit true: an older server without the field lists everyone
-        limited: raw.get("limited") == Some(&Value::Bool(true)),
-    };
-    // A limited answer lists nobody, whatever else came with it
-    Some(if status.limited { limited_view(status) } else { status })
-}
-
-/// What a limited answer would show: the same server, nobody listed.
-pub fn limited_view(status: ServerStatus) -> ServerStatus {
-    ServerStatus {
-        players_online: 0,
-        players: Vec::new(),
-        instances: Vec::new(),
-        limited: true,
-        ..status
-    }
-}
+/// Status parsing lives in `protocol` since RS1; the launcher uses it as is.
+pub use protocol::status::parse_server_status;
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use protocol::status::ServerStatus;
     use serde::Deserialize;
 
     #[derive(Deserialize)]
