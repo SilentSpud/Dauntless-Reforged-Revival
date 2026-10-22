@@ -13,14 +13,31 @@ name = "reforged-host"
 path = "src/main.rs"
 
 [dependencies]
+# The supervisor's log lines (`===== <ISO time> starting ...`, as the Node kit's)
+chrono.workspace = true
 clap.workspace = true
 # host.json in JavaScript's key order and number text (service-kit turns on preserve_order).
 serde_json.workspace = true
 service-kit.workspace = true
 thiserror.workspace = true
+# `start`: Ctrl+C, Ctrl+Break and closing the console on Windows; SIGINT, SIGTERM and SIGHUP elsewhere
+tokio = { workspace = true, features = ["signal"] }
+
+[target."cfg(windows)".dependencies]
+# `start`: one job object per service, so its whole process tree stops with it (RD3)
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_Console"] }
+
+[target."cfg(unix)".dependencies]
+# `start`: the services' process groups (kill(2)) and, on Linux, PR_SET_PDEATHSIG
+libc = "0.2.191"
 
 [dev-dependencies]
 tempfile.workspace = true
+
+# Fake services in child processes: the test binary runs itself in their roles (RH2)
+[[test]]
+name = "start"
+harness = false
 
 [lints]
 workspace = true
