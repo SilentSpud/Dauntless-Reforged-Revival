@@ -11,6 +11,7 @@
 
 import { Router } from "express";
 import crypto from "node:crypto";
+import { MultiplyXpGrant } from "../testMultipliers";
 import { loadGameData } from "../gameData/loader";
 import { WidenHuntPassWindows } from "./system";
 import { HasParadoxBackendAuth } from "../middleware/HasParadoxBackendAuth";
@@ -457,9 +458,15 @@ progressionRouter.post("/progression/:userId/:progressionId/:amount", HasParadox
         return;
     }
 
+    // [Dauntless Reforged Revival] A private test server's XP multiplier (testMultipliers.ts), capped at the route's maximum.
+    const GrantedAmount = MultiplyXpGrant(Amount, MAX_XP_GRANT_AMOUNT);
+    if(GrantedAmount !== Amount){
+        logger.info(`[TestMultiplier] XP grant ${Amount} -> ${GrantedAmount} (user=${RequestedUserId}, track=${ProgressionId})`);
+    }
+
     let GrantResult;
     try{
-        GrantResult = await GrantProgressionXp(RequestedUserId, ProgressionId, Amount, GrantId);
+        GrantResult = await GrantProgressionXp(RequestedUserId, ProgressionId, GrantedAmount, GrantId);
     }
     catch(ErrorValue){
         if(ErrorValue instanceof ProgressionGrantConflictError){

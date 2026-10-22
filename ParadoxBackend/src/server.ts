@@ -26,6 +26,7 @@ import { AssertRuntimeSafety } from "./config/runtimeSafety";
 import { ReadMetagameServiceRole } from "./config/serviceRole";
 import { SetServiceReadiness } from "./observability/serviceReadiness";
 import { GetP2PExtension } from "./extensions/p2p";
+import { GetTestMultipliers } from "./testMultipliers";
 
 const PORT = process.env.PORT?.trim() || "3000";
 // [Dauntless Reforged Revival] The address the HTTP listener binds. Unset keeps every interface (the
@@ -114,6 +115,11 @@ async function Main(): Promise<void> {
 
     partyOutboxDispatcher.start();
     GetP2PExtension().server.start(serviceRole);
+
+    // [Dauntless Reforged Revival] Say whether this private test server multiplies XP and rewards (testMultipliers.ts).
+    const Multipliers = GetTestMultipliers();
+    if (Multipliers.xp !== 1 || Multipliers.rewards !== 1) logger.warn(`[TestMultiplier] ON: XP x${Multipliers.xp}, rewards x${Multipliers.rewards} (private Tailscale server)`);
+    else logger.info(`[TestMultiplier] off (${Multipliers.reason ?? "x1"})`);
 
     const OnHttpListening = () => {
         logger.info(`Mystic Paradox Metagame (HTTP) on ${BIND_HOST ?? "every interface"}, port ${PORT}`);

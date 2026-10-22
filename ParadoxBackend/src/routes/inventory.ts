@@ -20,6 +20,7 @@ import { ValidateInventoryTransactionBody, InventoryBodyHasGrantOrSpend, Validat
 import { CaptureInventoryTransaction, CaptureEvent } from "../diagnostics/capture";
 import { GetCharactersForUid } from "../controllers/character";
 import { ExtensionInventoryTransaction, GetP2PExtension } from "../extensions/p2p";
+import { MultiplyRewardItems } from "../testMultipliers";
 
 export const inventoryRouter = Router();
 
@@ -276,10 +277,21 @@ inventoryRouter.post("/inventory", HasParadoxBackendAuth, async (req: any, res) 
         if (!Ready) logger.warn(`transactionId ${TransactionId}: challenge-reward currency with no claimed, uncredited season challenge after 1.5 s`);
     }
 
+    // [Dauntless Reforged Revival] A private test server's reward multiplier (testMultipliers.ts): only a dedicated game
+    // server's reward transactions, only currencies and materials. The same body always multiplies the same way, so a
+    // retried transaction id still matches its ledger entry.
+    const EffectiveStackedItemsToAdd = IsDedicatedServer
+        ? MultiplyRewardItems(req.body.source, StackedItemsToAdd,
+            (CatalogId, Quantity) => IsPrestigeGatedReward(CatalogId) || IsChallengeRewardGrant(CatalogId, Quantity)) as any[]
+        : StackedItemsToAdd;
+    if (EffectiveStackedItemsToAdd !== StackedItemsToAdd) {
+        logger.info(`[TestMultiplier] transactionId ${TransactionId} source="${String(req.body.source).slice(0, 80)}" rewards multiplied for userId ${UserId}`);
+    }
+
     let TransactionResult: any;
     try {
         ExtensionTransaction?.report?.("applying");
-        TransactionResult = await RunInventoryTransaction(UserId, CharacterId, TransactionId, InstancedItemsToAdd, StackedItemsToAdd, InstancedItemsToRemove, StackedItemsToRemove, InstancedItemsToSave,
+        TransactionResult = await RunInventoryTransaction(UserId, CharacterId, TransactionId, InstancedItemsToAdd, EffectiveStackedItemsToAdd, InstancedItemsToRemove, StackedItemsToRemove, InstancedItemsToSave,
             { ...(ExtensionTransaction?.options ?? {}), allowChallengeRewardFunding: IsDedicatedServer });
     } catch (Err) {
         CaptureInventoryTransaction({
