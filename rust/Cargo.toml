@@ -1,0 +1,89 @@
+# One cargo workspace for every Rust component (MIGRATION_PLAN.md, section 4.1): the shared crates, the
+# services and the launcher backend. Copied from Dauntless Revived at e1c5fec (RD6). Every planned member
+# is listed here from the start (RR1); a member that is still a stub is replaced by its skeleton row.
+[workspace]
+resolver = "3"
+members = [
+    "crates/protocol",
+    "crates/proxy",
+    "crates/service-kit",
+    "crates/store",
+    "services/gateway",
+    "services/content",
+    "services/host",
+    "services/backend",
+    "services/director",
+    "launcher/src-tauri",
+]
+# The fuzz targets (cargo fuzz, nightly) are a workspace of their own
+exclude = ["fuzz"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99"
+license = "AGPL-3.0-only"
+repository = "https://github.com/FreezaMotoqueiro/Dauntless-Reforged-Revival"
+publish = false
+
+[workspace.dependencies]
+protocol = { path = "crates/protocol" }
+store = { path = "crates/store" }
+service-kit = { path = "crates/service-kit" }
+proxy = { path = "crates/proxy" }
+
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "query", "tokio", "form", "ws"] }
+aes-gcm = "0.11"
+base64 = "0.23"
+
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+clap = { version = "4", features = ["derive"] }
+diesel = { version = "2.3", default-features = false, features = ["sqlite", "r2d2", "returning_clauses_for_sqlite_3_35"] }
+diesel_migrations = { version = "2.3", features = ["sqlite"] }
+dotenvy = "0.15"
+flate2 = "1"
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+gethostname = "1"
+http-body-util = "0.1"
+hyper = { version = "1", default-features = false, features = ["client", "server", "http1"] }
+hyper-util = { version = "0.1", default-features = false, features = ["tokio", "service"] }
+# HTTPS for the services' outgoing requests (D10: aws-lc-rs)
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "aws-lc-rs", "webpki-tokio", "tls12"] }
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "std", "tls12"] }
+# Bundled: one SQLite, built with the options in .cargo/config.toml, shared by Diesel and rusqlite (M17).
+libsqlite3-sys = { version = "0.38", features = ["bundled"] }
+percent-encoding = "2"
+regex = "1"
+rusqlite = { version = "0.40", features = ["backup"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+sha2 = "0.11"
+thiserror = "2"
+tokio = { version = "1", features = ["rt", "macros"] }
+tower = { version = "0.5", features = ["util"] }
+tokio-util = { version = "0.7", features = ["io"] }
+url = "2"
+tracing = "0.1"
+# TypeScript types from Rust types (the launcher bridge, L6)
+ts-rs = "12"
+tracing-subscriber = { version = "0.3", features = ["fmt", "registry", "std"] }
+rand = "0.10"
+tempfile = "3"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+# A panic in a request handler is caught (CatchPanicLayer), but it still drops the request.
+unwrap_used = "deny"
+expect_used = "deny"
+dbg_macro = "deny"
+todo = "deny"
+
+# Section 2: servers catch a panicking request instead of dying, so panics unwind.
+[profile.release]
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+panic = "unwind"

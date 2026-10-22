@@ -1,0 +1,16 @@
+[package]
+name = "director"
+description = "The Director: starts the game servers (MIGRATION_PLAN.md RB rows)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "director"
+path = "src/main.rs"
+
+[lints]
+workspace = true

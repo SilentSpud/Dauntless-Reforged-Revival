@@ -47,6 +47,13 @@ Undaunted or any other project named here, and none of them endorses it.
     (`dxgi.dll`, `UndauntedInternalServer.dll`, built from Undaunted's sources) are not in this
     repository: the launcher downloads them from that commit and keeps them only if their SHA-256 is
     the pinned one.
+  - `rust/` is a snapshot copy of Dauntless Revived's `rust/` folder at commit
+    `e1c5fec`: the cargo workspace files (`Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`,
+    `deny.toml`, `.cargo/config.toml`, `clippy.toml`, `rustfmt.toml`), the crates `protocol`,
+    `proxy`, `service-kit` and `store`, and the fuzz targets `http_body` and `proxy_headers`.
+    Changed here: the workspace lists Reforged's members and drops the dependencies only Dauntless
+    Revived's `deploy`, `discord-bot` and `metagame` services used. From the copy on, the code is
+    this project's own; nothing is taken from Dauntless Revived afterwards.
   - Files and functions taken over say so in their comments.
 
 ### Mystic Paradox

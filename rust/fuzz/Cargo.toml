@@ -1,0 +1,39 @@
+# Fuzz targets for untrusted input (MIGRATION_PLAN.md RX3; DR's M33, X9), with cargo-fuzz on nightly, from rust/fuzz:
+#   cargo +nightly fuzz run <target> -- -max_total_time=86400
+# Targets: http_body (JSON and form bodies, URL decoding in service-kit) and proxy_headers (the shared
+# hop-by-hop rules). Each component row adds its own target here.
+# On Windows the AddressSanitizer runtime (clang_rt.asan_dynamic-x86_64.dll) must be on PATH: it is in
+# the Visual Studio install, VC/Tools/MSVC/<version>/bin/Hostx64/x64. A workspace of its own: cargo fuzz
+# needs nightly and its own build flags.
+[package]
+name = "reforged-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
+arbitrary = { version = "1", features = ["derive"] }
+http = "1"
+proxy = { path = "../crates/proxy" }
+service-kit = { path = "../crates/service-kit" }
+
+[[bin]]
+name = "http_body"
+path = "fuzz_targets/http_body.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "proxy_headers"
+path = "fuzz_targets/proxy_headers.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]
+members = ["."]

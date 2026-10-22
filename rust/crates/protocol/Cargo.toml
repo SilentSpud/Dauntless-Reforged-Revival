@@ -1,0 +1,24 @@
+[package]
+name = "protocol"
+description = "Wire types shared by the launcher and the servers (MIGRATION_PLAN.md X4)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+percent-encoding.workspace = true
+serde.workspace = true
+ts-rs = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+# TypeScript declarations of the types the launcher page shows (L6)
+ts = ["dep:ts-rs"]
