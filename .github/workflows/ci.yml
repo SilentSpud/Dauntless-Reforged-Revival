@@ -277,7 +277,8 @@ jobs:
           if-no-files-found: error
 
   services:
-    name: ${{ matrix.package }} (tests)
+    # GitHub appends the package (see the paradox job)
+    name: Legacy service tests
     needs: changes
     if: needs.changes.outputs.legacy-services == 'true'
     runs-on: ubuntu-latest
@@ -304,7 +305,8 @@ jobs:
 
   # The Node backend and Director in this repository (RP3), until RB15 deletes them.
   paradox:
-    name: Paradox ${{ matrix.package }} (tests)
+    # No matrix value in the name: GitHub appends it, and a skipped job would show the expression unexpanded.
+    name: Paradox tests
     needs: changes
     if: needs.changes.outputs.paradox == 'true'
     runs-on: ubuntu-latest
