@@ -1,6 +1,6 @@
 [package]
 name = "protocol"
-description = "Wire types shared by the launcher and the servers (MIGRATION_PLAN.md X4)"
+description = "Wire types shared by the launcher and the servers (MIGRATION_PLAN.md RS1)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,12 +9,12 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+chrono.workspace = true
 percent-encoding.workspace = true
 serde.workspace = true
-ts-rs = { workspace = true, optional = true }
-
-[dev-dependencies]
 serde_json.workspace = true
+url.workspace = true
+ts-rs = { workspace = true, optional = true }
 
 [lints]
 workspace = true
