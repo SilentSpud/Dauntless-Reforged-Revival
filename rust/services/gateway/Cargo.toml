@@ -1,0 +1,20 @@
+[package]
+name = "gateway"
+description = "The front door: TLS, request policy and the IP allowlist (MIGRATION_PLAN.md RS2, RS4)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "gateway"
+path = "src/main.rs"
+
+[[bin]]
+name = "allowlist"
+path = "src/bin/allowlist.rs"
+
+[lints]
+workspace = true

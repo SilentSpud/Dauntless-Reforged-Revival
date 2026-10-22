@@ -1,15 +1,12 @@
-# Fuzz targets for untrusted input (MIGRATION_PLAN.md M33, X9), with cargo-fuzz on nightly, from rust/fuzz:
+# Fuzz targets for untrusted input (MIGRATION_PLAN.md RX3; DR's M33, X9), with cargo-fuzz on nightly, from rust/fuzz:
 #   cargo +nightly fuzz run <target> -- -max_total_time=86400
-# Targets: chat_frame (XMPP), http_body (JSON and form bodies, URL decoding), auth_token (session tokens and
-# recovery blobs), gateway_policy (the gateway's request policy, client addresses), proxy_headers (the
-# shared hop-by-hop rules), content_range (Range headers, manifests), launcher_input (invites, server
-# status, usernames and keys, manifests) and bot_input (the Discord bot's /key link input). CI runs each
-# for a short time on every push (`fuzz` job); the longer run before a cutover is the one above.
+# Targets: http_body (JSON and form bodies, URL decoding in service-kit) and proxy_headers (the shared
+# hop-by-hop rules). Each component row adds its own target here.
 # On Windows the AddressSanitizer runtime (clang_rt.asan_dynamic-x86_64.dll) must be on PATH: it is in
 # the Visual Studio install, VC/Tools/MSVC/<version>/bin/Hostx64/x64. A workspace of its own: cargo fuzz
 # needs nightly and its own build flags.
 [package]
-name = "dauntless-fuzz"
+name = "reforged-fuzz"
 version = "0.0.0"
 edition = "2024"
 publish = false
@@ -20,25 +17,9 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
 arbitrary = { version = "1", features = ["derive"] }
-chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-content = { path = "../services/content" }
-discord-bot = { path = "../services/discord-bot" }
-gateway = { path = "../services/gateway" }
 http = "1"
-metagame = { path = "../services/metagame" }
-protocol = { path = "../crates/protocol" }
 proxy = { path = "../crates/proxy" }
-serde_json = "1"
 service-kit = { path = "../crates/service-kit" }
-sha2 = "0.11"
-url = "2"
-
-[[bin]]
-name = "chat_frame"
-path = "fuzz_targets/chat_frame.rs"
-test = false
-doc = false
-bench = false
 
 [[bin]]
 name = "http_body"
@@ -48,43 +29,8 @@ doc = false
 bench = false
 
 [[bin]]
-name = "auth_token"
-path = "fuzz_targets/auth_token.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "gateway_policy"
-path = "fuzz_targets/gateway_policy.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
 name = "proxy_headers"
 path = "fuzz_targets/proxy_headers.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "content_range"
-path = "fuzz_targets/content_range.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "launcher_input"
-path = "fuzz_targets/launcher_input.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "bot_input"
-path = "fuzz_targets/bot_input.rs"
 test = false
 doc = false
 bench = false
