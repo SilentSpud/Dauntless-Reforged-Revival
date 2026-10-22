@@ -1,0 +1,718 @@
+{
+  "setups": [
+    {
+      "name": "private",
+      "args": [
+        "--mode",
+        "private",
+        "--name",
+        "Friday"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.101.102.103\",\n  \"gameAddress\": \"100.101.102.103\",\n  \"name\": \"Friday\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "private-share",
+      "args": [
+        "--mode",
+        "private",
+        "--name",
+        "Friday Hunts & Co",
+        "--share",
+        "https://login.tailscale.com/admin/invite/abcDEF123",
+        "--registration",
+        "open",
+        "--max-hunts",
+        "6"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.101.102.103\",\n  \"gameAddress\": \"100.101.102.103\",\n  \"name\": \"Friday Hunts & Co\",\n  \"gameDir\": null,\n  \"registration\": \"OPEN\",\n  \"shareUrl\": \"https://login.tailscale.com/admin/invite/abcDEF123\",\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 6,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 6 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "public-from-private",
+      "args": [
+        "--mode",
+        "public",
+        "--host",
+        "203.0.113.7"
+      ],
+      "before": "private",
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"public\",\n  \"host\": \"203.0.113.7\",\n  \"gameAddress\": \"203.0.113.7\",\n  \"name\": \"Friday\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "public-dns",
+      "args": [
+        "--mode",
+        "public",
+        "--host",
+        "Hunts.Example.NET",
+        "--game-address",
+        "203.0.113.7",
+        "--public-port",
+        "4443",
+        "--name",
+        "Freeza \"Hunts\" — Público"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"public\",\n  \"host\": \"hunts.example.net\",\n  \"gameAddress\": \"203.0.113.7\",\n  \"name\": \"Freeza \\\"Hunts\\\" — Público\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"publicPort\": 4443,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "public-dns-no-address",
+      "args": [
+        "--mode",
+        "public",
+        "--host",
+        "hunts.example.net"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "the host is a DNS name: pass --game-address <the server's public IPv4> as well (the game servers announce an address, not a name)"
+    },
+    {
+      "name": "public-port-back",
+      "args": [
+        "--public-port",
+        "443"
+      ],
+      "before": "public-dns",
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"public\",\n  \"host\": \"hunts.example.net\",\n  \"gameAddress\": \"203.0.113.7\",\n  \"name\": \"Freeza \\\"Hunts\\\" — Público\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "public-port-kept",
+      "args": [
+        "--name",
+        "Moved"
+      ],
+      "before": "public-dns",
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"public\",\n  \"host\": \"hunts.example.net\",\n  \"gameAddress\": \"203.0.113.7\",\n  \"name\": \"Moved\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"publicPort\": 4443,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "public-port-bad",
+      "args": [
+        "--mode",
+        "public",
+        "--host",
+        "203.0.113.7",
+        "--public-port",
+        "web"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "--public-port must be a TCP port number (got web)"
+    },
+    {
+      "name": "public-port-reserved",
+      "args": [
+        "--mode",
+        "public",
+        "--host",
+        "203.0.113.7",
+        "--public-port",
+        "61000"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "publicPort 61000 is one the server uses itself: pick another (4443, for example)"
+    },
+    {
+      "name": "private-public-port",
+      "args": [
+        "--mode",
+        "private",
+        "--public-port",
+        "4443"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "--public-port is for public servers only"
+    },
+    {
+      "name": "no-mode",
+      "args": [],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "say which kind of server: --mode private (friends over Tailscale) or --mode public (a server on the internet)"
+    },
+    {
+      "name": "no-tailscale",
+      "args": [
+        "--mode",
+        "private"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": null,
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "Tailscale is not running here, so this PC's Tailscale address is unknown. Start Tailscale, or pass --host <your Tailscale IP>"
+    },
+    {
+      "name": "tailscale-moved",
+      "args": [],
+      "before": "private",
+      "detect": {
+        "tailscale": "100.88.12.40",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.88.12.40\",\n  \"gameAddress\": \"100.88.12.40\",\n  \"name\": \"Friday\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "tailscale-offline",
+      "args": [],
+      "before": "private",
+      "detect": {
+        "tailscale": null,
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.101.102.103\",\n  \"gameAddress\": \"100.101.102.103\",\n  \"name\": \"Friday\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "host-wins",
+      "args": [
+        "--host",
+        "100.64.0.9"
+      ],
+      "before": "private",
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.64.0.9\",\n  \"gameAddress\": \"100.64.0.9\",\n  \"name\": \"Friday\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "own-mongo",
+      "args": [
+        "--mode",
+        "private",
+        "--mongo-uri",
+        "mongodb://db.local:27017/?replicaSet=rs0"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.101.102.103\",\n  \"gameAddress\": \"100.101.102.103\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://db.local:27017/?replicaSet=rs0\",\n    \"manage\": false,\n    \"mongod\": null\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "no-mongod",
+      "args": [
+        "--mode",
+        "private",
+        "--no-manage-mongo"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": null,
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.101.102.103\",\n  \"gameAddress\": \"100.101.102.103\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": false,\n    \"mongod\": null\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "mongod-missing",
+      "args": [
+        "--mode",
+        "private"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": null,
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.101.102.103\",\n  \"gameAddress\": \"100.101.102.103\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": null\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "multipliers",
+      "args": [
+        "--mode",
+        "private",
+        "--xp-multiplier",
+        "5",
+        "--reward-multiplier",
+        "x3"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.101.102.103\",\n  \"gameAddress\": \"100.101.102.103\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"multipliers\": {\n    \"xp\": 5,\n    \"rewards\": 3\n  },\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "multipliers-kept",
+      "args": [],
+      "before": "multipliers",
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.101.102.103\",\n  \"gameAddress\": \"100.101.102.103\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"multipliers\": {\n    \"xp\": 5,\n    \"rewards\": 3\n  },\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "multipliers-off",
+      "args": [
+        "--off"
+      ],
+      "before": "multipliers",
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.101.102.103\",\n  \"gameAddress\": \"100.101.102.103\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "multipliers-ones",
+      "args": [
+        "--xp-multiplier",
+        "1",
+        "--reward-multiplier",
+        "1"
+      ],
+      "before": "multipliers",
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.101.102.103\",\n  \"gameAddress\": \"100.101.102.103\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "multipliers-not-public",
+      "args": [
+        "--mode",
+        "public",
+        "--host",
+        "203.0.113.7"
+      ],
+      "before": "multipliers",
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"public\",\n  \"host\": \"203.0.113.7\",\n  \"gameAddress\": \"203.0.113.7\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "multipliers-public",
+      "args": [
+        "--mode",
+        "public",
+        "--host",
+        "203.0.113.7",
+        "--xp-multiplier",
+        "5"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "XP and reward multipliers are for private (Tailscale) test servers only"
+    },
+    {
+      "name": "multipliers-too-big",
+      "args": [
+        "--mode",
+        "private",
+        "--xp-multiplier",
+        "500"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "--xp-multiplier must be a number from 1 to 100 (got 500)"
+    },
+    {
+      "name": "multipliers-fraction",
+      "args": [
+        "--mode",
+        "private",
+        "--xp-multiplier",
+        "2.5"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.101.102.103\",\n  \"gameAddress\": \"100.101.102.103\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"multipliers\": {\n    \"xp\": 2.5,\n    \"rewards\": 1\n  },\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "game-relative",
+      "args": [
+        "--mode",
+        "private",
+        "--game",
+        "Games\\Dauntless"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "--game needs the full path of the Dauntless 1.14.7 folder, like \"D:\\Games\\Dauntless\" (got Games\\Dauntless)"
+    },
+    {
+      "name": "game-npm-escaped",
+      "args": [
+        "--mode",
+        "private",
+        "--game",
+        "^D:\\Games\\Dauntless^ 1.14.7\\Dauntless^"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "--game needs the full path of the Dauntless 1.14.7 folder, like \"D:\\Games\\Dauntless\" (got ^D:\\Games\\Dauntless^ 1.14.7\\Dauntless^)"
+    },
+    {
+      "name": "performance",
+      "args": [
+        "--mode",
+        "public",
+        "--host",
+        "203.0.113.7",
+        "--server-fps",
+        "60",
+        "--idle-fps",
+        "0",
+        "--training-at-boot",
+        "--verbose-game-logs",
+        "--no-memory-guard",
+        "--min-free-ram",
+        "512 MB",
+        "--hunt-ram",
+        "2048",
+        "--training-idle-minutes",
+        "15"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"public\",\n  \"host\": \"203.0.113.7\",\n  \"gameAddress\": \"203.0.113.7\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 60,\n    \"idleFps\": 0,\n    \"trainingOnDemand\": false,\n    \"trainingIdleMinutes\": 15,\n    \"verboseGameLogs\": true,\n    \"memoryGuard\": false,\n    \"minFreeMemoryMb\": 512,\n    \"huntMemoryMb\": 2048\n  }\n}\n",
+      "summary": "Game servers: 60 fps, no idle cap; Training Grounds at boot; verbose game logs; at most 3 hunts at once (UDP 8770-8777), no memory guard"
+    },
+    {
+      "name": "performance-kept",
+      "args": [
+        "--training-on-demand",
+        "--quiet-game-logs",
+        "--max-hunts",
+        "8"
+      ],
+      "before": "performance",
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"public\",\n  \"host\": \"203.0.113.7\",\n  \"gameAddress\": \"203.0.113.7\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 8,\n  \"performance\": {\n    \"serverFps\": 60,\n    \"idleFps\": 0,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 15,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": false,\n    \"minFreeMemoryMb\": 512,\n    \"huntMemoryMb\": 2048\n  }\n}\n",
+      "summary": "Game servers: 60 fps, no idle cap; Training Grounds on demand, stopped after 15 min without players; quiet game logs; at most 8 hunts at once (UDP 8768-8777), no memory guard"
+    },
+    {
+      "name": "server-fps-low",
+      "args": [
+        "--mode",
+        "private",
+        "--server-fps",
+        "5"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "--server-fps must be 0 (no cap) or 10 to 240 frames per second (got 5)"
+    },
+    {
+      "name": "idle-fps-word",
+      "args": [
+        "--mode",
+        "private",
+        "--idle-fps",
+        "fast"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "--idle-fps must be 0 (the same as --server-fps) or 1 to 240 frames per second (got fast)"
+    },
+    {
+      "name": "hunt-ram-low",
+      "args": [
+        "--mode",
+        "private",
+        "--hunt-ram",
+        "100"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "--hunt-ram must be a whole number of megabytes, at least 256 (got 100)"
+    },
+    {
+      "name": "training-soon",
+      "args": [
+        "--mode",
+        "private",
+        "--training-idle-minutes",
+        "soon"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "--training-idle-minutes must be 0 (keep them running) or 1 to 1440 minutes (got soon)"
+    },
+    {
+      "name": "max-hunts-bad",
+      "args": [
+        "--mode",
+        "private",
+        "--max-hunts",
+        "11"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "maxHuntServers must be 1 to 10 (UDP 8770-8777 up to 6 hunts, 8766-8777 at 10)"
+    },
+    {
+      "name": "registration-bad",
+      "args": [
+        "--mode",
+        "private",
+        "--registration",
+        "maybe"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "error": "registration must be INVITECODE, OPEN or NONE"
+    },
+    {
+      "name": "linux",
+      "args": [
+        "--mode",
+        "public",
+        "--host",
+        "203.0.113.7",
+        "--wine",
+        "/usr/bin/wine64",
+        "--no-xvfb",
+        "--firewall-interface",
+        "ens3"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "linux"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"public\",\n  \"host\": \"203.0.113.7\",\n  \"gameAddress\": \"203.0.113.7\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  },\n  \"linux\": {\n    \"wine\": \"/usr/bin/wine64\",\n    \"proton\": null,\n    \"xvfb\": false,\n    \"firewallInterface\": \"ens3\"\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "linux-kept",
+      "args": [
+        "--xvfb",
+        "--no-firewall-interface",
+        "--proton",
+        "/opt/GE-Proton10/proton"
+      ],
+      "before": "linux",
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "linux"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"public\",\n  \"host\": \"203.0.113.7\",\n  \"gameAddress\": \"203.0.113.7\",\n  \"name\": \"Dauntless Reforged Revival server\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  },\n  \"linux\": {\n    \"wine\": \"/usr/bin/wine64\",\n    \"proton\": \"/opt/GE-Proton10/proton\",\n    \"xvfb\": true,\n    \"firewallInterface\": null\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    },
+    {
+      "name": "linux-iface-bad",
+      "args": [
+        "--mode",
+        "public",
+        "--host",
+        "203.0.113.7",
+        "--firewall-interface",
+        "eth0; drop"
+      ],
+      "before": null,
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "linux"
+      },
+      "error": "--firewall-interface must be a network interface name like eth0 (got eth0; drop)"
+    },
+    {
+      "name": "linux-on-windows",
+      "args": [
+        "--name",
+        "Back on Windows"
+      ],
+      "before": "linux",
+      "detect": {
+        "tailscale": "100.101.102.103",
+        "mongod": "C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe",
+        "platform": "win32"
+      },
+      "hostJson": "{\n  \"version\": 1,\n  \"mode\": \"public\",\n  \"host\": \"203.0.113.7\",\n  \"gameAddress\": \"203.0.113.7\",\n  \"name\": \"Back on Windows\",\n  \"gameDir\": null,\n  \"registration\": \"INVITECODE\",\n  \"shareUrl\": null,\n  \"mongo\": {\n    \"uri\": \"mongodb://127.0.0.1:27017/?replicaSet=rs0\",\n    \"manage\": true,\n    \"mongod\": \"C:\\\\Program Files\\\\MongoDB\\\\Server\\\\8.0\\\\bin\\\\mongod.exe\"\n  },\n  \"maxHuntServers\": 3,\n  \"performance\": {\n    \"serverFps\": 30,\n    \"idleFps\": 10,\n    \"trainingOnDemand\": true,\n    \"trainingIdleMinutes\": 5,\n    \"verboseGameLogs\": false,\n    \"memoryGuard\": true,\n    \"minFreeMemoryMb\": 1024,\n    \"huntMemoryMb\": 1536\n  },\n  \"linux\": {\n    \"wine\": \"/usr/bin/wine64\",\n    \"proton\": null,\n    \"xvfb\": false,\n    \"firewallInterface\": \"ens3\"\n  }\n}\n",
+      "summary": "Game servers: 30 fps, 10 fps after 15 s without players; Training Grounds on demand, stopped after 5 min without players; quiet game logs; at most 3 hunts at once (UDP 8770-8777), a new hunt only with 2560 MB free"
+    }
+  ],
+  "firewall": [
+    {
+      "name": "private",
+      "script": "# Dauntless Reforged Revival: Windows Firewall rules for this server. Written by `npm run setup`.\r\n# Run once in PowerShell as administrator:  powershell -ExecutionPolicy Bypass -File firewall.ps1\r\n$ErrorActionPreference = 'Stop'\r\nfunction Add-Rule($Name, $Display, $Protocol, $Port, $Program, $Remote, $Enabled) {\r\n    if (Get-NetFirewallRule -Name $Name -ErrorAction SilentlyContinue) { Write-Host \"$Display already exists\"; return }\r\n    $Params = @{ Name = $Name; DisplayName = $Display; Direction = 'Inbound'; Action = 'Allow'; Protocol = $Protocol; LocalPort = $Port; Profile = 'Any'; Enabled = $Enabled }\r\n    if ($Program) { $Params.Program = $Program }\r\n    if ($Remote) { $Params.RemoteAddress = $Remote }\r\n    New-NetFirewallRule @Params | Out-Null\r\n    Write-Host \"added $Display\"\r\n}\r\n# Only from Tailscale addresses: nobody else can reach these.\r\nAdd-Rule 'ReforgedRevival-Gateway-Tailnet' 'Dauntless Reforged Revival gateway (TCP 61000, Tailscale)' 'TCP' '61000' 'C:\\node\\node.exe' '100.64.0.0/10' 'True'\r\nAdd-Rule 'ReforgedRevival-GamePorts-Tailnet' 'Dauntless Reforged Revival game ports (Tailscale)' 'UDP' '8770-8777' $null '100.64.0.0/10' 'True'\r\n"
+    },
+    {
+      "name": "public-dns",
+      "script": "# Dauntless Reforged Revival: Windows Firewall rules for this server. Written by `npm run setup`.\r\n# Run once in PowerShell as administrator:  powershell -ExecutionPolicy Bypass -File firewall.ps1\r\n$ErrorActionPreference = 'Stop'\r\nfunction Add-Rule($Name, $Display, $Protocol, $Port, $Program, $Remote, $Enabled) {\r\n    if (Get-NetFirewallRule -Name $Name -ErrorAction SilentlyContinue) { Write-Host \"$Display already exists\"; return }\r\n    $Params = @{ Name = $Name; DisplayName = $Display; Direction = 'Inbound'; Action = 'Allow'; Protocol = $Protocol; LocalPort = $Port; Profile = 'Any'; Enabled = $Enabled }\r\n    if ($Program) { $Params.Program = $Program }\r\n    if ($Remote) { $Params.RemoteAddress = $Remote }\r\n    New-NetFirewallRule @Params | Out-Null\r\n    Write-Host \"added $Display\"\r\n}\r\nAdd-Rule 'ReforgedRevival-Gateway' 'Dauntless Reforged Revival gateway (TCP 4443)' 'TCP' '4443' 'C:\\node\\node.exe' $null 'True'\r\n# The game ports start closed: the allowlist helper opens them only for players who logged in.\r\nAdd-Rule 'ReforgedRevival-GamePorts-Allowlist' 'Dauntless Reforged Revival game ports (allowlist)' 'UDP' '8770-8777' $null $null 'False'\r\n"
+    },
+    {
+      "name": "performance-kept",
+      "script": "# Dauntless Reforged Revival: Windows Firewall rules for this server. Written by `npm run setup`.\r\n# Run once in PowerShell as administrator:  powershell -ExecutionPolicy Bypass -File firewall.ps1\r\n$ErrorActionPreference = 'Stop'\r\nfunction Add-Rule($Name, $Display, $Protocol, $Port, $Program, $Remote, $Enabled) {\r\n    if (Get-NetFirewallRule -Name $Name -ErrorAction SilentlyContinue) { Write-Host \"$Display already exists\"; return }\r\n    $Params = @{ Name = $Name; DisplayName = $Display; Direction = 'Inbound'; Action = 'Allow'; Protocol = $Protocol; LocalPort = $Port; Profile = 'Any'; Enabled = $Enabled }\r\n    if ($Program) { $Params.Program = $Program }\r\n    if ($Remote) { $Params.RemoteAddress = $Remote }\r\n    New-NetFirewallRule @Params | Out-Null\r\n    Write-Host \"added $Display\"\r\n}\r\nAdd-Rule 'ReforgedRevival-Gateway' 'Dauntless Reforged Revival gateway (TCP 443)' 'TCP' '443' 'C:\\node\\node.exe' $null 'True'\r\n# The game ports start closed: the allowlist helper opens them only for players who logged in.\r\nAdd-Rule 'ReforgedRevival-GamePorts-Allowlist' 'Dauntless Reforged Revival game ports (allowlist)' 'UDP' '8768-8777' $null $null 'False'\r\n"
+    }
+  ],
+  "invites": [
+    {
+      "name": "private",
+      "code": "ABCD-EFGH-JKMN",
+      "fp": null,
+      "link": "reforged-revival://join?v=1&host=100.101.102.103&port=61000&code=ABCD-EFGH-JKMN&name=Friday"
+    },
+    {
+      "name": "private-share",
+      "code": "WXYZ-2345-6789",
+      "fp": null,
+      "link": "reforged-revival://join?v=1&host=100.101.102.103&port=61000&code=WXYZ-2345-6789&name=Friday%20Hunts%20%26%20Co&share=https%3A%2F%2Flogin.tailscale.com%2Fadmin%2Finvite%2FabcDEF123"
+    },
+    {
+      "name": "public-from-private",
+      "code": "ABCD-EFGH-JKMN",
+      "fp": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "link": "reforged-revival://join?v=2&mode=public&host=203.0.113.7&port=443&fp=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef&code=ABCD-EFGH-JKMN&name=Friday"
+    },
+    {
+      "name": "public-dns",
+      "code": "a b/c?d&e=f+g%h",
+      "fp": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "link": "reforged-revival://join?v=2&mode=public&host=hunts.example.net&port=4443&fp=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef&code=a%20b%2Fc%3Fd%26e%3Df%2Bg%25h&name=Freeza%20%22Hunts%22%20%E2%80%94%20P%C3%BAblico"
+    },
+    {
+      "name": "performance-kept",
+      "code": "éè-✓",
+      "fp": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "link": "reforged-revival://join?v=2&mode=public&host=203.0.113.7&port=443&fp=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef&code=%C3%A9%C3%A8-%E2%9C%93&name=Dauntless%20Reforged%20Revival%20server"
+    }
+  ],
+  "noFingerprint": "public invites need the certificate fingerprint"
+}
