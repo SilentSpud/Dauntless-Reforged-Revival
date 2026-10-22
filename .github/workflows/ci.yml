@@ -119,7 +119,8 @@ jobs:
           echo "rust-tauri=$tauri" | tee -a "$GITHUB_OUTPUT"
 
   rust:
-    name: Rust workspace (${{ matrix.os }})
+    # GitHub appends the OS (see the paradox job)
+    name: Rust workspace
     needs: changes
     if: needs.changes.outputs.rust == 'true'
     runs-on: ${{ matrix.os }}
