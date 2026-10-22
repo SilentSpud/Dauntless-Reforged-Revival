@@ -66,7 +66,7 @@ pub struct HttpResponse {
     pub body: Bytes,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct RequestOptions {
     pub method: Method,
     pub headers: Vec<(&'static str, String)>,
@@ -75,6 +75,21 @@ pub struct RequestOptions {
     pub timeout: Duration,
     pub max_bytes: usize,
     pub cancel: Option<CancellationToken>,
+}
+
+/// Header names only: a value may be the account key, which never reaches a log.
+impl std::fmt::Debug for RequestOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let headers: Vec<(&str, &str)> = self.headers.iter().map(|(name, _)| (*name, "<redacted>")).collect();
+        f.debug_struct("RequestOptions")
+            .field("method", &self.method)
+            .field("headers", &headers)
+            .field("body", &self.body.as_ref().map(String::len))
+            .field("timeout", &self.timeout)
+            .field("max_bytes", &self.max_bytes)
+            .field("cancel", &self.cancel)
+            .finish()
+    }
 }
 
 impl RequestOptions {
@@ -302,12 +317,12 @@ mod tests {
             port,
             pin: None,
         };
-        let response = request(&endpoint, "/undaunted/api/ServerStatus?x=1", options())
+        let response = request(&endpoint, "/reforged/api/ServerStatus?x=1", options())
             .await
             .unwrap();
         assert_eq!(response.status, 200);
         let body = parse_json_body(&response).unwrap();
-        assert_eq!(body["path"], "/undaunted/api/ServerStatus?x=1");
+        assert_eq!(body["path"], "/reforged/api/ServerStatus?x=1");
         assert_eq!(body["host"], format!("127.0.0.1:{port}"));
     }
 
@@ -332,6 +347,27 @@ mod tests {
             HttpError::Pin {
                 actual: Some(fingerprint)
             }
+        );
+        // Plain HTTP to a TLS port is not mistaken for a pin failure
+        let plain = Endpoint { pin: None, ..wrong };
+        let quick = RequestOptions {
+            timeout: Duration::from_secs(3),
+            ..options()
+        };
+        let error = request(&plain, "/x", quick).await.unwrap_err();
+        assert!(!matches!(error, HttpError::Pin { .. }), "{error:?}");
+    }
+
+    #[test]
+    fn options_never_print_header_values() {
+        let key = concat!("RRK_", "0123456789abcdef", "0123456789abcdef", "0123456789abcdef");
+        let mut with_key = options();
+        with_key.headers = vec![("x-reforged-user-api-key", key.to_owned())];
+        with_key.body = Some(format!("{{\"k\":\"{key}\"}}"));
+        let printed = format!("{with_key:?}");
+        assert!(
+            printed.contains("x-reforged-user-api-key") && !printed.contains(key),
+            "{printed}"
         );
     }
 
