@@ -121,9 +121,19 @@ impl Control {
     }
 }
 
+/// A program started in a new process group (as CI runners and some launchers start theirs) inherits
+/// "ignore Ctrl+C", and a Ctrl+C would then never reach the handlers below: turn it back on.
+#[cfg(windows)]
+#[allow(unsafe_code)] // SetConsoleCtrlHandler
+fn accept_ctrl_c() {
+    // SAFETY: no handler routine; only clears this process's "ignore Ctrl+C" flag.
+    let _ = unsafe { windows::Win32::System::Console::SetConsoleCtrlHandler(None, false) };
+}
+
 #[cfg(windows)]
 async fn signals(control: Control, ready: std::sync::mpsc::Sender<Result<(), String>>) {
     use tokio::signal::windows;
+    accept_ctrl_c();
     let registered =
         (|| Ok::<_, std::io::Error>((windows::ctrl_c()?, windows::ctrl_break()?, windows::ctrl_close()?)))();
     let (mut ctrl_c, mut ctrl_break, mut close) = match registered {
