@@ -324,7 +324,7 @@ mod tests {
             .await
             .unwrap();
         let text = std::fs::read_to_string(dir.path().join("settings.json")).unwrap();
-        let again = SettingsStore::load(dir.path(), Language::Fi, Platform::Windows);
+        let again = SettingsStore::load(dir.path(), Language::PtBr, Platform::Windows);
         assert_eq!(settings_text(again.get()), text);
         assert_eq!(again.get()["huntRegion"], "ger");
         assert_eq!(again.get()["language"], "en", "a saved language wins over the system's");

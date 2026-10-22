@@ -1,6 +1,7 @@
-//! The backend's own text (row L14): the dialogs the backend shows, in the player's language, from the
-//! same strings the page uses (`gen/strings.json`, made into `Language` and its tables by build.rs).
-//! Nothing here lists the languages: a language added to the page appears by rebuilding.
+//! The backend's own text (rows L14, RA3): the dialogs the backend shows, in the player's language, from
+//! the same language files the page uses (`src/shared/i18n/` in legacy/ReforgedLauncher, exported to
+//! `gen/strings.json` by its `test/strings-export.test.ts`, made into `Language` and its tables by
+//! build.rs). Nothing here lists the languages: a language added to the page appears by rebuilding.
 #![cfg_attr(
     not(test),
     allow(
@@ -17,8 +18,17 @@ pub const CLOSE_TITLE: &str = "close_title";
 pub const CLOSE_TEXT: &str = "close_text";
 pub const CLOSE_KEEP: &str = "close_keep";
 pub const CLOSE_ANYWAY: &str = "close_anyway";
-pub const DIALOG_INSTALL_FOLDER: &str = "dialog_install_folder";
-pub const DIALOG_EXISTING_FOLDER: &str = "dialog_existing_folder";
+/// The folder dialogs' titles, by purpose, as `src/main.ts` names them.
+pub const DIALOG_GAME_FOLDER: &str = "dialog_game_folder";
+pub const DIALOG_RUNTIME_FOLDER: &str = "dialog_runtime_folder";
+pub const DIALOG_WORKSPACE_FOLDER: &str = "dialog_workspace_folder";
+pub const DIALOG_SDK_FOLDER: &str = "dialog_sdk_folder";
+pub const DIALOG_DUMPER_DLL: &str = "dialog_dumper_dll";
+pub const DIALOG_GAMEDATA_PACK: &str = "dialog_gamedata_pack";
+/// DR's two folder purposes, which `platform/dialogs.rs` still names until RA11 gives it Reforged's: both
+/// choose the game's folder (Reforged never downloads the game, so there is no install folder).
+pub const DIALOG_INSTALL_FOLDER: &str = DIALOG_GAME_FOLDER;
+pub const DIALOG_EXISTING_FOLDER: &str = DIALOG_GAME_FOLDER;
 
 #[cfg(test)]
 const USED: &[&str] = &[
@@ -27,8 +37,12 @@ const USED: &[&str] = &[
     CLOSE_TEXT,
     CLOSE_KEEP,
     CLOSE_ANYWAY,
-    DIALOG_INSTALL_FOLDER,
-    DIALOG_EXISTING_FOLDER,
+    DIALOG_GAME_FOLDER,
+    DIALOG_RUNTIME_FOLDER,
+    DIALOG_WORKSPACE_FOLDER,
+    DIALOG_SDK_FOLDER,
+    DIALOG_DUMPER_DLL,
+    DIALOG_GAMEDATA_PACK,
 ];
 
 impl Language {
@@ -59,11 +73,25 @@ pub fn translate(language: Language, key: &str, vars: &[(&str, &str)]) -> String
     text
 }
 
-/// `systemLanguage`: the language a first start picks from the operating system's locale ("es-ES",
-/// "fi", "en-US"...): its first two letters, if the launcher has that language, else English.
+/// `systemLanguage`: the language a first start picks from the operating system's locale ("pt-BR",
+/// "pt_PT", "en-US"...): the language with that exact code, else the first one for the same language (so
+/// any Portuguese locale gives `pt-BR`), else English.
 pub fn system_language(locale: &str) -> Language {
-    let code: String = locale.chars().take(2).flat_map(char::to_lowercase).collect();
-    Language::from_code(&code).unwrap_or(Language::En)
+    let code = locale.to_ascii_lowercase().replace('_', "-");
+    let language = code.split('-').next().unwrap_or_default();
+    let base = |language: Language| {
+        language
+            .code()
+            .split('-')
+            .next()
+            .unwrap_or_default()
+            .to_ascii_lowercase()
+    };
+    Language::ALL
+        .into_iter()
+        .find(|candidate| candidate.code().eq_ignore_ascii_case(&code))
+        .or_else(|| Language::ALL.into_iter().find(|candidate| base(*candidate) == language))
+        .unwrap_or(Language::En)
 }
 
 /// The operating system's language, as `system_language` reads it.
@@ -90,14 +118,76 @@ mod tests {
 
     #[test]
     fn translates_like_the_page() {
-        assert_eq!(translate(Language::Fi, "window_close", &[]), "Sulje");
+        assert_eq!(translate(Language::PtBr, "window_close", &[]), "Fechar");
+        assert_eq!(
+            translate(Language::PtBr, "ready_title", &[("user", "Ana")]),
+            "Bem-vindo de volta, Ana"
+        );
         assert_eq!(translate(Language::En, "no_such_key", &[]), "no_such_key");
         assert_eq!(translate(Language::En, "x {a} {a}", &[("a", "1")]), "x 1 1");
-        assert_eq!(system_language("es-ES"), Language::Es);
-        assert_eq!(system_language("FI"), Language::Fi);
-        assert_eq!(system_language("zh-CN"), Language::En);
-        assert_eq!(system_language(""), Language::En);
-        assert_eq!(Language::from_code("ru"), Some(Language::Ru));
+        assert_eq!(Language::from_code("pt-BR"), Some(Language::PtBr));
+        assert_eq!(Language::from_code("pt"), None);
         assert_eq!(Language::ALL[0], Language::En);
+    }
+
+    #[test]
+    fn system_language_is_the_pages() {
+        for (locale, language) in [
+            ("pt-BR", Language::PtBr),
+            ("pt-PT", Language::PtBr),
+            ("pt_BR", Language::PtBr),
+            ("PT-br", Language::PtBr),
+            ("pt", Language::PtBr),
+            ("ptx", Language::En),
+            ("en-US", Language::En),
+            ("en", Language::En),
+            ("fi", Language::En),
+            ("", Language::En),
+        ] {
+            assert_eq!(system_language(locale), language, "{locale}");
+        }
+    }
+
+    #[test]
+    fn every_language_has_the_english_keys_and_placeholders() {
+        fn placeholders(text: &str) -> Vec<&str> {
+            let mut names: Vec<&str> = text
+                .split('{')
+                .skip(1)
+                .filter_map(|rest| rest.split_once('}').map(|(name, _)| name))
+                .filter(|name| !name.is_empty() && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_'))
+                .collect();
+            names.sort_unstable();
+            names
+        }
+        let english = Language::En.table();
+        for language in Language::ALL {
+            let table = language.table();
+            let keys =
+                |table: &'static [(&'static str, &'static str)]| table.iter().map(|(key, _)| *key).collect::<Vec<_>>();
+            assert_eq!(keys(table), keys(english), "{}", language.code());
+            for ((key, text), (_, source)) in table.iter().zip(english) {
+                assert!(!text.trim().is_empty(), "{}.{key} is empty", language.code());
+                assert_eq!(placeholders(text), placeholders(source), "{}.{key}", language.code());
+            }
+        }
+    }
+
+    #[test]
+    fn the_1_4_4_text_is_not_ported() {
+        // RD5: the Electron launcher's 1.4.4 text is not in the language files; the refusal of a
+        // dauntless-revived:// invite and the saved-server notice are (RD22).
+        for language in Language::ALL {
+            for key in [
+                "revived_download_title",
+                "dialog_revived_folder",
+                "err_windows_runtime_missing",
+            ] {
+                assert!(language.lookup(key).is_none(), "{} {key}", language.code());
+            }
+            for key in ["invite_err_revived", "server_revived_disabled"] {
+                assert!(language.lookup(key).is_some(), "{} {key}", language.code());
+            }
+        }
     }
 }

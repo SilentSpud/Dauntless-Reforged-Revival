@@ -53,7 +53,7 @@
       "exposure": "basic",
       "windowed": true,
       "streamerMode": true,
-      "language": "fi",
+      "language": "pt-BR",
       "gameLanguage": "de-DE",
       "showConsole": true,
       "usernames": {
@@ -64,7 +64,7 @@
       }
     },
     "language": "en",
-    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"mode\": \"private\",\n    \"host\": \"100.64.0.1\",\n    \"port\": 61000,\n    \"name\": \"Ramsgate\",\n    \"share\": \"https://login.tailscale.com/x\",\n    \"fp\": null,\n    \"code\": \"ABCD-1234\"\n  },\n  \"savedServers\": [\n    {\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"installDir\": \"C:\\\\Games\\\\DR\",\n  \"verifiedDir\": \"C:\\\\Games\\\\DR\",\n  \"graphics\": 2,\n  \"exposure\": \"basic\",\n  \"windowed\": true,\n  \"streamerMode\": true,\n  \"language\": \"fi\",\n  \"gameLanguage\": \"de-DE\",\n  \"showConsole\": true,\n  \"usernames\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": \"Slayer\"\n  },\n  \"backupOffered\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": true\n  }\n}"
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"mode\": \"private\",\n    \"host\": \"100.64.0.1\",\n    \"port\": 61000,\n    \"name\": \"Ramsgate\",\n    \"share\": \"https://login.tailscale.com/x\",\n    \"fp\": null,\n    \"code\": \"ABCD-1234\"\n  },\n  \"savedServers\": [\n    {\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"installDir\": \"C:\\\\Games\\\\DR\",\n  \"verifiedDir\": \"C:\\\\Games\\\\DR\",\n  \"graphics\": 2,\n  \"exposure\": \"basic\",\n  \"windowed\": true,\n  \"streamerMode\": true,\n  \"language\": \"pt-BR\",\n  \"gameLanguage\": \"de-DE\",\n  \"showConsole\": true,\n  \"usernames\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": \"Slayer\"\n  },\n  \"backupOffered\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": true\n  }\n}"
   },
   {
     "platform": "win32",
@@ -764,11 +764,11 @@
   {
     "platform": "win32",
     "input": {
-      "language": "ru",
+      "language": "pt-BR",
       "gameLanguage": "auto"
     },
     "language": "en",
-    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"installDir\": null,\n  \"verifiedDir\": null,\n  \"graphics\": 4,\n  \"exposure\": \"game\",\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"ru\",\n  \"gameLanguage\": \"auto\",\n  \"showConsole\": false,\n  \"usernames\": {},\n  \"backupOffered\": {}\n}"
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"installDir\": null,\n  \"verifiedDir\": null,\n  \"graphics\": 4,\n  \"exposure\": \"game\",\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"pt-BR\",\n  \"gameLanguage\": \"auto\",\n  \"showConsole\": false,\n  \"usernames\": {},\n  \"backupOffered\": {}\n}"
   },
   {
     "platform": "win32",
@@ -872,7 +872,7 @@
       "exposure": "basic",
       "windowed": true,
       "streamerMode": true,
-      "language": "fi",
+      "language": "pt-BR",
       "gameLanguage": "de-DE",
       "showConsole": true,
       "usernames": {
@@ -883,7 +883,7 @@
       }
     },
     "language": "en",
-    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"mode\": \"private\",\n    \"host\": \"100.64.0.1\",\n    \"port\": 61000,\n    \"name\": \"Ramsgate\",\n    \"share\": \"https://login.tailscale.com/x\",\n    \"fp\": null,\n    \"code\": \"ABCD-1234\"\n  },\n  \"savedServers\": [\n    {\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"installDir\": null,\n  \"verifiedDir\": null,\n  \"graphics\": 2,\n  \"exposure\": \"basic\",\n  \"windowed\": true,\n  \"streamerMode\": true,\n  \"language\": \"fi\",\n  \"gameLanguage\": \"de-DE\",\n  \"showConsole\": true,\n  \"usernames\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": \"Slayer\"\n  },\n  \"backupOffered\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": true\n  }\n}"
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"mode\": \"private\",\n    \"host\": \"100.64.0.1\",\n    \"port\": 61000,\n    \"name\": \"Ramsgate\",\n    \"share\": \"https://login.tailscale.com/x\",\n    \"fp\": null,\n    \"code\": \"ABCD-1234\"\n  },\n  \"savedServers\": [\n    {\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"installDir\": null,\n  \"verifiedDir\": null,\n  \"graphics\": 2,\n  \"exposure\": \"basic\",\n  \"windowed\": true,\n  \"streamerMode\": true,\n  \"language\": \"pt-BR\",\n  \"gameLanguage\": \"de-DE\",\n  \"showConsole\": true,\n  \"usernames\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": \"Slayer\"\n  },\n  \"backupOffered\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": true\n  }\n}"
   },
   {
     "platform": "linux",
@@ -1583,11 +1583,11 @@
   {
     "platform": "linux",
     "input": {
-      "language": "ru",
+      "language": "pt-BR",
       "gameLanguage": "auto"
     },
     "language": "en",
-    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"installDir\": null,\n  \"verifiedDir\": null,\n  \"graphics\": 4,\n  \"exposure\": \"game\",\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"ru\",\n  \"gameLanguage\": \"auto\",\n  \"showConsole\": false,\n  \"usernames\": {},\n  \"backupOffered\": {}\n}"
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"installDir\": null,\n  \"verifiedDir\": null,\n  \"graphics\": 4,\n  \"exposure\": \"game\",\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"pt-BR\",\n  \"gameLanguage\": \"auto\",\n  \"showConsole\": false,\n  \"usernames\": {},\n  \"backupOffered\": {}\n}"
   },
   {
     "platform": "linux",

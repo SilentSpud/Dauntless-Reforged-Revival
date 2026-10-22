@@ -21,7 +21,7 @@ sourceUrl: string | null, registration: RegistrationMode | null, playersOnline: 
  * launcher without an account key there, or with one it did not accept.
  */
 limited: boolean, };
-export type Language = "en" | "fi" | "de" | "es" | "fr" | "it" | "ja" | "pt" | "ru";
+export type Language = "en" | "pt-BR";
 export type GameLanguage = "auto" | "en-US" | "de-DE" | "es-ES" | "fr-FR" | "it-IT" | "ja-JP" | "pt-BR" | "ru-RU";
 export type RuntimeProfile = "production" | "development";
 export type Phase = "loading" | "join" | "connect" | "register" | "locate" | "runtime" | "installing" | "ready" | "running";
