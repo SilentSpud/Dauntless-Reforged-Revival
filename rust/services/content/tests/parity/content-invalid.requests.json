@@ -1,0 +1,86 @@
+{
+  "about": "A runtime.json whose winmm.dll hash does not match the file (MIGRATION_PLAN.md RS2).",
+  "env": {},
+  "runtime": {
+    "files": {
+      "MysticParadox.dll": {
+        "text": "mystic paradox\n"
+      },
+      "winmm.dll": {
+        "text": "winmm loader\n"
+      }
+    },
+    "index": {
+      "version": "1",
+      "files": [
+        {
+          "name": "MysticParadox.dll",
+          "size": 15,
+          "sha256": "6f3c5d7b2ea6a2d2b1fa6c6f6f1a9d1b9f45c7a77f0c2dbb7f2e6fbb9c8a1e11"
+        },
+        {
+          "name": "winmm.dll",
+          "size": 13,
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    }
+  },
+  "keys": {
+    "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz": {
+      "status": 200,
+      "body": {
+        "UserId": "UID-A",
+        "Username": "alpha",
+        "IsAdmin": false
+      }
+    },
+    "RRK_refused": {
+      "status": 403,
+      "body": {}
+    },
+    "RRK_down": {
+      "status": 500,
+      "body": {
+        "error": "boom"
+      }
+    },
+    "RRK_junk": {
+      "status": 200,
+      "body": "{nope"
+    },
+    "RRK_noid": {
+      "status": 200,
+      "body": {
+        "Username": "x"
+      }
+    }
+  },
+  "requests": [
+    {
+      "path": "/content/v1/runtime/manifest"
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "method": "HEAD"
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    }
+  ]
+}

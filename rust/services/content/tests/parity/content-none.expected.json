@@ -1,0 +1,104 @@
+{
+  "about": "No CONTENT_RUNTIME_DIR, no branding, no news (MIGRATION_PLAN.md RS2).",
+  "results": [
+    {
+      "request": "GET /content/v1/runtime/manifest",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "22",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"no_runtime\"}"
+    },
+    {
+      "request": "HEAD /content/v1/runtime/manifest",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "22",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/runtime/files/winmm.dll",
+      "status": 401,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "24",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/winmm.dll",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "HEAD /content/v1/runtime/files/winmm.dll",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/runtime/files/other.dll",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/branding",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "32",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"backgrounds\":[],\"accent\":null}"
+    },
+    {
+      "request": "GET /content/v1/branding/a.jpg",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/news",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "12",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"items\":[]}"
+    }
+  ]
+}

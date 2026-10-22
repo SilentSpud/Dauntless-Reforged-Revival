@@ -22,6 +22,7 @@ libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
 arbitrary = { version = "1", features = ["derive"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 http = "1"
+content = { path = "../services/content" }
 gateway = { path = "../services/gateway" }
 protocol = { path = "../crates/protocol" }
 proxy = { path = "../crates/proxy" }
@@ -60,6 +61,27 @@ bench = false
 [[bin]]
 name = "launcher_input"
 path = "fuzz_targets/launcher_input.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "content_request"
+path = "fuzz_targets/content_request.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "content_runtime_index"
+path = "fuzz_targets/content_runtime_index.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "content_news"
+path = "fuzz_targets/content_news.rs"
 test = false
 doc = false
 bench = false

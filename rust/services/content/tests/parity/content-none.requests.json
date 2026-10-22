@@ -1,0 +1,84 @@
+{
+  "about": "No CONTENT_RUNTIME_DIR, no branding, no news (MIGRATION_PLAN.md RS2).",
+  "env": {},
+  "runtime": null,
+  "keys": {
+    "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz": {
+      "status": 200,
+      "body": {
+        "UserId": "UID-A",
+        "Username": "alpha",
+        "IsAdmin": false
+      }
+    },
+    "RRK_refused": {
+      "status": 403,
+      "body": {}
+    },
+    "RRK_down": {
+      "status": 500,
+      "body": {
+        "error": "boom"
+      }
+    },
+    "RRK_junk": {
+      "status": 200,
+      "body": "{nope"
+    },
+    "RRK_noid": {
+      "status": 200,
+      "body": {
+        "Username": "x"
+      }
+    }
+  },
+  "requests": [
+    {
+      "path": "/content/v1/runtime/manifest"
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "method": "HEAD"
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll"
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "method": "HEAD",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/other.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/branding"
+    },
+    {
+      "path": "/content/v1/branding/a.jpg"
+    },
+    {
+      "path": "/content/v1/news"
+    }
+  ]
+}
