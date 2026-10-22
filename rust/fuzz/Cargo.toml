@@ -64,5 +64,12 @@ test = false
 doc = false
 bench = false
 
+[[bin]]
+name = "launcher_files"
+path = "fuzz_targets/launcher_files.rs"
+test = false
+doc = false
+bench = false
+
 [workspace]
 members = ["."]

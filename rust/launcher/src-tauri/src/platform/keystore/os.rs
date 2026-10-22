@@ -9,7 +9,7 @@ use std::sync::Arc;
 use super::Encryptor;
 use super::legacy::ElectronStorage;
 
-/// "dr1" + a 12-byte nonce + ciphertext and tag.
+/// "rr1" + a 12-byte nonce + ciphertext and tag (Linux; no Reforged launcher wrote these before).
 #[cfg_attr(windows, allow(dead_code, reason = "Windows uses DPAPI for the files themselves"))]
 struct SealedKey {
     key: [u8; 32],
@@ -17,7 +17,7 @@ struct SealedKey {
 
 #[cfg_attr(windows, allow(dead_code, reason = "Windows uses DPAPI for the files themselves"))]
 impl SealedKey {
-    const PREFIX: &'static [u8] = b"dr1";
+    const PREFIX: &'static [u8] = b"rr1";
 }
 
 impl Encryptor for SealedKey {
@@ -166,9 +166,9 @@ mod dpapi {
 
         #[test]
         fn a_round_trip_for_this_user() {
-            let sealed = Dpapi.encrypt("DRK2\n-\nUUK_x").unwrap();
-            assert_ne!(sealed, b"DRK2\n-\nUUK_x");
-            assert_eq!(Dpapi.decrypt(&sealed).as_deref(), Some("DRK2\n-\nUUK_x"));
+            let sealed = Dpapi.encrypt("RRK2\n-\nRRK_x").unwrap();
+            assert_ne!(sealed, b"RRK2\n-\nRRK_x");
+            assert_eq!(Dpapi.decrypt(&sealed).as_deref(), Some("RRK2\n-\nRRK_x"));
             assert_eq!(Dpapi.decrypt(b"not a blob"), None);
         }
     }
@@ -184,7 +184,7 @@ mod secret_service {
 
     use dbus_secret_service::{EncryptionType, SecretService};
 
-    const APPLICATION: &str = "io.github.mixutin.dauntlessrevived";
+    const APPLICATION: &str = "io.github.freezamotoqueiro.dauntlessreforgedrevival";
 
     fn key_now() -> Option<[u8; 32]> {
         let service = SecretService::connect(EncryptionType::Dh).ok()?;
@@ -203,7 +203,7 @@ mod secret_service {
         let key: [u8; 32] = rand::random();
         collection
             .create_item(
-                "Dauntless Revived Launcher account keys",
+                "Dauntless Reforged Revival Launcher account keys",
                 attributes,
                 &key,
                 true,
@@ -217,7 +217,7 @@ mod secret_service {
         let service = SecretService::connect(EncryptionType::Dh).ok()?;
         let attributes = HashMap::from([
             ("xdg:schema", "chrome_libsecret_os_crypt_password_v2"),
-            ("application", "Dauntless Revived Launcher"),
+            ("application", crate::platform::paths::PRODUCT_NAME),
         ]);
         let found = service.search_items(attributes).ok()?;
         for item in found.unlocked.iter().chain(found.locked.iter()) {
@@ -248,9 +248,9 @@ mod tests {
     #[test]
     fn sealed_files_open_only_with_their_key() {
         let sealed = SealedKey { key: [1; 32] };
-        let data = sealed.encrypt("DRK2\n-\nUUK_x").unwrap();
-        assert!(data.starts_with(b"dr1"));
-        assert_eq!(sealed.decrypt(&data).as_deref(), Some("DRK2\n-\nUUK_x"));
+        let data = sealed.encrypt("RRK2\n-\nRRK_x").unwrap();
+        assert!(data.starts_with(b"rr1"));
+        assert_eq!(sealed.decrypt(&data).as_deref(), Some("RRK2\n-\nRRK_x"));
         assert_eq!(SealedKey { key: [2; 32] }.decrypt(&data), None);
         assert_ne!(
             sealed.encrypt("same").unwrap(),

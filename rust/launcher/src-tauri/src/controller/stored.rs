@@ -168,8 +168,7 @@ mod tests {
         let defaults = Stored::of(&default_settings(Language::De));
         assert!(defaults.server.is_none());
         assert_eq!(defaults.language, Language::De);
-        // DR's default (4) until RA8 takes Reforged's (-1, `GraphicsPreset::DEFAULT`)
-        assert_eq!(defaults.graphics.value(), 4);
+        assert_eq!(defaults.graphics, GraphicsPreset::DEFAULT);
 
         let mut map = default_settings(Language::En);
         let server = StoredServer {

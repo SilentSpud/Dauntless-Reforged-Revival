@@ -1,5 +1,7 @@
 //! Reading the keys the Electron launcher saved with safeStorage (D7, rows L2 and L27), on crates the
-//! launcher has anyway. Read only: new keys are written in this launcher's own format (`os.rs`).
+//! launcher has anyway. Read only: new keys are written in this launcher's own format (`os.rs`). Reforged's
+//! Electron launcher (1.5.x) shipped for Windows only, so its keys are DPAPI ones; the Linux reader stays
+//! for a profile someone made from source. The framing is parsed in `format.rs`.
 //!
 //! - Windows: `userData/Local State` holds `os_crypt.encrypted_key`, base64 of "DPAPI" + a DPAPI blob of
 //!   the 32-byte AES key. A key file is "v10" + a 12-byte nonce + AES-256-GCM ciphertext and tag.
@@ -9,26 +11,22 @@
 
 use aes_gcm::aead::{Aead, KeyInit};
 use base64::Engine as _;
-use serde_json::Value;
 
 use super::Encryptor;
+use super::format::{LinuxPassword, dpapi_blob, linux_blob, local_state_key, windows_blob};
 
 /// The AES key in `Local State`, unwrapped with `unprotect` (DPAPI's `CryptUnprotectData`).
 #[cfg_attr(not(windows), allow(dead_code, reason = "Windows only"))]
 pub fn windows_master_key(local_state: &str, unprotect: impl Fn(&[u8]) -> Option<Vec<u8>>) -> Option<[u8; 32]> {
-    let state: Value = serde_json::from_str(local_state).ok()?;
-    let encoded = state.get("os_crypt")?.get("encrypted_key")?.as_str()?;
-    let wrapped = base64::engine::general_purpose::STANDARD.decode(encoded).ok()?;
-    let key = unprotect(wrapped.strip_prefix(b"DPAPI")?)?;
+    let wrapped = base64::engine::general_purpose::STANDARD
+        .decode(local_state_key(local_state)?)
+        .ok()?;
+    let key = unprotect(dpapi_blob(&wrapped)?)?;
     key.try_into().ok()
 }
 
 pub fn decrypt_windows(blob: &[u8], master: &[u8; 32]) -> Option<String> {
-    let rest = blob.strip_prefix(b"v10")?;
-    if rest.len() < 12 + 16 {
-        return None;
-    }
-    let (nonce, sealed) = rest.split_at(12);
+    let (nonce, sealed) = windows_blob(blob)?;
     let cipher = aes_gcm::Aes256Gcm::new_from_slice(master).ok()?;
     let nonce = aes_gcm::Nonce::try_from(nonce).ok()?;
     String::from_utf8(cipher.decrypt(&nonce, sealed).ok()?).ok()
@@ -43,10 +41,10 @@ fn linux_key(password: &[u8]) -> [u8; 16] {
 /// `secret`: the Secret Service item's password, needed for "v11" files.
 pub fn decrypt_linux(blob: &[u8], secret: Option<&[u8]>) -> Option<String> {
     use cbc::cipher::{BlockModeDecrypt, KeyIvInit};
-    let (password, sealed): (&[u8], &[u8]) = match blob.get(..3)? {
-        b"v11" => (secret?, &blob[3..]),
-        b"v10" => (b"peanuts", &blob[3..]),
-        _ => return None,
+    let (password, sealed) = linux_blob(blob)?;
+    let password: &[u8] = match password {
+        LinuxPassword::Keyring => secret?,
+        LinuxPassword::Fixed => b"peanuts",
     };
     let decryptor = cbc::Decryptor::<aes::Aes128>::new(&linux_key(password).into(), &[b' '; 16].into());
     let plain = decryptor
@@ -98,11 +96,11 @@ mod tests {
         let sealed = cipher
             .encrypt(
                 &aes_gcm::Nonce::try_from(&nonce[..]).unwrap(),
-                b"DRK2\n-\nUUK_x".as_slice(),
+                b"RRK2\n-\nRRK_x".as_slice(),
             )
             .unwrap();
         let blob = [b"v10".as_slice(), &nonce, &sealed].concat();
-        assert_eq!(decrypt_windows(&blob, &master).as_deref(), Some("DRK2\n-\nUUK_x"));
+        assert_eq!(decrypt_windows(&blob, &master).as_deref(), Some("RRK2\n-\nRRK_x"));
         assert_eq!(decrypt_windows(&blob, &[8u8; 32]), None, "another user's key");
         assert_eq!(decrypt_windows(&blob[..blob.len() - 1], &master), None, "a damaged tag");
     }
@@ -119,15 +117,15 @@ mod tests {
 
     #[test]
     fn linux_key_files() {
-        let v11 = linux_blob(b"v11", b"keyring-secret", b"DRK2\n-\nUUK_y");
+        let v11 = linux_blob(b"v11", b"keyring-secret", b"RRK2\n-\nRRK_y");
         assert_eq!(
             decrypt_linux(&v11, Some(b"keyring-secret")).as_deref(),
-            Some("DRK2\n-\nUUK_y")
+            Some("RRK2\n-\nRRK_y")
         );
         assert_eq!(decrypt_linux(&v11, None), None);
         assert_eq!(decrypt_linux(&v11, Some(b"other")), None);
-        let v10 = linux_blob(b"v10", b"peanuts", b"UUK_z");
-        assert_eq!(decrypt_linux(&v10, None).as_deref(), Some("UUK_z"));
+        let v10 = linux_blob(b"v10", b"peanuts", b"RRK_z");
+        assert_eq!(decrypt_linux(&v10, None).as_deref(), Some("RRK_z"));
         assert_eq!(decrypt_linux(b"v12abc", None), None);
         // Known answer: Chromium's key for "peanuts"
         assert_eq!(

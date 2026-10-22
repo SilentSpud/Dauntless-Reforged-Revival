@@ -45,7 +45,16 @@ impl Paths {
     pub fn logs_dir(&self) -> PathBuf {
         self.user_data.join("logs")
     }
+
+    /// The plain account key copies the player finds again after reinstalling the system, as the Electron
+    /// launcher keeps them: `Documents/Dauntless Reforged Revival/Account Keys/<server id>.txt`.
+    pub fn recovery_dir(&self) -> PathBuf {
+        self.documents.join(RECOVERY_FOLDER).join("Account Keys")
+    }
 }
+
+/// The launcher's folder in Documents
+pub const RECOVERY_FOLDER: &str = "Dauntless Reforged Revival";
 
 #[cfg(test)]
 mod tests {
@@ -56,6 +65,12 @@ mod tests {
         let paths = Paths::from_system().unwrap();
         assert!(paths.user_data.ends_with(PRODUCT_NAME));
         assert_eq!(paths.keys_dir(), paths.user_data.join("keys"));
+        assert_eq!(paths.logs_dir(), paths.user_data.join("logs"));
+        assert!(
+            paths
+                .recovery_dir()
+                .ends_with(std::path::Path::new("Dauntless Reforged Revival").join("Account Keys"))
+        );
         if cfg!(windows) {
             let appdata = PathBuf::from(std::env::var_os("APPDATA").unwrap());
             assert_eq!(paths.user_data, appdata.join(PRODUCT_NAME));
