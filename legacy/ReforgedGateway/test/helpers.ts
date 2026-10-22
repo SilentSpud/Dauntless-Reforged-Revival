@@ -254,13 +254,13 @@ export function PortOpen(Port: number): Promise<boolean> {
     });
 }
 
-// Every route the backend registers under /reforged/api, read from the backend patch
-// (patch 0002 in docs/paradox-patches.md, now in paradox/backend), so a route added there later is
-// covered without touching this test.
+// Every route the backend registers under /reforged/api, read from the backend's source
+// (paradox/backend/src/routes/reforgedApi.ts, added by patch 0002 in docs/paradox-patches.md), so a route
+// added there later is covered without touching this test.
 export function ReforgedApiRoutes(): { method: string; path: string }[] {
-    const Source = fs.readFileSync(path.join(ROOT, "..", "..", "upstream", "patches", "0002-backend-reforged-launcher-api.patch"), "utf8");
+    const Source = fs.readFileSync(path.join(ROOT, "..", "..", "paradox", "backend", "src", "routes", "reforgedApi.ts"), "utf8");
     const Routes: { method: string; path: string }[] = [];
-    for(const Match of Source.matchAll(/^\+\s*reforgedApiRouter\.(get|post|put|delete|patch)\(\s*"([^"]+)"/gm)){
+    for(const Match of Source.matchAll(/^\s*reforgedApiRouter\.(get|post|put|delete|patch)\(\s*"([^"]+)"/gm)){
         if(Match[2].startsWith("/reforged/api/")) Routes.push({ method: Match[1].toUpperCase(), path: Match[2].replace(/:[A-Za-z]+/g, "ABCD-EFGH-JKMN") });
     }
     return Routes;
