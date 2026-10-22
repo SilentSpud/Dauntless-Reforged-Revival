@@ -29,10 +29,13 @@ for each piece are written down.
 
 ## What's left
 
-Updated by the wave 1 integration pass, 2026-10-22. Merged into `plan`: wave 0 (RR1 [#1], RR2 [#5], RX1 [#2], [#3],
-[#4]; RP1 is `reforged` at `24e60c8` in the fork) and wave 1 (RR3 and RR4 [#6], RS1 [#8], RS4 [#9], RH1 [#10], RP2–RP4
-[#11], RA1–RA2 [#12]). The integration commit re-points the launcher's status parsing at `protocol` (RS1 extended the
-type) and adds RH1's fixture `secrets.env` files, which the root `.gitignore` had kept out of its PR.
+Updated by the wave 2 integration pass, 2026-10-22. Merged into `plan`: wave 0 (RR1 [#1], RR2 [#5], RX1 [#2], [#3],
+[#4]; RP1 is `reforged` at `24e60c8` in the fork), wave 1 (RR3 and RR4 [#6], RS1 [#8], RS4 [#9], RH1 [#10], RP2–RP4
+[#11], RA1–RA2 [#12]) and wave 2 (RS2 [#23], RS3 [#22], RH2 [#21], RH3 [#20], RH4 [#18], RA3 [#19], RA4 and RA5 [#13],
+RA6 [#15], RA7 [#14], RA8 [#17], RA9 and RA11 [#16]). The wave 2 integration commit moves the host kit's `Paths` to
+the `paradox/` and `native/` layout RP4 made (RH1 had kept the pinned-upstream one), merges every component's fuzz
+targets into one manifest and drops DR's last dialog constants. Lesson from wave 1: the integration pass runs `cargo
+test --no-fail-fast`, since a failing test binary otherwise hides the ones after it.
 
 [#1]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/1
 [#2]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/2
@@ -45,14 +48,25 @@ type) and adds RH1's fixture `secrets.env` files, which the root `.gitignore` ha
 [#10]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/10
 [#11]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/11
 [#12]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/12
+[#13]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/13
+[#14]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/14
+[#15]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/15
+[#16]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/16
+[#17]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/17
+[#18]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/18
+[#19]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/19
+[#20]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/20
+[#21]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/21
+[#22]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/22
+[#23]: https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/23
 
-| Area | Done | Next (wave 2 unless said) | Waiting on the maintainer |
+| Area | Done | Next (wave 3 unless said) | Waiting on the maintainer |
 | --- | --- | --- | --- |
 | Repository and CI | RR1–RR4 | RR5 at 3.0.0 | Make `CI ok` the required check in branch protection |
-| Paradox fork | RP1–RP4 | Fixes only (RD2); RX2's lists in wave 3 | Build `native/` with a host SDK (RP3's runtime check) |
-| Gateway, allowlist, content | RX1, RS1, RS4 | RS2 content, RS3 gateway | RS4's nft check on Debian 13 and an elevated Windows Firewall check (commands in [#9]) |
-| Host kit | RH1 | RH2 `start`, RH3 `setup` and friends, RH4 game-data commands | — |
-| Launcher | RX1, RA1–RA2 | RA3, RA4 + RA5, RA6, RA7, RA8, RA9 + RA11 | RA10 spike (Linux machine with the game), not started; a real 1.5.1 profile for RA8 |
+| Paradox fork | RP1–RP4 | Fixes only (RD2); RX2's lists | Build `native/` with a host SDK (RP3's runtime check) |
+| Gateway, allowlist, content | RX1, RS1–RS4 | RX2 lists; the shared check; the front-door cutover; then RS5 | RS4's nft check on Debian 13 and an elevated Windows Firewall check (commands in [#9]); the canary |
+| Host kit | RH1–RH4 | RH6 release workflow, then RH5 `update`; then RH7 | A real `start` with MongoDB and the Node services, which RH2 could not run |
+| Launcher | RX1, RA1–RA9, RA11 | RA12 Host page (Windows), RA13 controller (RA9 and RA11 list its hook-ups in [#16]), RA10 port if the spike passes | RA10 spike (Linux machine with the game), not started; RA8's real 1.5.1 profile check and RA11's invite-click check (steps in [#17], [#16]); the pt-BR wording of RA3's two new strings ([#19]) |
 | Backend and Director | — | After the gate (RD17) | Cut-off date (RD16) |
 
 Local notes, not plan changes: on the maintainer's Windows PC two of Content's test ports fall in Windows'
@@ -187,8 +201,8 @@ The file-by-file delta each row carries over is in `docs/port/delta-servers.md` 
 | # | What | From DR | Delta | Verify |
 | --- | --- | --- | --- | --- |
 | ~~RS1~~ | ~~`protocol`: the `reforged-revival://` scheme only, `RRK_` keys, runtime manifest type; a `dauntless-revived://` invite parses to a typed refusal the page can word; the manifest serialises in the Node field order (`version`, `build { name, changelist }`, `files [{ name, size, sha256 }]`); `contentPort` stays in the status type~~ | X4 | Section 2 | DR's protocol tests plus Reforged's `invite.test.ts` cases as Rust tests; the manifest byte for byte against a body recorded from the Node content server |
-| RS2 | Content server: copy `services/content`, drop the game zip, add the runtime manifest and the two-file download, auth against the backend's key check | S1 | `runtime.ts`, `app.ts`, `auth.ts`, `config.ts` | Reforged's content tests ported; the Electron launcher downloads a runtime from the Rust server |
-| RS3 | Gateway: copy `services/gateway`, apply `policy.ts` (Paradox and `/reforged/api` admin routes, host-only headers), config, feed and server deltas; `gateway make-cert` replaces `tools/make-cert.js`; DR's Node `capture.ts` ported in for RB2 (RD19); DR's feed backoff kept and `/game/login` feeding checked against the fork (RD20); **load the existing certificate, never regenerate** | S2 | `policy.ts`, `config.ts`, `gateway.ts`, `feed.ts`, `server.ts`, `make-cert.js`, DR's `capture.ts` | Reforged's gateway tests ported; DR's parity test re-pointed at Reforged's Node gateway; an existing invite's `fp` still matches |
+| ~~RS2~~ | ~~Content server: copy `services/content`, drop the game zip, add the runtime manifest and the two-file download, auth against the backend's key check~~ | S1 | `runtime.ts`, `app.ts`, `auth.ts`, `config.ts` | Reforged's content tests ported; the Electron launcher downloads a runtime from the Rust server |
+| ~~RS3~~ | ~~Gateway: copy `services/gateway`, apply `policy.ts` (Paradox and `/reforged/api` admin routes, host-only headers), config, feed and server deltas; `gateway make-cert` replaces `tools/make-cert.js`; DR's Node `capture.ts` ported in for RB2 (RD19); DR's feed backoff kept and `/game/login` feeding checked against the fork (RD20); **load the existing certificate, never regenerate**~~ | S2 | `policy.ts`, `config.ts`, `gateway.ts`, `feed.ts`, `server.ts`, `make-cert.js`, DR's `capture.ts` | Reforged's gateway tests ported; DR's parity test re-pointed at Reforged's Node gateway; an existing invite's `fp` still matches |
 | ~~RS4~~ | ~~Allowlist helper: DR's `allowlist` bin with Reforged's game-port range (`ports.ts`) and its nftables variant (`nft.ts`) for the Linux VPS, as RD20 sets out (one atomic transaction, `lo` rule, `nft -f -` or a private file, `ALLOWLIST_*` names)~~ | S3 | `ports.ts`, `nft.ts`, `config.ts`, `firewall.ts` | Rule contents after login and logout on Windows and on Debian 13 (nft) |
 | RS5 | Catch-up of Reforged's Node gateway and content commits since the copy (RX2), then delete `legacy/ReforgedGateway` and `legacy/ReforgedContent` | X3 | — | Every commit on the list ported or marked not applicable |
 
@@ -197,9 +211,9 @@ The file-by-file delta each row carries over is in `docs/port/delta-servers.md` 
 | # | What | Verify |
 | --- | --- | --- |
 | ~~RH1~~ | ~~`services/host` skeleton on `service-kit`: `paths`, `envfile`, `hostconfig` (`host.json`), `clap` commands with today's names and options~~ | Reforged's host kit tests for config and paths ported; a `host.json` written by the Node kit reads back unchanged |
-| RH2 | `start`: the Rust services with `--env-file` (DR X7), the backend and Director (Node until RB14), the database when managed (MongoDB until RB14, Postgres after), the allowlist helper in public mode; one process tree, clean stop on Ctrl+C including the game servers; today's control contract kept (`REFORGED_CONTROL=stdin`, `REFORGED_SERVER_READY`, the port 61000 probe; RD23) | Every service up; nothing left running after stop, on Windows and Linux |
-| RH3 | `setup`, `invite`, `doctor`, `multipliers`; the MongoDB replica-set setup (`mongo.ts`) until RB14, then a managed Postgres (install, `initdb`, a role and database for the backend, loopback only) or `--postgres-url`; `backup` with `pg_dump` | A fresh private and a fresh public setup on Windows |
-| RH4 | `gamedata`, `preset`, `progression`, `publish-runtime`, `gamepack`, `captures`; until RB11 `gamedata` runs the Node generators in `paradox/backend/scripts`, after it the `backend gamedata` subcommands | The generators give byte-identical files to the Node kit's from the same export |
+| ~~RH2~~ | ~~`start`: the Rust services with `--env-file` (DR X7), the backend and Director (Node until RB14), the database when managed (MongoDB until RB14, Postgres after), the allowlist helper in public mode; one process tree, clean stop on Ctrl+C including the game servers; today's control contract kept (`REFORGED_CONTROL=stdin`, `REFORGED_SERVER_READY`, the port 61000 probe; RD23)~~ | Every service up; nothing left running after stop, on Windows and Linux |
+| ~~RH3~~ | ~~`setup`, `invite`, `doctor`, `multipliers`; the MongoDB replica-set setup (`mongo.ts`) until RB14, then a managed Postgres (install, `initdb`, a role and database for the backend, loopback only) or `--postgres-url`; `backup` with `pg_dump`~~ | A fresh private and a fresh public setup on Windows |
+| ~~RH4~~ | ~~`gamedata`, `preset`, `progression`, `publish-runtime`, `gamepack`, `captures`; until RB11 `gamedata` runs the Node generators in `paradox/backend/scripts`, after it the `backend gamedata` subcommands~~ | The generators give byte-identical files to the Node kit's from the same export |
 | RH5 | `update` and setup's install step from the server release (RD8); `linux.ts`, `wine.ts` and `ReforgedHost/linux/` on the Linux release. `update` no longer fast-forwards a checkout and `npm run upstream` is gone (RP4); every other command keeps its name and options | `docs/hosting-linux.md` followed on a clean Debian 13; an existing Node-kit host moves over with `update` |
 | RH6 | Server release workflow (RD8, from DR M38) | A run without publishing; its archives install on Windows and Debian 13 and pass the smoke list (section 6) |
 | RH7 | Delete `legacy/ReforgedHost` | — |
@@ -237,15 +251,15 @@ The file-by-file delta is in `docs/port/delta-launcher-platform.md` (RA4–RA12)
 | --- | --- | --- | --- |
 | ~~RA1~~ | ~~Copy `src-tauri` without `offline/`, `controller/offline.rs`, `client_mods.rs`, `net/autoregion.rs` and the 1.4.4 manifest and DLL pins (RD5); the app's identifier, name and `userData` folder are Reforged's~~ | L4–L7 | It builds on Windows and Linux and opens today's page with a stub bridge |
 | ~~RA2~~ | ~~Bridge, generated TS types and isolation hook re-generated for Reforged's command list (`ipc-validate.ts`, `preload.ts`; the list is in `docs/port/delta-launcher-controller.md`), minus the `revived/` commands; new argument kinds for an index, a fixed name list and objects, in `spec.rs`, the hook and its generator; `copy_text` a command (RD22); `controller/game.rs`, `controller/runtime.rs`, `controller/host.rs` registered as stubs so RA12 and RA13 never share `mod.rs`~~ | L6, L7, L9 | Every command the page uses is in the bridge spec; a refused command never reaches Rust |
-| RA3 | Language files split (en, pt-BR) and the backend's text built from them; the 1.4.4 strings removed, a refusal string for `dauntless-revived://` invites added | L13–L15 | Reforged's `i18n.test.ts` passes on the split files |
-| RA4 | Invite, status, username on `protocol` (RS1) | L11, L12 | Shared test tables with the servers |
-| RA5 | Pinned TLS, HTTP client, host API | L19–L21 | Reforged's `pinned.test.ts` cases; register and status against the Rust gateway |
-| RA6 | Relay on 61100 passing `/__origin/` paths through, chat WebSocket and local `/QoS`; DR's owner check on Windows (RD21) | L22, L33 | Reforged's `relay.test.ts` cases |
-| RA7 | `request_to_file` in `net/http.rs` and verify: the runtime's two files (accept once per set, check before every launch); no `downloader.rs` (RD22) | L23–L25 | Reforged's `runtime.test.ts` cases |
-| RA8 | Settings, log, folders; keystore with the safeStorage reader for Reforged's existing Windows keys (per server, bound to `fp`, `RRK2` and bare keys only); saved 1.4.4 servers read and shown disabled, their keys kept; Reforged's username rule (RD22) | L26–L29, LB1 | A real 1.5.1 profile's keys read back and work; a profile with a 1.4.4 server loads |
-| RA9 | Game config (Engine.ini, Game.ini, display repair), game folder detection (Legendary, Heroic, Epic, folder), launch with `REFORGED_BACKEND_URL` and the 1.14.7 command line; DR's Linux branches kept as they are, their Linux values left to RA10 | L30, L31 | Reforged's `game.test.ts`, `launch.test.ts`, `display-repair.test.ts` cases |
+| ~~RA3~~ | ~~Language files split (en, pt-BR) and the backend's text built from them; the 1.4.4 strings removed, a refusal string for `dauntless-revived://` invites added~~ | L13–L15 | Reforged's `i18n.test.ts` passes on the split files |
+| ~~RA4~~ | ~~Invite, status, username on `protocol` (RS1)~~ | L11, L12 | Shared test tables with the servers |
+| ~~RA5~~ | ~~Pinned TLS, HTTP client, host API~~ | L19–L21 | Reforged's `pinned.test.ts` cases; register and status against the Rust gateway |
+| ~~RA6~~ | ~~Relay on 61100 passing `/__origin/` paths through, chat WebSocket and local `/QoS`; DR's owner check on Windows (RD21)~~ | L22, L33 | Reforged's `relay.test.ts` cases |
+| ~~RA7~~ | ~~`request_to_file` in `net/http.rs` and verify: the runtime's two files (accept once per set, check before every launch); no `downloader.rs` (RD22)~~ | L23–L25 | Reforged's `runtime.test.ts` cases |
+| ~~RA8~~ | ~~Settings, log, folders; keystore with the safeStorage reader for Reforged's existing Windows keys (per server, bound to `fp`, `RRK2` and bare keys only); saved 1.4.4 servers read and shown disabled, their keys kept; Reforged's username rule (RD22)~~ | L26–L29, LB1 | A real 1.5.1 profile's keys read back and work; a profile with a 1.4.4 server loads |
+| ~~RA9~~ | ~~Game config (Engine.ini, Game.ini, display repair), game folder detection (Legendary, Heroic, Epic, folder), launch with `REFORGED_BACKEND_URL` and the 1.14.7 command line; DR's Linux branches kept as they are, their Linux values left to RA10~~ | L30, L31 | Reforged's `game.test.ts`, `launch.test.ts`, `display-repair.test.ts` cases |
 | RA10 | **Linux spike, then port**: 1.14.7 under Proton with the runtime loaded through `winmm.dll`, reaching the relay; then DR's Proton/Wine runtime fitted to it, game detection through Heroic and Legendary on Linux | L32 | Spike: Ramsgate loads and a hunt starts on Linux. Port: the same from the packaged launcher |
-| RA11 | Links, dialogs, window, `reforged-revival://` scheme registration on both OSes | L5, L34–L36 | Clicking an invite opens the running launcher |
+| ~~RA11~~ | ~~Links, dialogs, window, `reforged-revival://` scheme registration on both OSes~~ | L5, L34–L36 | Clicking an invite opens the running launcher |
 | RA12 | Host page backend (Windows) for the planned layout only (RD23): workspace detection (`hostkit`), running `reforged-host` from the release and calling its `publish-runtime`, requirements (Postgres after RB14), injector (RD9) | — | Reforged's `hostkit.test.ts`, `hostserver.test.ts` cases; the injector loads CatalogExporter into a 1.14.7 client |
 | RA12a | **Spike** for the Host page on Linux (RD4): load Dumper-7 and CatalogExporter into 1.14.7 running under Proton (a Windows helper started inside the same Wine prefix, or `CreateRemoteThread` through Wine) and generate an SDK and an export there. Kill criterion: if either injection or the SDK generation does not work on Ubuntu 24.04 and SteamOS within the spike, the Host page stays Windows-only and RD4 is amended. On success: the port (the host kit started from the Linux launcher, requirements for Linux) | — | Spike: `gamedata` from the Linux export equals one made on Windows. Port: Reforged's host page tests on Linux |
 | RA13 | Controller ported into `controller/mod.rs` and RA2's stub modules, every page command forwarded; missing Visual C++ files warn only, shutdown waits for downloads and refuses PLAY (RD22) | L38, L39 | Reforged's `controller.test.ts` and `ui.test.ts` cases |
@@ -318,17 +332,17 @@ still run as two tracks (RD12) and the backend still waits for the gate (RD17); 
 | 1 | ~~RS4 allowlist helper~~ | RR1, RX1 | nft rules on Debian 13 |
 | 1 | ~~RA1–RA2 launcher skeleton and bridge~~ | RR1, RX1 | — |
 | 1 | ~~RH1 host kit skeleton~~ | RR1 | — |
-| 2 | RS2 content | RS1, RX1 | — |
-| 2 | RS3 gateway | RS1, RS4 (same crate), RX1 | — |
-| 2 | RH2 `start` (starts the Node services and MongoDB until the Rust ones exist) | RH1 | — |
-| 2 | RH3 `setup`, `invite`, `doctor`, `multipliers`, MongoDB | RH1 | — |
-| 2 | RH4 `gamedata`, `preset`, `progression`, `publish-runtime`, `gamepack`, `captures` | RH1, RP3 | — |
-| 2 | RA3 languages | RA1 | — |
-| 2 | RA4 + RA5 invite, status, TLS, HTTP, host API | RA2, RS1 | — |
-| 2 | RA6 relay | RA2 | — |
-| 2 | RA7 downloader and verify | RA2, RS1 | — |
-| 2 | RA8 settings, log, keystore and legacy reader | RA2 | A real 1.5.1 profile |
-| 2 | RA9 + RA11 game config, folders, launch, links, window | RA2 | — |
+| 2 | ~~RS2 content~~ | RS1, RX1 | — |
+| 2 | ~~RS3 gateway~~ | RS1, RS4 (same crate), RX1 | — |
+| 2 | ~~RH2 `start` (starts the Node services and MongoDB until the Rust ones exist)~~ | RH1 | — |
+| 2 | ~~RH3 `setup`, `invite`, `doctor`, `multipliers`, MongoDB~~ | RH1 | — |
+| 2 | ~~RH4 `gamedata`, `preset`, `progression`, `publish-runtime`, `gamepack`, `captures`~~ | RH1, RP3 | — |
+| 2 | ~~RA3 languages~~ | RA1 | — |
+| 2 | ~~RA4 + RA5 invite, status, TLS, HTTP, host API~~ | RA2, RS1 | — |
+| 2 | ~~RA6 relay~~ | RA2 | — |
+| 2 | ~~RA7 downloader and verify~~ | RA2, RS1 | — |
+| 2 | ~~RA8 settings, log, keystore and legacy reader~~ | RA2 | A real 1.5.1 profile |
+| 2 | ~~RA9 + RA11 game config, folders, launch, links, window~~ | RA2 | — |
 | 3 | RH6 release workflow, then RH5 `update` and install from it | RS2–RS4, RH2–RH4 | — |
 | 3 | RA12 Host page backend and injector, Windows | RA2, RH2 | A 1.14.7 client |
 | 3 | RA10 port (if the spike passed) | RA9 | Linux machine |
