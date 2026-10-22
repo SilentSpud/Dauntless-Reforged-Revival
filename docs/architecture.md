@@ -7,22 +7,22 @@ see [hosting.md](hosting.md); for the per-component details, each folder's READM
 
 | Part | Runs on | From |
 |---|---|---|
-| Launcher (`ReforgedLauncher/`) | each player's PC | Dauntless Revived's launcher, modified |
+| Launcher (`legacy/ReforgedLauncher/`) | each player's PC | Dauntless Revived's launcher, modified |
 | Game runtime (`MysticParadox.dll`, `winmm.dll`) | next to each game executable | Mystic Paradox's ParadoxRuntime and RuntimeLoader, patched; built by each host |
-| Gateway (`ReforgedGateway/`) | the server | Dauntless Revived's gateway, modified |
-| Allowlist helper (`ReforgedGateway/src/allowlist/`) | the server, as administrator (public mode) | Dauntless Revived |
+| Gateway (`legacy/ReforgedGateway/`) | the server | Dauntless Revived's gateway, modified |
+| Allowlist helper (`legacy/ReforgedGateway/src/allowlist/`) | the server, as administrator (public mode) | Dauntless Revived |
 | Backend (`ParadoxBackend`) | the server, 127.0.0.1:61000 | Mystic Paradox, patched |
 | Director (`ParadoxDirector`) | the server, 127.0.0.1:61001 | Mystic Paradox, patched |
 | Game servers (the game exe with `-server`) | the server, UDP 8770-8777 | started by the Director |
-| Content server (`ReforgedContent/`) | the server, 127.0.0.1:61002 | based on Dauntless Revived's |
+| Content server (`legacy/ReforgedContent/`) | the server, 127.0.0.1:61002 | based on Dauntless Revived's |
 | MongoDB | the server, 127.0.0.1:27017, replica set `rs0` | |
-| Host kit (`ReforgedHost/`) | the server | this project |
+| Host kit (`legacy/ReforgedHost/`) | the server | this project |
 
 ## A session, step by step
 
 1. **Invite.** `reforged-revival://join?v=1&host=<tailnet IP>&port=61000&code=..&name=..` (private)
    or `...v=2&mode=public&host=..&port=443&fp=<SHA-256 of the certificate>&code=..&name=..`
-   (public). The parser (`ReforgedLauncher/src/shared/invite.ts`) accepts nothing else: a v1 invite
+   (public). The parser (`legacy/ReforgedLauncher/src/shared/invite.ts`) accepts nothing else: a v1 invite
    must point into the tailnet (or this PC), a v2 one must carry a fingerprint.
 2. **Status.** `GET /reforged/api/ServerStatus` through the gateway: name, registration mode,
    version and source link, the game build and the game-data state for everyone; players and
@@ -85,10 +85,10 @@ see [hosting.md](hosting.md); for the per-component details, each folder's READM
 |---|---|---|
 | `POST /reforged/api/Register` | launcher | `{Username, InviteCode}` → `{UUK: "RRK_…"}`; 400 `username_invalid`/`registration_closed`, 401 invite refused, 409 taken |
 | `GET /reforged/api/GetUserInfo` | launcher, content server | key header → `{UserId, Username, IsAdmin}`; 401; 403 `{error: account_banned, reason}` |
-| `GET /reforged/api/ServerStatus` | launcher | see `ReforgedLauncher/src/shared/status.ts` |
+| `GET /reforged/api/ServerStatus` | launcher | see `legacy/ReforgedLauncher/src/shared/status.ts` |
 | `GET /reforged/api/RegistrationStatus` | launcher | `{mode}` |
 | `POST /reforged/api/CreateInvite` etc. | host kit, this PC only | admin key |
-| `GET /content/v1/runtime/manifest`, `/files/<name>` | launcher | see `ReforgedContent/README.md` |
+| `GET /content/v1/runtime/manifest`, `/files/<name>` | launcher | see `legacy/ReforgedContent/README.md` |
 | `GET /content/v1/news`, `/branding` | launcher | as in Dauntless Revived |
 | `/__origin/<host>/...` | the game, through the relay | the backend unwraps the prefix |
 | `/QoS` | the game | answered by the relay |

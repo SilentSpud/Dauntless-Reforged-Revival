@@ -9,7 +9,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/FreezaMotoqueiro/Dauntless-Reforged-Revival.git",
-    "directory": "ReforgedLauncher"
+    "directory": "legacy/ReforgedLauncher"
   },
   "bugs": {
     "url": "https://github.com/FreezaMotoqueiro/Dauntless-Reforged-Revival/issues"

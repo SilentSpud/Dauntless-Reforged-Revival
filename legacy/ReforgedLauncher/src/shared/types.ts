@@ -261,7 +261,7 @@ export interface Branding {
 export type GameDataState = "real" | "synthetic" | "missing";
 
 export interface HostKit {
-  workspace: string | null; // a Dauntless Reforged Revival checkout (the folder with ReforgedHost\)
+  workspace: string | null; // a Dauntless Reforged Revival checkout (the folder with legacy\ReforgedHost\)
   workspaceOk: boolean;
   upstream: {
     present: boolean; // .workspace\Mystic-Paradox holds the pinned source

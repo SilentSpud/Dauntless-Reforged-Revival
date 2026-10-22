@@ -1,6 +1,6 @@
 # Dauntless Reforged Revival content server
 
-The content server, in the `ReforgedContent/` folder, behind the gateway. It hands the host's
+The content server, in the `legacy/ReforgedContent/` folder, behind the gateway. It hands the host's
 **game runtime** (the Mystic Paradox DLL and its loader, built by the host) to registered players,
 and serves the host's optional news and art pack for the launcher. It is based on Dauntless
 Revived's `UndauntedContent` (the same key check, limits, news and art pack); where Dauntless

@@ -21,24 +21,24 @@ Undaunted or any other project named here, and none of them endorses it.
 - Repository: [github.com/mixutin/dauntless-revived](https://github.com/mixutin/dauntless-revived),
   AGPL-3.0-only. Dauntless Revived is itself a modified version of Undaunted.
 - Modified here:
-  - `ReforgedLauncher/` is a modified version of `UndauntedLauncher/`: its design and look (the
+  - `legacy/ReforgedLauncher/` is a modified version of `UndauntedLauncher/`: its design and look (the
     `dauntless-style.css` theme, the steel frames, the PLAY plate, the night scene), its state machine
     and IPC structure, the invite format, the account key store, the pinned TLS connections, the
     local relay, ServerStatus and the saved servers. Changed for 1.14.7: the game is found instead of
     downloaded, the host's game runtime is installed after the player accepts it, the relay always
     runs and answers QoS, the Host tools page, the English and Brazilian Portuguese text, the brand.
-  - `ReforgedGateway/` is a modified version of `UndauntedGateway/` (routing rules for the Mystic
+  - `legacy/ReforgedGateway/` is a modified version of `UndauntedGateway/` (routing rules for the Mystic
     Paradox backend and its `/__origin/` paths, a plain-HTTP private mode).
-  - `ReforgedContent/` is based on `UndauntedContent/` (the key check, limits, news and art pack;
+  - `legacy/ReforgedContent/` is based on `UndauntedContent/` (the key check, limits, news and art pack;
     it serves the game runtime instead of game files).
   - The Linux server support is adapted from Dauntless Revived's Linux port (`deploy/linux-server/`
     and `deploy/unix-common/`): the Wine/Proton game-server runner on `xvfb-run`
-    (`ReforgedHost/src/wine.ts`), the nftables allowlist table (`ReforgedGateway/src/allowlist/nft.ts`)
-    and the idea of systemd units with one capability each (`ReforgedHost/src/linux.ts`). Changed for
+    (`legacy/ReforgedHost/src/wine.ts`), the nftables allowlist table (`legacy/ReforgedGateway/src/allowlist/nft.ts`)
+    and the idea of systemd units with one capability each (`legacy/ReforgedHost/src/linux.ts`). Changed for
     1.14.7: Mystic Paradox's `winmm.dll` loader instead of `dxgi.dll`, the table swapped in one
     transaction from a private file (nft no longer reads a pipe), the host kit's own supervisor run by
     one unit, and no root anywhere.
-  - `ReforgedLauncher/src/main/revived/` plays Dauntless Revived's own servers (Dauntless 1.4.4) the
+  - `legacy/ReforgedLauncher/src/main/revived/` plays Dauntless Revived's own servers (Dauntless 1.4.4) the
     way their launcher 0.1.35 does ([tag `launcher-v0.1.35`](https://github.com/mixutin/dauntless-revived/releases/tag/launcher-v0.1.35),
     commit `0e2b1e6730b9f14f1020d7c903a6955464fa4586`). Taken over from that release: the game
     manifest check and the list itself (`UndauntedContent/data/dauntless-1.4.4.json`, copied as
@@ -81,7 +81,7 @@ Undaunted or any other project named here, and none of them endorses it.
 
 ### This project
 
-- `ReforgedHost/` (the host kit), `upstream/` (the pin and the patches; the patched upstream files
+- `legacy/ReforgedHost/` (the host kit), `upstream/` (the pin and the patches; the patched upstream files
   remain under Mystic Paradox's terms), `brand/` (the logo and icons, made for this project),
   `docs/` and the new parts of the components above, by the Dauntless Reforged Revival
   contributors, AGPL-3.0-only.
@@ -99,7 +99,7 @@ Undaunted or any other project named here, and none of them endorses it.
 ### Other material
 
 - The software the launcher ships, with its license texts:
-  [ReforgedLauncher/THIRD-PARTY-NOTICES.txt](ReforgedLauncher/THIRD-PARTY-NOTICES.txt).
+  [legacy/ReforgedLauncher/THIRD-PARTY-NOTICES.txt](legacy/ReforgedLauncher/THIRD-PARTY-NOTICES.txt).
 - The services' npm dependencies are listed in each `package-lock.json` and keep their own licenses.
 
 ## What this repository does not contain

@@ -39,7 +39,7 @@ your game, for the runtime and the game data.
 
 ```powershell
 git clone https://github.com/FreezaMotoqueiro/Dauntless-Reforged-Revival D:\Reforged
-cd D:\Reforged\ReforgedHost
+cd D:\Reforged\legacy\ReforgedHost
 npm install
 ```
 
@@ -66,7 +66,7 @@ npm run setup -- --mode public --host hunts.example.net --game-address 203.0.113
 
 Setup downloads Mystic Paradox at the pinned commit into `.workspace\Mystic-Paradox`, applies the
 Reforged patches, installs and builds the services, makes the secrets and writes the
-configuration in `.workspace\config\` (see [ReforgedHost/README.md](../ReforgedHost/README.md)).
+configuration in `.workspace\config\` (see [legacy/ReforgedHost/README.md](../legacy/ReforgedHost/README.md)).
 In public mode it also makes the gateway certificate and prints its fingerprint.
 
 Then, once, in PowerShell **as administrator**, add the firewall rules it wrote:
@@ -162,7 +162,7 @@ button for it.
 - **Registration**: `--registration OPEN` lets anyone who can reach the server register without a
   code; `NONE` closes registration.
 - **News and art**: `.workspace\config\news.json` (`{"items": [{"date", "title", "body"}]}`) and
-  images in `.workspace\branding\` show in the launcher; see [ReforgedContent/README.md](../ReforgedContent/README.md).
+  images in `.workspace\branding\` show in the launcher; see [legacy/ReforgedContent/README.md](../legacy/ReforgedContent/README.md).
 - **Backups**: back up MongoDB (`mongodump`), and keep `.workspace\config\` (secrets) and
   `.workspace\tls\` (public: the certificate) safe and private.
 - **Updating**: `npm run update` (or **Update setup** on the launcher's Host page) compares

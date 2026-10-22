@@ -6,7 +6,7 @@ it at your own Dauntless 1.14.7 and press PLAY. It is a modified version of the
 joining servers) adapted to Dauntless 1.14.7 and the [Mystic Paradox](https://github.com/pranav158/Mystic-Paradox)
 runtime. The interface is in English and Brazilian Portuguese.
 
-Players: see [docs/players.md](../docs/players.md). Hosts: see [docs/hosting.md](../docs/hosting.md).
+Players: see [docs/players.md](../../docs/players.md). Hosts: see [docs/hosting.md](../../docs/hosting.md).
 
 ## What it does
 
@@ -34,7 +34,7 @@ Players: see [docs/players.md](../docs/players.md). Hosts: see [docs/hosting.md]
 Dauntless Revived's launcher 0.1.35 plays them (`src/main/revived/`): their `/undaunted/api`, the 1.4.4
 game downloaded from the server's content server and checked against the built-in list of files, their
 two client DLLs (downloaded from that release, checked by SHA-256) and their command line. See
-[docs/players.md](../docs/players.md#dauntless-revived-servers-dauntless-144).
+[docs/players.md](../../docs/players.md#dauntless-revived-servers-dauntless-144).
 
 The **Host** page (Settings > Advanced > Host tools) does a host's work without a terminal, in four
 tabs, in the order a new host goes through them: **Requirements** (what this PC needs, detected, with
@@ -44,7 +44,7 @@ packs) and **Server** (start and stop it, create invites, the test multipliers, 
 from GitHub with `npm run update`, prepare it with `npm run setup`, its output). With Host tools on and
 no project folder chosen, it clones the project into a `Reforged` folder beside the game's folder. It runs ReforgedHost's commands with the
 host's own Node.js (`src/main/hostserver.ts`); the server stops when the launcher closes. See
-[docs/hosting.md](../docs/hosting.md) and [docs/sdk-and-game-data.md](../docs/sdk-and-game-data.md).
+[docs/hosting.md](../../docs/hosting.md) and [docs/sdk-and-game-data.md](../../docs/sdk-and-game-data.md).
 
 ## Development
 
@@ -71,7 +71,7 @@ already, or is not newer than every release, publishes nothing. The repository v
 `LAUNCHER_AUTO_RELEASE=false` (Settings > Secrets and variables > Actions > Variables) turns this off.
 
 A release can also be published by hand, and then builds the launcher and attaches it to that release
-([`.github/workflows/launcher-release.yml`](../.github/workflows/launcher-release.yml)):
+([`.github/workflows/launcher-release.yml`](../../.github/workflows/launcher-release.yml)):
 `ReforgedRevivalLauncher-Setup.exe`, a portable ZIP, the Squirrel update files (`RELEASES`, the
 `-full.nupkg`) and `SHA256SUMS.txt`. The run takes about 15 minutes (see the Actions tab).
 

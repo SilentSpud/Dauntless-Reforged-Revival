@@ -15,7 +15,7 @@ const config: ForgeConfig = {
     appBundleId: "io.github.freezamotoqueiro.reforgedrevival",
     appCopyright: "Dauntless Reforged Revival contributors. Free software under the GNU AGPL-3.0.",
     // assets/icon.ico (the exe and the installer) and assets/icon.png (the window) are copies of the
-    // brand icons in ../brand/launcher/, made by npm run icon.
+    // brand icons in ../../brand/launcher/, made by npm run icon.
     icon: "assets/icon",
     // The window icon and the license texts of the third-party software the launcher includes. The
     // game runtime is not shipped: each server's host builds and publishes their own.
@@ -40,7 +40,7 @@ const config: ForgeConfig = {
         description: "Dauntless Reforged Revival Launcher",
         setupExe: "ReforgedRevivalLauncher-Setup.exe",
         setupIcon: "assets/icon.ico",
-        iconUrl: "https://raw.githubusercontent.com/FreezaMotoqueiro/Dauntless-Reforged-Revival/main/ReforgedLauncher/assets/icon.ico",
+        iconUrl: "https://raw.githubusercontent.com/FreezaMotoqueiro/Dauntless-Reforged-Revival/main/legacy/ReforgedLauncher/assets/icon.ico",
         noMsi: true,
       },
       ["win32"],

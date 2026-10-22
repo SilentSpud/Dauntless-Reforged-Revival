@@ -82,7 +82,7 @@ export interface Paths {
     systemd: string;
 }
 
-// root: the Dauntless Reforged Revival checkout (the folder with ReforgedHost/ and upstream/).
+// root: the Dauntless Reforged Revival checkout (the folder with legacy/ReforgedHost/ and upstream/).
 export function paths(root: string): Paths {
     const workspace = path.join(root, ".workspace");
     const upstream = path.join(workspace, "Mystic-Paradox");
@@ -93,11 +93,11 @@ export function paths(root: string): Paths {
     return {
         repo: root,
         preset: path.join(root, "preset"),
-        hostKit: path.join(root, "ReforgedHost"),
+        hostKit: path.join(root, "legacy", "ReforgedHost"),
         upstreamPin: path.join(root, "upstream", "mystic-paradox.json"),
         patchesDir: path.join(root, "upstream"),
-        gatewayDir: path.join(root, "ReforgedGateway"),
-        contentDir: path.join(root, "ReforgedContent"),
+        gatewayDir: path.join(root, "legacy", "ReforgedGateway"),
+        contentDir: path.join(root, "legacy", "ReforgedContent"),
         workspace,
         upstream,
         marker: path.join(upstream, ".reforged-patches.json"),
@@ -135,15 +135,15 @@ export function paths(root: string): Paths {
     };
 }
 
-// The repository root, from this file's place in it (ReforgedHost/dist/ or build/ReforgedHost/src/).
+// The repository root, from this file's place in it (legacy/ReforgedHost/dist/ or legacy/ReforgedHost/build/ReforgedHost/src/).
 export function findRepoRoot(start: string = __dirname): string {
     const fs = require("node:fs") as typeof import("node:fs");
     let dir = start;
     for (let i = 0; i < 8; i++) {
-        if (fs.existsSync(path.join(dir, "upstream", "mystic-paradox.json")) && fs.existsSync(path.join(dir, "ReforgedHost"))) return dir;
+        if (fs.existsSync(path.join(dir, "upstream", "mystic-paradox.json")) && fs.existsSync(path.join(dir, "legacy", "ReforgedHost"))) return dir;
         const up = path.dirname(dir);
         if (up === dir) break;
         dir = up;
     }
-    throw new Error("Could not find the Dauntless Reforged Revival folder (with upstream/ and ReforgedHost/) above " + start);
+    throw new Error("Could not find the Dauntless Reforged Revival folder (with upstream/ and legacy/ReforgedHost/) above " + start);
 }

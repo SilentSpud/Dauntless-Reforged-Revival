@@ -58,7 +58,7 @@ cd ..\CatalogExporter; .\_build.bat                 # -> tools\CatalogExporter\x
 Then publish it:
 
 ```powershell
-cd D:\Reforged\ReforgedHost
+cd D:\Reforged\legacy\ReforgedHost
 npm run publish-runtime
 ```
 

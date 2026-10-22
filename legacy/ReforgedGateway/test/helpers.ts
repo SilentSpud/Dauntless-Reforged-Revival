@@ -132,7 +132,7 @@ function Sha256Hex(Data: Buffer): string {
 // A TLS connection that is only handed to the request after the server's certificate matched the
 // pin. (With rejectUnauthorized: false Node never calls checkServerIdentity for a self-signed
 // certificate, so the pin must be checked on secureConnect, before any request byte is sent.
-// The launcher's relay does the same in ReforgedLauncher/src/main/pinned.ts.)
+// The launcher's relay does the same in legacy/ReforgedLauncher/src/main/pinned.ts.)
 function PinnedConnection(Pin: string | undefined, LocalAddress: string | undefined, OnPeer: (Fingerprint: string) => void) {
     return (Options: any, Callback: (Error: Error | null, Socket?: tls.TLSSocket) => void) => {
         const Socket = tls.connect({ host: Options.host, port: Options.port, rejectUnauthorized: false, ...(LocalAddress === undefined ? {} : { localAddress: LocalAddress }) } as tls.ConnectionOptions);
@@ -258,7 +258,7 @@ export function PortOpen(Port: number): Promise<boolean> {
 // (upstream/patches/0002-backend-reforged-launcher-api.patch), so a route added there later is
 // covered without touching this test.
 export function ReforgedApiRoutes(): { method: string; path: string }[] {
-    const Source = fs.readFileSync(path.join(ROOT, "..", "upstream", "patches", "0002-backend-reforged-launcher-api.patch"), "utf8");
+    const Source = fs.readFileSync(path.join(ROOT, "..", "..", "upstream", "patches", "0002-backend-reforged-launcher-api.patch"), "utf8");
     const Routes: { method: string; path: string }[] = [];
     for(const Match of Source.matchAll(/^\+\s*reforgedApiRouter\.(get|post|put|delete|patch)\(\s*"([^"]+)"/gm)){
         if(Match[2].startsWith("/reforged/api/")) Routes.push({ method: Match[1].toUpperCase(), path: Match[2].replace(/:[A-Za-z]+/g, "ABCD-EFGH-JKMN") });

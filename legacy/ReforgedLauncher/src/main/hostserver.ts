@@ -5,7 +5,7 @@
 //
 // The server (npm run start) stays a child of the launcher. Windows has no signal a program can send
 // another to stop it the way Ctrl+C does, so the host kit reads a "stop" line on its stdin
-// (REFORGED_CONTROL=stdin, ReforgedHost/src/cli.ts): it stops every service and exits. Only when it
+// (REFORGED_CONTROL=stdin, legacy/ReforgedHost/src/cli.ts): it stops every service and exits. Only when it
 // does not within STOP_TIMEOUT_MS is its process tree ended. It also stops when the launcher quits
 // (its stdin closes).
 
@@ -14,8 +14,9 @@ import { createWriteStream, existsSync, mkdirSync, readdirSync, statSync, type W
 import net from "node:net";
 import path from "node:path";
 import type { HostServerState, HostServerView } from "../shared/types";
+import { hostKitDir } from "./hostkit";
 
-// The host kit's contract (ReforgedHost/src/cli.ts).
+// The host kit's contract (legacy/ReforgedHost/src/cli.ts).
 export const CONTROL_ENV = "REFORGED_CONTROL";
 export const SERVER_READY_LINE = "REFORGED_SERVER_READY";
 // The backend's port: something answers there when a server runs on this PC.
@@ -275,7 +276,7 @@ export class HostServer {
   // when its build is missing or older than its sources.
   async prepare(workspace: string, opts: { install?: boolean } = {}): Promise<NodeTools> {
     const tools = this.tools();
-    const dir = path.join(workspace, "ReforgedHost");
+    const dir = hostKitDir(workspace);
     if (!existsSync(path.join(dir, "package.json"))) throw new HostKitError("workspace");
     if (this.building) await this.building;
     const install = opts.install === true || !existsSync(path.join(dir, "node_modules"));
@@ -301,7 +302,7 @@ export class HostServer {
   // A one-shot host kit command (setup, gamedata, invite): node dist/cli.js <args>.
   async command(workspace: string, args: string[], logName: string): Promise<{ code: number; lines: string[]; failure: string | null }> {
     const tools = await this.prepare(workspace);
-    const dir = path.join(workspace, "ReforgedHost");
+    const dir = hostKitDir(workspace);
     const own: string[] = [];
     this.note(`> ${args[0]}`);
     const { done } = this.exec(tools.node, [path.join(dir, "dist", "cli.js"), ...args], dir, this.childEnv(tools, { INIT_CWD: dir }), path.join(workspace, ".workspace", "logs", `launcher-${logName}.log`), (line) => {
@@ -347,7 +348,7 @@ export class HostServer {
       this.set("failed", e instanceof HostKitError && e.detail ? e.detail : code);
       throw e;
     }
-    const dir = path.join(workspace, "ReforgedHost");
+    const dir = hostKitDir(workspace);
     const own: string[] = [];
     this.note("> start");
     const { child, done } = this.exec(tools.node, [path.join(dir, "dist", "cli.js"), "start"], dir, this.childEnv(tools, { [CONTROL_ENV]: "stdin" }), path.join(workspace, ".workspace", "logs", "launcher-server.log"), (line) => {

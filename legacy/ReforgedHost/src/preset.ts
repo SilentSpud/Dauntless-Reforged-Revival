@@ -79,7 +79,7 @@ export function createPreset(p: Paths, opts: { name: string; executable: string 
     const executableSha256 = opts.executable && fs.existsSync(opts.executable) ? sha256(fs.readFileSync(opts.executable)) : opts.executableSha256 ?? null;
     const manifest: PresetManifest = {
         _comment: [
-            `Server preset "${opts.name}": the game data every server set up from this project starts from (ReforgedHost/src/preset.ts).`,
+            `Server preset "${opts.name}": the game data every server set up from this project starts from (legacy/ReforgedHost/src/preset.ts).`,
             `Read from an installed Dauntless ${PACK_GAME} client for interoperability: identifiers and tuning values (item catalogue, store, progression and hunt tables), no game assets.`,
             "Sources: CatalogExporter's export from the running game, converted by Mystic Paradox's game-data generators and the host kit (npm run gamedata).",
             executableSha256 ? `Game executable SHA-256 ${executableSha256}.` : "Game executable SHA-256 not recorded (no game folder in host.json).",

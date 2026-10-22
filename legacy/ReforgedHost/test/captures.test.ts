@@ -31,7 +31,7 @@ function makeCaptures(): { pin: CapturePin; data: string } {
 
 describe("the store captures", () => {
     it("the committed pin names a commit and a hash for every store file the generators read", () => {
-        const pin = readCapturePin(path.resolve(__dirname, "..", "..", "..", "..", "upstream", "store-captures.json"));
+        const pin = readCapturePin(path.resolve(__dirname, "..", "..", "..", "..", "..", "upstream", "store-captures.json"));
         assert.equal(pin.repository, "https://github.com/EisigesEis/DauntlessEndpointDocumentation");
         assert.deepEqual(Object.keys(pin.files).map((f) => path.posix.basename(f)).sort(), ["awakening_webstore.json", "dyes.json", "hp_level_skip_rank.json", "huntpass_store.json", "ladyluckstore.json"]);
         const file = path.join(tempDir("capture-pin"), "pin.json");

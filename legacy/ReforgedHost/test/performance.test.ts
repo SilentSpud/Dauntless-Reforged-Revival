@@ -24,7 +24,7 @@ const PUBLIC: HostConfig = {
 };
 
 const detect = { tailscale: () => null, mongod: () => "/usr/bin/mongod", platform: "linux" as NodeJS.Platform };
-const repo = path.resolve(__dirname, "..", "..", "..", "..");
+const repo = path.resolve(__dirname, "..", "..", "..", "..", "..");
 
 function get(entries: [string, string][], key: string): string | undefined {
     return entries.find(([k]) => k === key)?.[1];

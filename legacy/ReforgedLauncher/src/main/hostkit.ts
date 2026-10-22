@@ -5,7 +5,7 @@
 //
 // The workspace layout is the one ReforgedHost's setup command creates:
 //
-//   <workspace>\ReforgedHost\                     the host command-line kit
+//   <workspace>\legacy\ReforgedHost\              the host command-line kit
 //   <workspace>\.workspace\Mystic-Paradox\        the pinned upstream source with the Reforged patches
 //       ParadoxRuntime\SDK.hpp, SDK\              the Dumper-7 CppSDK, copied in by "Import SDK"
 //       ParadoxRuntime\x64\Release\MysticParadox.dll
@@ -53,7 +53,7 @@ export const EXPORT_FLAGS = [
   "EXPORT_SLAYERS_PATH=1",
   "EXPORT_HUNTS=1",
   "EXPORT_STORE_RUNTIME=1",
-  "EXPORT_PROGRESSION=1", // the tracks the progression config needs (ReforgedHost/src/progression.ts)
+  "EXPORT_PROGRESSION=1", // the tracks the progression config needs (legacy/ReforgedHost/src/progression.ts)
   "EXPORT_COMBAT=0",
   "EXPORT_SKINS=0",
   "EXPORT_SKINS_RESOLVE_STRINGTABLE=0",
@@ -89,12 +89,20 @@ export interface WorkspacePaths {
   logs: string;
 }
 
+// The host kit's folder: legacy/ReforgedHost, or ReforgedHost in a checkout from before the Node projects
+// moved to legacy/, until its first update.
+export function hostKitDir(root: string, p: typeof path.win32 | typeof path.posix = path): string {
+  const moved = p.join(root, "legacy", "ReforgedHost");
+  const old = p.join(root, "ReforgedHost");
+  return !existsSync(p.join(moved, "package.json")) && existsSync(p.join(old, "package.json")) ? old : moved;
+}
+
 export function workspacePaths(root: string, p: typeof path.win32 | typeof path.posix = path): WorkspacePaths {
   const upstream = p.join(root, ".workspace", "Mystic-Paradox");
   const runtimeSource = p.join(upstream, "ParadoxRuntime");
   return {
     root,
-    hostKit: p.join(root, "ReforgedHost", "package.json"),
+    hostKit: p.join(hostKitDir(root, p), "package.json"),
     upstream,
     patchMarker: p.join(upstream, ".reforged-patches.json"),
     runtimeSource,

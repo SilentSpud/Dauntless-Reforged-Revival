@@ -1,5 +1,5 @@
 // Invites: a code from the backend (its local admin route) wrapped in the link the launcher reads.
-// The link format is the launcher's (ReforgedLauncher/src/shared/invite.ts), the same as Dauntless
+// The link format is the launcher's (legacy/ReforgedLauncher/src/shared/invite.ts), the same as Dauntless
 // Revived's with its own scheme:
 //   private  reforged-revival://join?v=1&host=<Tailscale IP>&port=61000&code=..&name=..[&share=..]
 //   public   reforged-revival://join?v=2&mode=public&host=<IP or DNS>&port=443&fp=<cert SHA-256>&code=..&name=..

@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Server preset \"Freeza\": the game data every server set up from this project starts from (ReforgedHost/src/preset.ts).",
+    "Server preset \"Freeza\": the game data every server set up from this project starts from (legacy/ReforgedHost/src/preset.ts).",
     "Read from an installed Dauntless 1.14.7 (647472) client for interoperability: identifiers and tuning values (item catalogue, store, progression and hunt tables), no game assets.",
     "Sources: CatalogExporter's export from the running game, converted by Mystic Paradox's game-data generators and the host kit (npm run gamedata).",
     "Game executable SHA-256 f3f95fbf22709ef077a11632ed95d675b7209b7e0172d9ecb9ba7d02a1fbb66b.",

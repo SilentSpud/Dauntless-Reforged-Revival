@@ -1,17 +1,17 @@
 # ReforgedHost: the host kit
 
-Everything a host runs from a terminal, in the `ReforgedHost/` folder. It plays the part of
+Everything a host runs from a terminal, in the `legacy/ReforgedHost/` folder. It plays the part of
 Dauntless Revived's server kit for Dauntless 1.14.7: it sets up
 [Mystic Paradox](https://github.com/pranav158/Mystic-Paradox) at the pinned commit with the
 Reforged patches, writes the whole server configuration (secrets included), runs every service,
 and makes invites. No dependencies of its own: Node.js 20.19+ and Git.
 
-Read [docs/hosting.md](../docs/hosting.md) first; it walks through a whole setup in order. The
-SDK, the runtime build and the game data are in [docs/sdk-and-game-data.md](../docs/sdk-and-game-data.md).
+Read [docs/hosting.md](../../docs/hosting.md) first; it walks through a whole setup in order. The
+SDK, the runtime build and the game data are in [docs/sdk-and-game-data.md](../../docs/sdk-and-game-data.md).
 
 ## Commands
 
-Run them in this folder (`cd ReforgedHost`, then `npm install` once).
+Run them in this folder (`cd legacy/ReforgedHost` from the repository root, then `npm install` once).
 
 | Command | What it does |
 |---|---|
@@ -21,8 +21,8 @@ Run them in this folder (`cd ReforgedHost`, then `npm install` once).
 | `npm run invite -- --for "Alex"` | A one-use invite link (the server must be running). `--uses 5`, `--unlimited`, `--list` |
 | `npm run publish-runtime` | Publishes the built `MysticParadox.dll` and `winmm.dll` for players, and installs them next to the server's game executable. `-- --from <folder>` takes both from that folder instead (a Linux server's runtime, built on Windows) |
 | `npm run gamedata` | Generates the game data from your CatalogExporter export (the progression config from the progression export; `-- --example-sources` uses the examples for the files no export produced; `-- --progression` rebuilds only the progression config; `-- --export [file]` saves it all into one game data pack and `-- --import <file>` puts a pack back; `-- --examples` copies every example, for a start-up test only) |
-| `npm run preset` | The project's server preset in `../preset/`: `-- --create [--generate] [--name "<name>"]` extracts it from your game data (with its provenance), `-- --apply [--force]` applies it now; `setup` applies it on its own where game data is missing or still the example |
-| `npm run multipliers` | Private test servers only: `-- --xp 1-100 --rewards 1-100` multiplies the XP and the hunt loot the game servers grant, `-- --off` turns it off, no arguments shows what is set; restart the server after a change (see `../upstream/README.md`, patch 0007) |
+| `npm run preset` | The project's server preset in `../../preset/`: `-- --create [--generate] [--name "<name>"]` extracts it from your game data (with its provenance), `-- --apply [--force]` applies it now; `setup` applies it on its own where game data is missing or still the example |
+| `npm run multipliers` | Private test servers only: `-- --xp 1-100 --rewards 1-100` multiplies the XP and the hunt loot the game servers grant, `-- --off` turns it off, no arguments shows what is set; restart the server after a change (see `../../upstream/README.md`, patch 0007) |
 | `npm run upstream` | Only downloads Mystic Paradox at the pinned commit and applies the patches (setup's first step): what importing the SDK and building the runtime need |
 | `npm run update` | Compares this project folder with GitHub, fast-forwards it when there is an update (never over your own changes to its files; `.workspace` is not touched) and runs `npm run setup` again; `-- --check` only compares; it says when the game runtime has to be built and published again |
 | `npm run doctor` | Checks everything and says what to do next (`-- --no-hash` skips hashing the game executable) |
@@ -74,9 +74,9 @@ Setup also writes, in `.workspace/config/`:
 
 ## What setup does
 
-1. **Mystic Paradox** at the commit in [`../upstream/mystic-paradox.json`](../upstream/mystic-paradox.json),
+1. **Mystic Paradox** at the commit in [`../../upstream/mystic-paradox.json`](../../upstream/mystic-paradox.json),
    fetched with Git into `.workspace/Mystic-Paradox/`, with the patches in
-   [`../upstream/patches/`](../upstream/patches) applied (`git apply --index`). Running it again
+   [`../../upstream/patches/`](../../upstream/patches) applied (`git apply --index`). Running it again
    after the pin changes resets the tracked files and applies the patches again; your SDK, game data,
    exports and builds (all files upstream ignores) stay where they are.
 2. `npm ci` and `npm run build` in ParadoxBackend, ParadoxDirector, ReforgedGateway and ReforgedContent.

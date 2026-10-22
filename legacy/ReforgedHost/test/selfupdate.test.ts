@@ -38,7 +38,7 @@ describe("updating the project from GitHub", () => {
         assert.equal(before.upstream, "origin/main");
         assert.equal((await applyUpdate(host)).updated, false);
 
-        commit(dev, { "README.md": "two\n", "ReforgedHost/package-lock.json": "{}\n" }, "two");
+        commit(dev, { "README.md": "two\n", "legacy/ReforgedHost/package-lock.json": "{}\n" }, "two");
         commit(dev, { "docs/x.md": "x\n" }, "three");
         git(dev, "push", "--quiet", "origin", "main");
         const check = await checkForUpdate(host);
@@ -70,17 +70,17 @@ describe("updating the project from GitHub", () => {
 
     it("puts back a package-lock.json that npm install rewrote, instead of stopping", async () => {
         const { dev, host } = project();
-        commit(dev, { "ReforgedHost/package-lock.json": "{\"v\":1}\n" }, "lock one");
+        commit(dev, { "legacy/ReforgedHost/package-lock.json": "{\"v\":1}\n" }, "lock one");
         git(dev, "push", "--quiet", "origin", "main");
         await applyUpdate(host);
-        write(path.join(host, "ReforgedHost", "package-lock.json"), "{\"rewritten\":true}\n");
-        commit(dev, { "ReforgedHost/package-lock.json": "{\"v\":2}\n" }, "lock two");
+        write(path.join(host, "legacy", "ReforgedHost", "package-lock.json"), "{\"rewritten\":true}\n");
+        commit(dev, { "legacy/ReforgedHost/package-lock.json": "{\"v\":2}\n" }, "lock two");
         git(dev, "push", "--quiet", "origin", "main");
         const r = await applyUpdate(host);
         assert.equal(r.updated, true);
         assert.equal(r.hostKitDeps, true);
         assert.equal(git(host, "status", "--porcelain"), "");
-        assert.equal(git(host, "show", "HEAD:ReforgedHost/package-lock.json"), "{\"v\":2}");
+        assert.equal(git(host, "show", "HEAD:legacy/ReforgedHost/package-lock.json"), "{\"v\":2}");
     });
 
     it("needs a git checkout that follows a branch", async () => {

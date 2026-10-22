@@ -54,7 +54,7 @@ $ErrorActionPreference = 'Stop'
 $PinnedExeSha256 = 'F3F95FBF22709EF077A11632ED95D675B7209B7E0172D9ECB9BA7D02A1FBB66B'
 $ExeRelative = 'Archon\Binaries\Win64\Dauntless-Win64-Shipping.exe'
 $ServerHome = '/home/reforged'
-$ScriptUrl = "https://raw.githubusercontent.com/FreezaMotoqueiro/Dauntless-Reforged-Revival/$Branch/ReforgedHost/linux/setup-vps.sh"
+$ScriptUrl = "https://raw.githubusercontent.com/FreezaMotoqueiro/Dauntless-Reforged-Revival/$Branch/legacy/ReforgedHost/linux/setup-vps.sh"
 
 function Write-Step([string]$Text) {
     Write-Host ''
@@ -279,7 +279,7 @@ if (-not $SkipInstall) {
 
 # ------------------------------------------------------------------ 2. the game
 
-$Finish = "${Sudo}sh $ServerHome/Reforged/ReforgedHost/linux/setup-vps.sh --finish"
+$Finish = "${Sudo}sh $ServerHome/Reforged/legacy/ReforgedHost/linux/setup-vps.sh --finish"
 if (-not $SkipGame) {
     Write-Step 'Sending the game'
     $There = $null
@@ -322,7 +322,7 @@ Invoke-Remote "rm -rf ~/$Upload"
 Write-Step 'Done'
 Write-Host 'Send each friend an invite (the first one is above). For more, on the VPS:'
 Write-Host '  sudo -iu reforged'
-Write-Host '  cd Reforged/ReforgedHost; npm run invite -- --for "Alex"'
+Write-Host '  cd Reforged/legacy/ReforgedHost; npm run invite -- --for "Alex"'
 Write-Host ''
 Write-Host "If players cannot join: allow inbound TCP $PlayersPort and UDP $GamePorts in the VPS's Firewall page in Hostinger's hPanel." -ForegroundColor Yellow
 Write-Host "If the launcher says the certificate does not match, another program (a hosting panel) answers on port ${PlayersPort}: run this again with -PublicPort 4443 -SkipGame, allow TCP 4443 in the firewall, and use the new invite." -ForegroundColor Yellow

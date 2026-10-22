@@ -55,10 +55,10 @@ The launcher speaks **English** and **Brazilian Portuguese**.
 
 | Folder | What |
 |---|---|
-| [`ReforgedLauncher/`](ReforgedLauncher) | The Windows launcher (Electron), a modified version of Dauntless Revived's, with the Host tools page |
-| [`ReforgedGateway/`](ReforgedGateway) | The server's front door and the firewall allowlist helper (from Dauntless Revived's gateway) |
-| [`ReforgedContent/`](ReforgedContent) | Serves the runtime, the news and the art pack (from Dauntless Revived's content server) |
-| [`ReforgedHost/`](ReforgedHost) | The host kit: `npm run setup`, `start`, `invite`, `doctor`, `gamedata`, `publish-runtime` |
+| [`legacy/ReforgedLauncher/`](legacy/ReforgedLauncher) | The Windows launcher (Electron), a modified version of Dauntless Revived's, with the Host tools page |
+| [`legacy/ReforgedGateway/`](legacy/ReforgedGateway) | The server's front door and the firewall allowlist helper (from Dauntless Revived's gateway) |
+| [`legacy/ReforgedContent/`](legacy/ReforgedContent) | Serves the runtime, the news and the art pack (from Dauntless Revived's content server) |
+| [`legacy/ReforgedHost/`](legacy/ReforgedHost) | The host kit: `npm run setup`, `start`, `invite`, `doctor`, `gamedata`, `publish-runtime` |
 | [`upstream/`](upstream) | The pinned Mystic Paradox commit and the Reforged patches to it |
 | [`brand/`](brand) | The logo and the icons |
 | [`docs/`](docs) | Guides for players and hosts (Windows and Linux), the SDK and game data, and the architecture |
@@ -77,14 +77,14 @@ find. Known limits are listed in [docs/hosting.md](docs/hosting.md#known-limits)
 Node.js 20.19 or newer. Each folder is its own npm package:
 
 ```
-cd ReforgedLauncher && npm ci && npm test && npm run make      # the launcher (make needs Windows)
-cd ReforgedGateway  && npm ci && npm test
-cd ReforgedContent  && npm ci && npm test
-cd ReforgedHost     && npm ci && npm test
+cd legacy/ReforgedLauncher && npm ci && npm test && npm run make      # the launcher (make needs Windows)
+cd legacy/ReforgedGateway  && npm ci && npm test
+cd legacy/ReforgedContent  && npm ci && npm test
+cd legacy/ReforgedHost     && npm ci && npm test
 ```
 
 Publishing a GitHub release builds the launcher installer and attaches it to the release; see
-[ReforgedLauncher/README.md](ReforgedLauncher/README.md#releases).
+[legacy/ReforgedLauncher/README.md](legacy/ReforgedLauncher/README.md#releases).
 
 ## Credits and license
 

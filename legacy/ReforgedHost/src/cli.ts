@@ -707,8 +707,9 @@ async function update(p: Paths, args: Args): Promise<void> {
         }
         if (json) say(JSON.stringify(r));
         if (!r.updated || args["no-setup"] === true) return;
-        const kit = path.join(p.repo, "ReforgedHost");
-        if (r.hostKitDeps) {
+        const kit = p.hostKit;
+        // node_modules is missing right after the update that moved the kit to legacy/.
+        if (r.hostKitDeps || !fs.existsSync(path.join(kit, "node_modules"))) {
             say("\nThe host kit's dependencies changed: npm install");
             if ((await run("npm", ["install", "--no-audit", "--no-fund"], { cwd: kit, logFile })).code !== 0) fail(`npm install failed (see ${logFile})`);
         }
@@ -932,7 +933,7 @@ async function main(): Promise<void> {
             say("  npm run multipliers [-- --xp 1-100 --rewards 1-100 | --off]   (private test servers; also setup's --xp-multiplier/--reward-multiplier)");
             say("  npm run upstream   (downloads and patches Mystic Paradox only)");
             say("  npm run update [-- --check]   (compares this project with GitHub, updates it and runs setup again)");
-            say("See README.md and ../docs/hosting.md.");
+            say("See README.md and ../../docs/hosting.md.");
     }
 }
 

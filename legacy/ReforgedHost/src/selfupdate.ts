@@ -123,6 +123,6 @@ export async function applyUpdate(repo: string, opts: { logFile?: string } = {})
         behind: 0,
         files: changed.length,
         runtimeChanged: runtimeAffected(changed, pinBefore, pinAfter),
-        hostKitDeps: restored.includes("ReforgedHost/package-lock.json") || changed.some((f) => f === "ReforgedHost/package.json" || f === "ReforgedHost/package-lock.json"),
+        hostKitDeps: restored.includes("legacy/ReforgedHost/package-lock.json") || changed.some((f) => f === "legacy/ReforgedHost/package.json" || f === "legacy/ReforgedHost/package-lock.json"),
     };
 }

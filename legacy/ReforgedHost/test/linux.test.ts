@@ -155,7 +155,7 @@ describe("Linux: systemd units", () => {
         assert.match(al, /^User=reforged$/m);
         assert.match(al, /^AmbientCapabilities=CAP_NET_ADMIN$/m);
         assert.match(al, /^CapabilityBoundingSet=CAP_NET_ADMIN$/m);
-        assert.match(al, /^ExecStart="\/usr\/bin\/node" "--env-file=\/home\/reforged\/Reforged\/\.workspace\/config\/allowlist\.env" "\/home\/reforged\/Reforged\/ReforgedGateway\/dist\/allowlist\/server\.js"$/m);
+        assert.match(al, /^ExecStart="\/usr\/bin\/node" "--env-file=\/home\/reforged\/Reforged\/\.workspace\/config\/allowlist\.env" "\/home\/reforged\/Reforged\/legacy\/ReforgedGateway\/dist\/allowlist\/server\.js"$/m);
         assert.match(al, /^ExecStopPost=.* --close-ports$/m);
         const sv = u[UNIT_SERVER];
         assert.match(sv, /^User=reforged$/m);
@@ -164,7 +164,7 @@ describe("Linux: systemd units", () => {
         assert.match(sv, /^AmbientCapabilities=CAP_NET_BIND_SERVICE$/m);
         assert.match(sv, /^CapabilityBoundingSet=CAP_NET_BIND_SERVICE$/m);
         assert.match(sv, /^KillMode=mixed$/m);
-        assert.match(sv, /^ExecStart="\/usr\/bin\/node" "\/home\/reforged\/Reforged\/ReforgedHost\/dist\/cli\.js" start$/m);
+        assert.match(sv, /^ExecStart="\/usr\/bin\/node" "\/home\/reforged\/Reforged\/legacy\/ReforgedHost\/dist\/cli\.js" start$/m);
         assert.match(u["install.sh"], /systemctl enable reforged-allowlist\.service reforged\.service/);
     });
 

@@ -95,6 +95,7 @@ import {
   detectHostKit,
   findDumps,
   findToolchain,
+  hostKitDir,
   importGameDataPack,
   importSdk,
   msbuildArgs,
@@ -1800,7 +1801,7 @@ export class Controller {
 
   private workspaceOrNull(): string | null {
     const ws = this.s.hostWorkspace;
-    return ws && existsSync(path.join(ws, "ReforgedHost", "package.json")) ? ws : null;
+    return ws && existsSync(path.join(hostKitDir(ws), "package.json")) ? ws : null;
   }
 
   private hostKitFailure(e: unknown): { ok: false; error: LauncherError } {
@@ -1913,7 +1914,7 @@ export class Controller {
     if (this.server.serverState === "external") return this.fail("host_failed", "server_external");
     const logFile = path.join(ws, ".workspace", "logs", "launcher-update.log");
     this.setJob({ kind: "update", state: "running", message: null, logFile });
-    if (!existsSync(path.join(ws, "ReforgedHost", "src", "selfupdate.ts"))) return this.legacyUpdate(ws, logFile);
+    if (!existsSync(path.join(hostKitDir(ws), "src", "selfupdate.ts"))) return this.legacyUpdate(ws, logFile);
     try {
       // Only compare first: a server stays up when there is nothing to update.
       const check = await this.server.command(ws, ["update", "--check", "--json"], "update");
@@ -1986,7 +1987,7 @@ export class Controller {
         const files = (await run(["diff", "--name-only", before, after])).lines.map((l) => l.trim()).filter(Boolean);
         this.hostUpdateResult = { state: "updated", head: after.slice(0, 12), files: files.length, runtimeChanged: files.some((f) => /^upstream\/(patches\/\d+-runtime-|mystic-paradox\.json$)/.test(f)) };
         log.info(`host: project updated with git to ${after.slice(0, 12)} (${files.length} files)`);
-        await this.server.prepare(ws, { install: locks.includes("ReforgedHost/package-lock.json") || files.some((f) => /^ReforgedHost\/package(-lock)?\.json$/.test(f)) });
+        await this.server.prepare(ws, { install: locks.some((f) => /^(legacy\/)?ReforgedHost\/package-lock\.json$/.test(f)) || files.some((f) => /^(legacy\/)?ReforgedHost\/package(-lock)?\.json$/.test(f)) });
         if (configured) {
           const s = await this.server.command(ws, ["setup"], "setup");
           this.requirements = null;
@@ -2063,7 +2064,7 @@ export class Controller {
       this.publish();
       return OK;
     };
-    if (existsSync(path.join(target, "ReforgedHost", "package.json"))) return use();
+    if (existsSync(path.join(hostKitDir(target), "package.json"))) return use();
     // Never into a folder that already holds something else.
     let taken = false;
     try {
@@ -2078,7 +2079,7 @@ export class Controller {
     this.setJob({ kind: "download_project", state: "running", message: target, logFile });
     try {
       const r = await this.server.program(git, ["clone", "--quiet", this.p.projectGitUrl ?? PROJECT_GIT_URL, target], path.dirname(target), logFile);
-      if (r.code !== 0 || !existsSync(path.join(target, "ReforgedHost", "package.json"))) {
+      if (r.code !== 0 || !existsSync(path.join(hostKitDir(target), "package.json"))) {
         log.warn(`host: project not downloaded to ${target} (git exit ${r.code})`);
         const failed = { kind: "download_project" as const, state: "failed" as const, message: r.lines.filter(Boolean).pop() ?? `exit ${r.code}`, logFile };
         if (opts.auto) {
@@ -2099,7 +2100,7 @@ export class Controller {
   async hostChooseWorkspace(): Promise<ActionResult> {
     const picked = await this.p.chooseFolder("workspace", this.s.hostWorkspace ?? "");
     if (!picked) return err("cancelled");
-    if (!existsSync(path.join(picked, "ReforgedHost", "package.json"))) return this.fail("host_failed", "workspace");
+    if (!existsSync(path.join(hostKitDir(picked), "package.json"))) return this.fail("host_failed", "workspace");
     await this.settings.update((s) => {
       s.hostWorkspace = picked;
     });
@@ -2124,7 +2125,7 @@ export class Controller {
   async hostImportGameData(): Promise<ActionResult> {
     if (this.hostJob?.state === "running") return err("busy");
     const ws = this.s.hostWorkspace;
-    if (!ws || !existsSync(path.join(ws, "ReforgedHost", "package.json"))) return this.fail("host_failed", "workspace");
+    if (!ws || !existsSync(path.join(hostKitDir(ws), "package.json"))) return this.fail("host_failed", "workspace");
     const file = await this.p.choosePack();
     if (!file) return err("cancelled");
     this.setJob({ kind: "import_gamedata", state: "running", message: path.basename(file), logFile: null });

@@ -339,7 +339,7 @@ test("a banned account is told why", async () => {
 // multipliers the way ReforgedHost does (--json lines, host.json).
 function hostWorkspace(opts: { legacy?: boolean; dir?: string } = {}): string {
   const ws = opts.dir ?? temp("rr-ctl-ws-");
-  const kit = path.join(ws, "ReforgedHost");
+  const kit = path.join(ws, "legacy", "ReforgedHost");
   mkdirSync(path.join(kit, "dist"), { recursive: true });
   mkdirSync(path.join(kit, "node_modules"), { recursive: true });
   mkdirSync(path.join(ws, ".workspace", "config"), { recursive: true });
@@ -353,7 +353,7 @@ function hostWorkspace(opts: { legacy?: boolean; dir?: string } = {}): string {
     path.join(kit, "dist", "cli.js"),
     `
 const fs = require("fs"), path = require("path");
-const ws = path.join(__dirname, "..", "..");
+const ws = path.join(__dirname, "..", "..", "..");
 const a = process.argv.slice(2).join(" ");
 fs.appendFileSync(path.join(ws, "calls.log"), a + "\\n");
 const behind = fs.existsSync(path.join(ws, "behind")) ? 3 : 0;
@@ -428,7 +428,7 @@ test("a project from before npm run update is updated with git, once", async () 
   const dev = temp("rr-ctl-dev-");
   git(dev, "clone", "--quiet", remote, ".");
   git(dev, "checkout", "--quiet", "-b", "main");
-  writeFileSync(path.join(dev, ".gitignore"), ".workspace/\nReforgedHost/\ncalls.log\n");
+  writeFileSync(path.join(dev, ".gitignore"), ".workspace/\nlegacy/\ncalls.log\n");
   writeFileSync(path.join(dev, "README.md"), "one\n");
   git(dev, "add", "-A");
   git(dev, "commit", "--quiet", "-m", "one");
@@ -469,8 +469,8 @@ test("Host tools on: the project folder is downloaded beside the game and chosen
   const dev = temp("rr-ctl-projdev-");
   git(dev, "clone", "--quiet", remote, ".");
   git(dev, "checkout", "--quiet", "-b", "main");
-  mkdirSync(path.join(dev, "ReforgedHost"), { recursive: true });
-  writeFileSync(path.join(dev, "ReforgedHost", "package.json"), "{}");
+  mkdirSync(path.join(dev, "legacy", "ReforgedHost"), { recursive: true });
+  writeFileSync(path.join(dev, "legacy", "ReforgedHost", "package.json"), "{}");
   git(dev, "add", "-A");
   git(dev, "commit", "--quiet", "-m", "project");
   git(dev, "push", "--quiet", "origin", "main");
@@ -484,7 +484,7 @@ test("Host tools on: the project folder is downloaded beside the game and chosen
   assert.equal(existsSync(target), false, "nothing is downloaded while Host tools are off");
   await hx.c.setSettings({ hostTools: true });
   await eventually(async () => (await hx.c.hostKit()).workspace === target);
-  assert.ok(existsSync(path.join(target, "ReforgedHost", "package.json")));
+  assert.ok(existsSync(path.join(target, "legacy", "ReforgedHost", "package.json")));
   assert.equal(git(target, "rev-parse", "--abbrev-ref", "@{u}"), "origin/main", "a git clone, so Update setup works");
   assert.equal((await hx.c.hostKit()).job?.kind, "download_project");
   await hx.c.shutdown();

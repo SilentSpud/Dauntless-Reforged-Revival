@@ -12,6 +12,7 @@ import {
   detectHostKit,
   EXPORT_FLAGS,
   findDumps,
+  hostKitDir,
   importSdk,
   msbuildArgs,
   platformToolset,
@@ -50,6 +51,16 @@ test("workspace paths follow the layout ReforgedHost's setup creates", () => {
   assert.equal(w.runtimeDll, "C:\\rr\\.workspace\\Mystic-Paradox\\ParadoxRuntime\\x64\\Release\\MysticParadox.dll");
   assert.equal(w.loaderDll, "C:\\rr\\.workspace\\Mystic-Paradox\\tools\\RuntimeLoader\\target\\release\\winmm.dll");
   assert.equal(w.publish, "C:\\rr\\.workspace\\runtime");
+  assert.equal(w.hostKit, "C:\\rr\\legacy\\ReforgedHost\\package.json");
+});
+
+test("the host kit is in legacy/, or where it was in a checkout from before the move", () => {
+  const root = temp();
+  assert.equal(hostKitDir(root), path.join(root, "legacy", "ReforgedHost"));
+  write(path.join(root, "ReforgedHost", "package.json"), "{}");
+  assert.equal(hostKitDir(root), path.join(root, "ReforgedHost"));
+  write(path.join(root, "legacy", "ReforgedHost", "package.json"), "{}");
+  assert.equal(hostKitDir(root), path.join(root, "legacy", "ReforgedHost"));
 });
 
 test("game data: missing, synthetic (the shipped examples) and real", async () => {
@@ -104,7 +115,7 @@ test("publishRuntime writes both files and a runtime.json the launcher accepts",
 
 test("detectHostKit reads a workspace without a toolchain", async () => {
   const root = temp();
-  write(path.join(root, "ReforgedHost", "package.json"), "{}");
+  write(path.join(root, "legacy", "ReforgedHost", "package.json"), "{}");
   const w = workspacePaths(root);
   write(w.patchMarker, "{}");
   write(path.join(w.runtimeSource, "dllmain.cpp"), "//");

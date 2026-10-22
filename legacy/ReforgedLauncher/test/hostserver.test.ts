@@ -25,7 +25,7 @@ function temp(): string {
 // A workspace whose host kit is built already: the fake cli answers start, invite and a failing command.
 function fakeWorkspace(): string {
   const ws = temp();
-  const kit = path.join(ws, "ReforgedHost");
+  const kit = path.join(ws, "legacy", "ReforgedHost");
   mkdirSync(path.join(kit, "dist"), { recursive: true });
   mkdirSync(path.join(kit, "node_modules"), { recursive: true });
   writeFileSync(path.join(kit, "package.json"), "{}");
@@ -90,7 +90,7 @@ test("the server starts, says it is up, and stops on request", async () => {
 
 test("a server that fails says why, and one started elsewhere is not started again", async () => {
   const ws = fakeWorkspace();
-  writeFileSync(path.join(ws, "ReforgedHost", "dist", "cli.js"), 'console.error("\\nError: port 27017 is already taken"); process.exit(1);');
+  writeFileSync(path.join(ws, "legacy", "ReforgedHost", "dist", "cli.js"), 'console.error("\\nError: port 27017 is already taken"); process.exit(1);');
   const { s } = server();
   await s.start(ws);
   await until(() => s.serverState === "failed");
@@ -130,7 +130,7 @@ test("Node.js, Git and MongoDB are found where Windows installs them", () => {
 
 test("the host kit is built again only when its sources changed", () => {
   const ws = fakeWorkspace();
-  const kit = path.join(ws, "ReforgedHost");
+  const kit = path.join(ws, "legacy", "ReforgedHost");
   assert.equal(hostKitNeedsBuild(kit), false);
   mkdirSync(path.join(kit, "src"));
   const future = path.join(kit, "src", "cli.ts");

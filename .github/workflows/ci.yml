@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ReforgedLauncher
+        working-directory: legacy/ReforgedLauncher
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
     steps:
@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: ReforgedLauncher/package-lock.json
+          cache-dependency-path: legacy/ReforgedLauncher/package-lock.json
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
@@ -36,14 +36,14 @@ jobs:
         package: [ReforgedGateway, ReforgedContent, ReforgedHost]
     defaults:
       run:
-        working-directory: ${{ matrix.package }}
+        working-directory: legacy/${{ matrix.package }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: ${{ matrix.package }}/package-lock.json
+          cache-dependency-path: legacy/${{ matrix.package }}/package-lock.json
       - run: npm ci
       - run: npm run build
       - run: npm test
@@ -88,24 +88,24 @@ jobs:
     needs: launcher
     defaults:
       run:
-        working-directory: ReforgedLauncher
+        working-directory: legacy/ReforgedLauncher
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: ReforgedLauncher/package-lock.json
+          cache-dependency-path: legacy/ReforgedLauncher/package-lock.json
       - run: npm ci
       - run: npm test
       - run: npm run make
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ReforgedRevivalLauncher-windows
-          path: ReforgedLauncher/out/make/**
+          path: legacy/ReforgedLauncher/out/make/**
           if-no-files-found: error
 
-  # As in Dauntless Revived: once every check passed on main, a new ReforgedLauncher/package.json version
+  # As in Dauntless Revived: once every check passed on main, a new legacy/ReforgedLauncher/package.json version
   # is released and installed launchers update to it (launcher-release.yml). A version that has a
   # release already publishes nothing. Set the repository variable LAUNCHER_AUTO_RELEASE to false to
   # turn it off and only release by hand.

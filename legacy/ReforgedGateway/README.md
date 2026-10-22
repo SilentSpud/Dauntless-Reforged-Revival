@@ -1,6 +1,6 @@
 # Dauntless Reforged Revival gateway
 
-The front door of a Dauntless Reforged Revival server, in the `ReforgedGateway/` folder. It is a
+The front door of a Dauntless Reforged Revival server, in the `legacy/ReforgedGateway/` folder. It is a
 modified version of Dauntless Revived's `UndauntedGateway` (same design, same limits, same
 allowlist helper), with the routing rules of the Mystic Paradox 1.14.7 backend and a plain-HTTP
 mode for private servers. Two small processes:

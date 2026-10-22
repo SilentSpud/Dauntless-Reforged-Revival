@@ -80,7 +80,7 @@ printf '%s' "$SERVICE_USER" | grep -Eq '^[a-z_][a-z0-9_-]{0,31}$' || die "--user
 
 USER_HOME=/home/$SERVICE_USER
 PROJECT=$USER_HOME/Reforged
-KIT=$PROJECT/ReforgedHost
+KIT=$PROJECT/legacy/ReforgedHost
 GAMES=$USER_HOME/games
 GAME=$GAMES/Dauntless
 EXE=$GAME/Archon/Binaries/Win64/Dauntless-Win64-Shipping.exe
@@ -290,7 +290,7 @@ finish() {
     done
     if [ "$up" -eq 1 ]; then
         step "Your first invite"
-        kit npm run --silent invite -- --for "owner" || warn "could not make an invite: sudo -iu $SERVICE_USER, then cd Reforged/ReforgedHost && npm run invite"
+        kit npm run --silent invite -- --for "owner" || warn "could not make an invite: sudo -iu $SERVICE_USER, then cd Reforged/legacy/ReforgedHost && npm run invite"
     else
         warn "the backend did not answer yet: journalctl -u reforged -f shows why"
     fi

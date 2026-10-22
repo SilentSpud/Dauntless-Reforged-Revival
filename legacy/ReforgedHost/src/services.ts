@@ -5,7 +5,7 @@
 //   backend              127.0.0.1:61000   ParadoxBackend   (API, chat; HTTP only)
 //   director             127.0.0.1:61001   ParadoxDirector  (starts Ramsgate, the Training Grounds, hunts on UDP 8770-8777)
 //   content              127.0.0.1:61002   ReforgedContent  (the runtime, news, art)
-//   allowlist (public)   127.0.0.1:61005   ReforgedGateway/allowlist (Windows Firewall, administrator)
+//   allowlist (public)   127.0.0.1:61005   legacy/ReforgedGateway/allowlist (Windows Firewall, administrator)
 //   gateway              0.0.0.0:443 (public, TLS) or <Tailscale IP>:61000 (private, HTTP)
 
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";

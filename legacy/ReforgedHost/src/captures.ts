@@ -93,7 +93,7 @@ export async function ensureCaptures(p: Paths, pin: CapturePin, logFile?: string
         const current = fs.existsSync(exclude) ? fs.readFileSync(exclude, "utf8") : "";
         if (!current.split(/\r?\n/).includes(entry)) {
             fs.mkdirSync(path.dirname(exclude), { recursive: true });
-            fs.appendFileSync(exclude, `\n# Dauntless Reforged Revival: the store captures (ReforgedHost/src/captures.ts)\n${entry}\n`);
+            fs.appendFileSync(exclude, `\n# Dauntless Reforged Revival: the store captures (legacy/ReforgedHost/src/captures.ts)\n${entry}\n`);
         }
     }
     return "fetched";

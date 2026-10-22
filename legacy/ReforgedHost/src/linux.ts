@@ -73,7 +73,7 @@ export function gameserverWrapperScript(node: string, hostKit: string): string {
     return [
         "#!/bin/sh",
         "# Dauntless Reforged Revival: the Director starts this for each game server. Written by `npm run setup`.",
-        "# It runs Dauntless-Win64-Shipping.exe through Wine or Proton (ReforgedHost/src/wine.ts).",
+        "# It runs Dauntless-Win64-Shipping.exe through Wine or Proton (legacy/ReforgedHost/src/wine.ts).",
         `exec ${shQuote(node)} ${shQuote(path.join(hostKit, "dist", "gameserver.js"))} "$@"`,
         "",
     ].join("\n");
