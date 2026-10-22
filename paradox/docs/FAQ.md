@@ -18,7 +18,7 @@ me limited time to work on it. Current progress on the Dauntless 1.14.7 port is 
 ## When will a public server or launcher be available?
 
 There is no planned release date; work is still in progress. In the meantime you can
-[self-host the project](SELF_HOSTING.md) to play with friends or run your own server.
+[self-host the project](../../docs/hosting.md) to play with friends or run your own server.
 
 ## Which game version do I need?
 

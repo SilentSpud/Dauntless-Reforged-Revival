@@ -173,5 +173,5 @@ Keep raw captures, Items_Analysis and the final extracted tables out of the publ
 ignored for this reason. Before sharing logs, remove account identifiers, tokens, private paths, and
 captured payloads that contain user or proprietary data.
 
-Continue with [SELF_HOSTING.md](SELF_HOSTING.md) for runtime compilation, signed update publication,
+Continue with [the Reforged hosting guide](../../docs/hosting.md) for runtime compilation, signed update publication,
 service startup, launcher setup, and the Ramsgate acceptance test.

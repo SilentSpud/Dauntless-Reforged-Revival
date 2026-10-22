@@ -8,30 +8,20 @@
 *.pfx
 .secrets/
 ParadoxCertificates/
-ParadoxRuntime/deployment_config.generated.h
 
-# --- Generated SDK (dump it yourself with Dumper-7) ---
-# The complete Dumper-7 CppSDK output is game-derived and is NOT distributed.
-# See docs/GENERATING_SDK.md.
-ParadoxRuntime/SDK/
-ParadoxRuntime/SDK.hpp
-ParadoxRuntime/Assertions.inl
-ParadoxRuntime/NameCollisions.inl
-ParadoxRuntime/PropertyFixup.hpp
-ParadoxRuntime/UnrealContainers.hpp
-ParadoxRuntime/UtfN.hpp
+# The runtime and its SDK moved to native/ (native/.gitignore).
 
 # --- Locally generated game data (extract from your OWN installation) ---
 # Progression, hunt tables, store, Slayer's Path, etc. are Phoenix Labs game data and are
 # NOT distributed. Generate them with CatalogExporter + the generate:* scripts.
 # See docs/GENERATING_GAME_DATA.md. Example fixtures (*.example.json) ARE committed.
-ParadoxBackend/game-data/*.json
-ParadoxDirector/game-data/*.json
-!ParadoxBackend/game-data/*.example.json
-!ParadoxDirector/game-data/*.example.json
-ParadoxBackend/game-data/raw/
-ParadoxDirector/game-data/raw/
-# CatalogExporter output (game data extracted from your own install)
+backend/game-data/*.json
+director/game-data/*.json
+!backend/game-data/*.example.json
+!director/game-data/*.example.json
+backend/game-data/raw/
+director/game-data/raw/
+# CatalogExporter output (native/catalog-exporter; game data extracted from your own install)
 Items_Analysis/
 
 # --- Node ---
@@ -78,4 +68,5 @@ desktop.ini
 
 # --- Generated self-host configuration ---
 .selfhost/
-docs/LOCAL_RELEASE_READINESS.md
+# Store captures the host kit downloads (store-captures.json)
+DauntlessEndpointDocumentation/

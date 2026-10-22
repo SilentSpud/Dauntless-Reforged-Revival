@@ -1,8 +1,0 @@
-/* Mystic Paradox launcher styles. One system: tokens, then layers from base to pages. */
-@import "./styles/tokens.css";
-@import "./styles/base.css";
-@import "./styles/components.css";
-@import "./styles/shell.css";
-@import "./styles/home.css";
-@import "./styles/pages.css";
-@import "./styles/auth.css";

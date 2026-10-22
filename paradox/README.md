@@ -4,6 +4,16 @@
 
 <h1 align="center">Mystic Paradox</h1>
 
+> [!NOTE]
+> **This folder is Dauntless Reforged Revival's fork of Mystic Paradox**, merged with its history from
+> [SilentSpud/Mystic-Paradox](https://github.com/SilentSpud/Mystic-Paradox) (branch `reforged`: Paradox's
+> commit `00d3be8` and the 33 Reforged patches). In this repository the backend and Director are in
+> [`backend`](backend) and [`director`](director); the runtime, its loader and the CatalogExporter are in
+> [`native/`](../native) at the repository root. Paradox's launcher, deployment scripts and self-hosting guide were
+> removed: Reforged hosts follow [the Reforged hosting guide](../docs/hosting.md). The rest of this README is
+> Paradox's own and describes its upstream project.
+
+
 <p align="center">
   <b>Open-source private server for Dauntless</b> — backend, game-server orchestration, launcher and runtime
   compatibility layer, so you can run the game on a server of your own.
@@ -53,33 +63,30 @@ Expect active development, not production-grade uptime.
 2. **Install Dauntless 1.14.7** from Epic with your own account — [Installing Dauntless](docs/INSTALLING_DAUNTLESS.md).
 3. **Generate the SDK** from your own 1.14.7 install — [Generating the SDK](docs/GENERATING_SDK.md).
 4. **Generate the game data** from the same install — [Generating game data](docs/GENERATING_GAME_DATA.md).
-5. **Deploy and play** — [Self-hosting](docs/SELF_HOSTING.md) walks from source to Ramsgate:
-   prerequisites, DNS/TLS, services, launcher and the first acceptance test.
+5. **Deploy and play** — [Reforged hosting](../docs/hosting.md) walks from source to Ramsgate.
 
 ## 📚 Documentation
 
 | Guide | What's inside |
 |---|---|
 | 🎮 [Installing Dauntless](docs/INSTALLING_DAUNTLESS.md) | Getting the 1.14.7 client from Epic with your own account and Legendary |
-| 🏠 [Self-hosting](docs/SELF_HOSTING.md) | Full deployment: prerequisites, configuration helper, ports, validation, troubleshooting |
+| 🏠 [Reforged hosting](../docs/hosting.md) | Running a Reforged server with the host kit |
 | 🧩 [Generating the SDK](docs/GENERATING_SDK.md) | Dumping the Unreal SDK with Dumper-7 and building the C++ projects |
 | 📦 [Generating game data](docs/GENERATING_GAME_DATA.md) | Exporting the catalogue and tables from your install |
 | 🔭 [1.14.7 port](docs/DAUNTLESS_1_14_7_PORT.md) | Progress, findings and open issues for the final game release |
 | ❓ [FAQ](docs/FAQ.md) | Common questions, support and contact |
 | ⚖️ [Scope and legal](docs/SCOPE_AND_LEGAL.md) | What isn't included, responsible use, license details |
 | 🔒 [Security](SECURITY.md) | Safe configuration and how to report a vulnerability |
-| 🖥️ [Launcher](ParadoxLauncher/README.md) · [Update channel](ParadoxLauncher/UPDATE_CHANNEL.md) | Building, signing and publishing the launcher and runtime |
 
 ## 🗂️ Repository layout
 
 | Folder | What it is |
 |---|---|
-| [`ParadoxBackend`](ParadoxBackend) | Account and metagame backend (login, characters, inventory, progression, store, party…) — Node/TypeScript + MongoDB |
-| [`ParadoxDirector`](ParadoxDirector) | Starts and supervises the dedicated game servers for hubs and hunts |
-| [`ParadoxRuntime`](ParadoxRuntime) | C++ DLL injected into the client and servers to adapt them to the private backend (MSVC + MinHook) |
-| [`ParadoxLauncher`](ParadoxLauncher) | Windows launcher: sign-in, install checks, signed runtime updates, game sessions (Tauri) |
-| [`tools/RuntimeLoader`](tools/RuntimeLoader) | `winmm.dll` proxy that loads the runtime at startup |
-| [`tools/CatalogExporter`](tools/CatalogExporter) | Exports compatibility data from your own installation |
+| [`backend`](backend) | Account and metagame backend (login, characters, inventory, progression, store, party…) — Node/TypeScript + MongoDB |
+| [`director`](director) | Starts and supervises the dedicated game servers for hubs and hunts |
+| [`native/paradox-runtime`](../native/paradox-runtime) | C++ DLL injected into the client and servers to adapt them to the private backend (MSVC + MinHook) |
+| [`native/runtime-loader`](../native/runtime-loader) | `winmm.dll` proxy that loads the runtime at startup |
+| [`native/catalog-exporter`](../native/catalog-exporter) | Exports compatibility data from your own installation |
 
 ## 💬 Community and help
 
