@@ -1,6 +1,17 @@
-//! Stub: `reforged-host` is not written yet.
+//! `reforged-host`: the host kit's command line (MIGRATION_PLAN.md RD3, RH rows).
 
-fn main() -> std::process::ExitCode {
-    eprintln!("reforged-host: not implemented yet (host is a stub)");
-    std::process::ExitCode::FAILURE
+use std::process::ExitCode;
+
+use clap::Parser;
+
+fn main() -> ExitCode {
+    let cli = host::cli::Cli::parse();
+    match host::run(&cli) {
+        Ok(code) => code,
+        Err(error) => {
+            // As the Node kit's fail().
+            eprint!("\nError: {error}\n");
+            ExitCode::FAILURE
+        }
+    }
 }

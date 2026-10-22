@@ -2018,6 +2018,13 @@ dependencies = [
 [[package]]
 name = "host"
 version = "0.0.0"
+dependencies = [
+ "clap",
+ "serde_json",
+ "service-kit",
+ "tempfile",
+ "thiserror 2.0.21",
+]
 
 [[package]]
 name = "html5ever"

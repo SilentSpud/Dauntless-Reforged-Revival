@@ -1,0 +1,37 @@
+{
+  "comment": "edited by hand",
+  "mode": "private",
+  "version": 1,
+  "name": "Old Server",
+  "host": "hostpc.tail1234.ts.net",
+  "gameAddress": "100.64.0.9",
+  "gameDir": null,
+  "registration": "NONE",
+  "shareUrl": null,
+  "mongo": {
+    "manage": false,
+    "uri": "mongodb+srv://cluster.example.net/x",
+    "mongod": null
+  },
+  "maxHuntServers": 3,
+  "performance": {
+    "serverFps": 30,
+    "idleFps": 10,
+    "trainingOnDemand": true,
+    "verboseGameLogs": false
+  },
+  "extra": [
+    1,
+    2.5,
+    {
+      "1": "one",
+      "2": "two",
+      "a": []
+    },
+    {}
+  ],
+  "multipliers": {
+    "xp": 5,
+    "rewards": 2.5
+  }
+}

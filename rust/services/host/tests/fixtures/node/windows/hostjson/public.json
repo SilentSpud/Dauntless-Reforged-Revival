@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "mode": "public",
+  "host": "hunts.example.net",
+  "gameAddress": "203.0.113.7",
+  "name": "Freeza \"Hunts\" — Público",
+  "gameDir": "D:\\Games\\Dauntless",
+  "registration": "OPEN",
+  "shareUrl": null,
+  "mongo": {
+    "uri": "mongodb://10.0.0.5:27017/?replicaSet=rs0",
+    "manage": false,
+    "mongod": null
+  },
+  "maxHuntServers": 8,
+  "publicPort": 4443,
+  "performance": {
+    "serverFps": 60,
+    "idleFps": 0,
+    "trainingOnDemand": false,
+    "trainingIdleMinutes": 15,
+    "verboseGameLogs": true,
+    "memoryGuard": false,
+    "minFreeMemoryMb": 512,
+    "huntMemoryMb": 2048
+  },
+  "linux": {
+    "wine": "/usr/bin/wine64",
+    "proton": null,
+    "xvfb": false,
+    "firewallInterface": "eth0"
+  }
+}
