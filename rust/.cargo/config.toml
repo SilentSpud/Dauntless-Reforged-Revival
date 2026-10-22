@@ -12,3 +12,6 @@ LIBSQLITE3_FLAGS = "SQLITE_DQS=0 SQLITE_LIKE_DOESNT_MATCH_BLOBS SQLITE_ENABLE_MA
 # aws-lc-sys (TLS, JWT signatures) uses its prebuilt NASM objects on Windows x64, so no NASM install
 # is needed (D10). rustls turns this on through a feature; this covers crates that don't.
 AWS_LC_SYS_PREBUILT_NASM = "1"
+# Where reforged-host looks for server releases (update, setup's install step), built into the binary.
+# An environment variable of the same name wins: the release workflow sets it to the repository it runs in.
+REFORGED_RELEASE_REPOSITORY = "SilentSpud/Dauntless-Reforged-Revival"

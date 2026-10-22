@@ -32,11 +32,9 @@ pub const SUMS_FILE: &str = "SHA256SUMS.txt";
 pub const SOURCE_ENV: &str = "REFORGED_SERVER_RELEASE";
 pub const TAG_PREFIX: &str = "server-v";
 pub const ARCHIVE_PREFIX: &str = "ReforgedRevivalServer-";
-/// Where the releases are published; the release workflow builds this in from the repository it runs in.
-pub const DEFAULT_REPOSITORY: &str = match option_env!("REFORGED_RELEASE_REPOSITORY") {
-    Some(repository) => repository,
-    None => "SilentSpud/Dauntless-Reforged-Revival",
-};
+/// Where the releases are published: `REFORGED_RELEASE_REPOSITORY` from `rust/.cargo/config.toml`'s
+/// `[env]`, or the environment's at build time (the release workflow sets the repository it runs in).
+pub const DEFAULT_REPOSITORY: &str = env!("REFORGED_RELEASE_REPOSITORY");
 
 /// The build outputs a release replaces as a whole on a server that never had a release (a Node-kit
 /// checkout built them with npm): whatever is in them now is not the release's.
