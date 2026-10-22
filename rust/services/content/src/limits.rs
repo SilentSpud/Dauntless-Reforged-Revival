@@ -96,19 +96,32 @@ impl StreamLimiter {
 
 #[cfg(test)]
 mod tests {
+    //! test/limits.test.ts
     use super::*;
 
     #[test]
-    fn slots_per_account_and_in_total() {
-        let limiter = StreamLimiter::new(2, 3);
-        let a1 = limiter.try_acquire("A").unwrap();
-        let _a2 = limiter.try_acquire("A").unwrap();
+    fn per_account_limit() {
+        let limiter = StreamLimiter::new(6, 100);
+        let mut held: Vec<Slot> = (0..6).map(|_| limiter.try_acquire("A").unwrap()).collect();
         assert_eq!(limiter.try_acquire("A").unwrap_err(), Refusal::AccountLimit);
-        let _b1 = limiter.try_acquire("B").unwrap();
-        assert_eq!(limiter.try_acquire("C").unwrap_err(), Refusal::TotalLimit);
-        drop(a1);
-        assert_eq!(limiter.active(Some("A")), 1);
-        let _c1 = limiter.try_acquire("C").unwrap();
-        assert_eq!(limiter.active(None), 3);
+        let _b = limiter.try_acquire("B").expect("another account is not affected");
+        assert_eq!(limiter.active(Some("A")), 6);
+        // A slot is released once, when it is dropped: Node's second release() has no counterpart
+        drop(held.remove(0));
+        assert_eq!(limiter.active(Some("A")), 5);
+        let _again = limiter.try_acquire("A").unwrap();
+        assert_eq!(limiter.active(None), 7);
+    }
+
+    #[test]
+    fn server_wide_limit() {
+        let limiter = StreamLimiter::new(6, 3);
+        let _a = limiter.try_acquire("A").unwrap();
+        let _b = limiter.try_acquire("B").unwrap();
+        let c = limiter.try_acquire("C").unwrap();
+        assert_eq!(limiter.try_acquire("D").unwrap_err(), Refusal::TotalLimit);
+        drop(c);
+        let _d = limiter.try_acquire("D").unwrap();
+        assert_eq!(limiter.active(Some("C")), 0);
     }
 }

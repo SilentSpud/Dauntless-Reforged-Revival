@@ -1,5 +1,5 @@
-//! The account check for downloads (`src/auth.ts`). Every file request carries the account key
-//! (`x-undaunted-user-api-key`), and the metagame says whose it is (GET /undaunted/api/GetUserInfo).
+//! The account check for downloads (`src/auth.ts`). Every runtime file request carries the account
+//! key (`x-reforged-user-api-key`), and the backend says whose it is (GET /reforged/api/GetUserInfo).
 //! Answers are cached for a few minutes, keyed by the SHA-256 of the key: the key itself is never
 //! stored, cached or logged here.
 
@@ -37,7 +37,7 @@ pub fn hash_key(key: &str) -> String {
 }
 
 /// Printable ASCII without spaces, at most 256 characters. Anything else can't be a key and is
-/// refused without asking the metagame (and can't be smuggled into the header sent to it).
+/// refused without asking the backend (and can't be smuggled into the header sent to it).
 pub fn is_plausible_key(key: &str) -> bool {
     (1..=256).contains(&key.len()) && key.bytes().all(|b| (0x21..=0x7e).contains(&b))
 }
@@ -62,7 +62,7 @@ pub struct AuthCache {
 }
 
 impl AuthCache {
-    /// Good keys are cached `ttl`, refused ones 30 s (a bad key can't hammer the metagame), at most
+    /// Good keys are cached `ttl`, refused ones 30 s (a bad key can't hammer the backend), at most
     /// 2000 entries, oldest dropped first.
     pub fn new(lookup: Lookup, ttl: Duration) -> Self {
         Self::with(lookup, ttl, Duration::from_secs(30), 2000, Arc::new(crate::now_ms))
@@ -115,7 +115,7 @@ impl AuthCache {
                 entries.by_hash.remove(&hash);
                 entries.order.remove(&seq);
             }
-            // Several downloads start at once with the same key: ask the metagame once
+            // Several downloads start at once with the same key: ask the backend once
             match entries.in_flight.get(&hash) {
                 Some(pending) => pending.clone(),
                 None => {
@@ -133,7 +133,7 @@ impl AuthCache {
         let result = pending.await;
         let mut entries = self.entries.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         if entries.in_flight.remove(&hash).is_some() && !matches!(result, LookupResult::Unavailable(_)) {
-            // A metagame that is down or confused is not the account's fault: that is not cached
+            // A backend that is down or confused is not the account's fault: that is not cached
             let ttl = if matches!(result, LookupResult::Ok(_)) {
                 self.ttl_ms
             } else {
@@ -159,34 +159,32 @@ impl AuthCache {
     }
 }
 
-/// The real lookup: GET <METAGAME_URL>/undaunted/api/GetUserInfo with the key in its header. 200 with
-/// a UserId is an account, 401/403 a refused key, anything else means the metagame can't answer now.
-pub fn metagame_lookup(metagame_url: &str, timeout: Duration) -> Lookup {
-    let url = format!("{}/undaunted/api/GetUserInfo", metagame_url.trim_end_matches('/'));
+/// The real lookup (`BackendLookup`): GET <BACKEND_URL>/reforged/api/GetUserInfo with the key in its
+/// header. 200 with a UserId is an account, 401/403 a refused key, anything else means the backend
+/// can't answer now.
+pub fn backend_lookup(backend_url: &str, timeout: Duration) -> Lookup {
+    let url = format!("{}/reforged/api/GetUserInfo", backend_url.trim_end_matches('/'));
     Arc::new(move |key: String| {
         let url = url.clone();
         async move {
-            let headers = [
-                ("x-undaunted-user-api-key", key.as_str()),
-                ("accept", "application/json"),
-            ];
+            let headers = [(crate::app::KEY_HEADER, key.as_str()), ("accept", "application/json")];
             let reply = match crate::client::get(&url, &headers, timeout, 1024 * 1024).await {
                 Ok(reply) => reply,
-                Err(error) => return LookupResult::Unavailable(format!("metagame unreachable: {error}")),
+                Err(error) => return LookupResult::Unavailable(format!("backend unreachable: {error}")),
             };
             match reply.status.as_u16() {
                 401 | 403 => return LookupResult::Invalid,
                 200 => {}
-                other => return LookupResult::Unavailable(format!("metagame answered {other}")),
+                other => return LookupResult::Unavailable(format!("backend answered {other}")),
             }
             let Ok(body) = reply.body else {
-                return LookupResult::Unavailable("metagame answered with bad JSON".into());
+                return LookupResult::Unavailable("backend answered with bad JSON".into());
             };
             let Ok(info) = serde_json::from_slice::<Value>(&body) else {
-                return LookupResult::Unavailable("metagame answered with bad JSON".into());
+                return LookupResult::Unavailable("backend answered with bad JSON".into());
             };
             let Some(user_id) = info.get("UserId").and_then(Value::as_str).filter(|u| !u.is_empty()) else {
-                return LookupResult::Unavailable("metagame answer has no UserId".into());
+                return LookupResult::Unavailable("backend answer has no UserId".into());
             };
             LookupResult::Ok(AccountInfo {
                 user_id: user_id.to_owned(),
@@ -200,92 +198,243 @@ pub fn metagame_lookup(metagame_url: &str, timeout: Duration) -> Lookup {
 
 #[cfg(test)]
 mod tests {
+    //! test/auth.test.ts
     use super::*;
-    use std::sync::atomic::{AtomicI64, AtomicUsize, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicI64, AtomicUsize, Ordering};
 
-    fn counting(answer: fn(&str) -> LookupResult) -> (Lookup, Arc<AtomicUsize>) {
+    fn good() -> String {
+        format!("RRK_{}", "ab".repeat(24))
+    }
+
+    fn account() -> AccountInfo {
+        AccountInfo {
+            user_id: "UID-1".into(),
+            username: "tester".into(),
+            is_admin: false,
+        }
+    }
+
+    fn counting(answer: impl Fn(&str) -> LookupResult + Send + Sync + 'static) -> (Lookup, Arc<AtomicUsize>) {
         let calls = Arc::new(AtomicUsize::new(0));
         let counted = calls.clone();
         let lookup: Lookup = Arc::new(move |key: String| {
             counted.fetch_add(1, Ordering::SeqCst);
             let result = answer(&key);
-            async move {
-                tokio::time::sleep(Duration::from_millis(20)).await;
-                result
-            }
-            .boxed()
+            async move { result }.boxed()
         });
         (lookup, calls)
     }
 
-    fn ok(key: &str) -> LookupResult {
-        match key {
-            "UUK_good" => LookupResult::Ok(AccountInfo {
-                user_id: "UID-A".into(),
-                username: "alpha".into(),
-                is_admin: false,
-            }),
-            "UUK_down" => LookupResult::Unavailable("down".into()),
-            _ => LookupResult::Invalid,
-        }
+    fn clock(now: &Arc<AtomicI64>) -> Clock {
+        let now = now.clone();
+        Arc::new(move || now.load(Ordering::SeqCst))
+    }
+
+    fn cache(lookup: Lookup) -> AuthCache {
+        AuthCache::new(lookup, Duration::from_secs(300))
     }
 
     #[tokio::test]
-    async fn answers_are_cached_by_hash_and_expire() {
-        let now = Arc::new(AtomicI64::new(0));
-        let clock = now.clone();
-        let (lookup, calls) = counting(ok);
+    async fn a_good_key_is_looked_up_once_and_then_served_from_the_cache() {
+        let (lookup, calls) = counting(|key| {
+            if key == good() {
+                LookupResult::Ok(account())
+            } else {
+                LookupResult::Invalid
+            }
+        });
+        let cache = cache(lookup);
+        assert_eq!(cache.check(&good()).await, LookupResult::Ok(account()));
+        assert_eq!(cache.check(&good()).await, LookupResult::Ok(account()));
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn the_cache_is_keyed_by_the_key_s_hash_and_never_holds_the_key() {
+        let (lookup, _) = counting(|_| LookupResult::Ok(account()));
+        let cache = cache(lookup);
+        cache.check(&good()).await;
+        assert!(cache.has_hash(&hash_key(&good())));
+        assert!(!cache.has_hash(&good()));
+        let entries = cache.entries.lock().unwrap();
+        assert!(!format!("{:?} {:?}", entries.by_hash, entries.order).contains(&good()));
+        assert_eq!(hash_key(&good()).len(), 64);
+        assert_ne!(hash_key(&good()), good());
+    }
+
+    #[tokio::test]
+    async fn entries_expire_after_the_ttl() {
+        let now = Arc::new(AtomicI64::new(1_000_000));
+        let (lookup, calls) = counting(|_| LookupResult::Ok(account()));
         let cache = AuthCache::with(
             lookup,
             Duration::from_secs(300),
             Duration::from_secs(30),
             2000,
-            Arc::new(move || clock.load(Ordering::SeqCst)),
+            clock(&now),
         );
-        assert!(matches!(cache.check("UUK_good").await, LookupResult::Ok(_)));
-        assert!(matches!(cache.check("UUK_good").await, LookupResult::Ok(_)));
+        cache.check(&good()).await;
+        now.fetch_add(5 * 60 * 1000 - 1, Ordering::SeqCst);
+        cache.check(&good()).await;
         assert_eq!(calls.load(Ordering::SeqCst), 1);
-        assert!(cache.has_hash(&hash_key("UUK_good")) && !cache.has_hash("UUK_good"));
-        now.store(300_001, Ordering::SeqCst);
-        cache.check("UUK_good").await;
+        now.fetch_add(2, Ordering::SeqCst);
+        cache.check(&good()).await;
         assert_eq!(calls.load(Ordering::SeqCst), 2);
-        // Refused keys briefly, outages not at all
-        cache.check("UUK_bad").await;
-        cache.check("UUK_bad").await;
-        assert_eq!(calls.load(Ordering::SeqCst), 3);
-        cache.check("UUK_down").await;
-        cache.check("UUK_down").await;
-        assert_eq!(calls.load(Ordering::SeqCst), 5);
-        // Implausible keys never reach the lookup
-        for bad in ["", "has space", &"x".repeat(257), "caf\u{e9}"] {
-            assert_eq!(cache.check(bad).await, LookupResult::Invalid);
-        }
-        assert_eq!(calls.load(Ordering::SeqCst), 5);
     }
 
     #[tokio::test]
-    async fn concurrent_checks_share_one_lookup_and_the_cache_stays_bounded() {
-        let (lookup, calls) = counting(ok);
-        let cache = Arc::new(AuthCache::with(
+    async fn refused_keys_are_cached_briefly_backend_outages_not_at_all() {
+        let now = Arc::new(AtomicI64::new(0));
+        let down = Arc::new(AtomicBool::new(true));
+        let is_down = down.clone();
+        let (lookup, calls) = counting(move |key| {
+            if is_down.load(Ordering::SeqCst) {
+                LookupResult::Unavailable("down".into())
+            } else if key == good() {
+                LookupResult::Ok(account())
+            } else {
+                LookupResult::Invalid
+            }
+        });
+        let cache = AuthCache::with(
             lookup,
             Duration::from_secs(300),
             Duration::from_secs(30),
-            3,
-            Arc::new(|| 0),
-        ));
-        let checks: Vec<_> = (0..5)
+            2000,
+            clock(&now),
+        );
+        assert!(matches!(cache.check(&good()).await, LookupResult::Unavailable(_)));
+        down.store(false, Ordering::SeqCst);
+        assert!(matches!(cache.check(&good()).await, LookupResult::Ok(_)));
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
+        assert_eq!(cache.check("RRK_wrong").await, LookupResult::Invalid);
+        assert_eq!(cache.check("RRK_wrong").await, LookupResult::Invalid);
+        assert_eq!(calls.load(Ordering::SeqCst), 3);
+        now.fetch_add(30_001, Ordering::SeqCst);
+        assert_eq!(cache.check("RRK_wrong").await, LookupResult::Invalid);
+        assert_eq!(calls.load(Ordering::SeqCst), 4);
+    }
+
+    #[tokio::test]
+    async fn implausible_keys_are_refused_without_a_lookup() {
+        let (lookup, calls) = counting(|_| LookupResult::Ok(account()));
+        let cache = cache(lookup);
+        // The header is a string or absent here: Node's undefined and 42 have no Rust counterpart
+        let long = "x".repeat(257);
+        for bad in ["", "has space", "line\nbreak", long.as_str(), "\u{e4}"] {
+            assert_eq!(cache.check(bad).await, LookupResult::Invalid, "{bad}");
+            assert!(!is_plausible_key(bad));
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn concurrent_checks_of_one_key_share_a_single_lookup() {
+        let gate = Arc::new(tokio::sync::Semaphore::new(0));
+        let calls = Arc::new(AtomicUsize::new(0));
+        let (opened, counted) = (gate.clone(), calls.clone());
+        let lookup: Lookup = Arc::new(move |_| {
+            counted.fetch_add(1, Ordering::SeqCst);
+            let opened = opened.clone();
+            async move {
+                let _ = opened.acquire().await;
+                LookupResult::Ok(account())
+            }
+            .boxed()
+        });
+        let cache = Arc::new(cache(lookup));
+        let checks: Vec<_> = (0..3)
             .map(|_| {
-                let c = cache.clone();
-                tokio::spawn(async move { c.check("UUK_good").await })
+                let cache = cache.clone();
+                tokio::spawn(async move { cache.check(&good()).await })
             })
             .collect();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        gate.add_permits(10);
         for check in checks {
             assert!(matches!(check.await.unwrap(), LookupResult::Ok(_)));
         }
         assert_eq!(calls.load(Ordering::SeqCst), 1);
-        for i in 0..10 {
-            cache.check(&format!("UUK_other{i}")).await;
+    }
+
+    #[tokio::test]
+    async fn a_lookup_that_panics_counts_as_unavailable() {
+        let lookup: Lookup = Arc::new(|_| async { panic!("boom") }.boxed());
+        let cache = cache(lookup);
+        assert!(matches!(cache.check(&good()).await, LookupResult::Unavailable(_)));
+        assert_eq!(cache.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn the_cache_stays_bounded() {
+        let (lookup, _) = counting(|_| LookupResult::Invalid);
+        let cache = AuthCache::with(
+            lookup,
+            Duration::from_secs(300),
+            Duration::from_secs(30),
+            10,
+            Arc::new(crate::now_ms),
+        );
+        for i in 0..50 {
+            cache.check(&format!("RRK_{i}")).await;
         }
-        assert_eq!(cache.len(), 3);
+        assert_eq!(cache.len(), 10);
+        assert!(cache.has_hash(&hash_key("RRK_49")));
+        assert!(!cache.has_hash(&hash_key("RRK_0")));
+    }
+
+    #[tokio::test]
+    async fn backend_lookup_maps_the_backend_s_answers() {
+        let mode = Arc::new(std::sync::Mutex::new("ok"));
+        let seen = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let (state_mode, state_seen) = (mode.clone(), seen.clone());
+        let handler = move |request: axum::extract::Request| {
+            let mode = *state_mode.lock().unwrap();
+            state_seen.lock().unwrap().push(request.uri().to_string());
+            let key = request
+                .headers()
+                .get(crate::app::KEY_HEADER)
+                .map(|v| v.as_bytes().to_vec());
+            async move {
+                use axum::http::StatusCode;
+                if key.as_deref() != Some(good().as_bytes()) {
+                    return (StatusCode::UNAUTHORIZED, String::new());
+                }
+                match mode {
+                    "500" => (StatusCode::INTERNAL_SERVER_ERROR, String::new()),
+                    "junk" => (StatusCode::OK, "{nope".into()),
+                    _ => (
+                        StatusCode::OK,
+                        r#"{"UserId":"UID-1","Username":"tester","IsAdmin":false}"#.into(),
+                    ),
+                }
+            }
+        };
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        tokio::spawn(async move { axum::serve(listener, axum::Router::new().fallback(handler)).await });
+
+        let lookup = backend_lookup(&format!("http://127.0.0.1:{port}/"), Duration::from_secs(2));
+        assert_eq!(lookup(good()).await, LookupResult::Ok(account()));
+        assert_eq!(lookup("RRK_nope".into()).await, LookupResult::Invalid);
+        *mode.lock().unwrap() = "junk";
+        assert!(matches!(lookup(good()).await, LookupResult::Unavailable(_)));
+        *mode.lock().unwrap() = "500";
+        assert!(matches!(lookup(good()).await, LookupResult::Unavailable(_)));
+        assert!(
+            seen.lock()
+                .unwrap()
+                .iter()
+                .all(|url| url == "/reforged/api/GetUserInfo")
+        );
+
+        // Nothing listens on a port just freed
+        let free = std::net::TcpListener::bind("127.0.0.1:0")
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        let nowhere = backend_lookup(&format!("http://127.0.0.1:{free}"), Duration::from_secs(1));
+        assert!(matches!(nowhere(good()).await, LookupResult::Unavailable(_)));
     }
 }

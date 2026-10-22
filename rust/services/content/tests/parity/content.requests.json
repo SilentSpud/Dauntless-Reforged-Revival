@@ -1,37 +1,14 @@
 {
-  "about": "The content server: routes, methods, file paths, account keys, ranges, conditions, files gone or changed, branding and news (MIGRATION_PLAN.md S1).",
+  "about": "The content server with a published runtime: routes, methods, paths, account keys, conditions, ranges (ignored), a file changed under the list and back, branding and news (MIGRATION_PLAN.md RS2).",
   "env": {},
-  "files": {
-    "Version.txt": {
-      "text": "test-build \r\n"
-    },
-    "Data/empty.log": {
-      "text": ""
-    },
-    "Data/small.bin": {
-      "pattern": 5000
-    },
-    "Data/changes.bin": {
-      "text": "will be touched"
-    },
-    "Data/gone.bin": {
-      "text": "will be deleted"
-    },
-    "Data/resized.bin": {
-      "text": "will be resized"
-    }
-  },
-  "gone": [
-    "Data/gone.bin"
-  ],
-  "resized": {
-    "Data/resized.bin": {
-      "text": "now a different size"
-    }
-  },
-  "extra": {
-    "Data/not-in-manifest.bin": {
-      "text": "secret"
+  "runtime": {
+    "files": {
+      "MysticParadox.dll": {
+        "pattern": 70000
+      },
+      "winmm.dll": {
+        "pattern": 3000
+      }
     }
   },
   "branding": {
@@ -81,7 +58,7 @@
     ]
   },
   "keys": {
-    "UUK_content_good_key_0123456789ab": {
+    "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz": {
       "status": 200,
       "body": {
         "UserId": "UID-A",
@@ -89,355 +66,538 @@
         "IsAdmin": false
       }
     },
-    "UUK_content_other_key_0123456789": {
-      "status": 200,
+    "RRK_refused": {
+      "status": 403,
+      "body": {}
+    },
+    "RRK_down": {
+      "status": 500,
       "body": {
-        "UserId": "UID-B",
-        "Username": "beta",
-        "IsAdmin": false
+        "error": "boom"
       }
     },
-    "UUK_content_down_key_00000000000": {
-      "status": 500,
-      "body": {}
+    "RRK_junk": {
+      "status": 200,
+      "body": "{nope"
+    },
+    "RRK_noid": {
+      "status": 200,
+      "body": {
+        "Username": "x"
+      }
     }
   },
   "requests": [
     {
-      "method": "GET",
-      "path": "/",
-      "headers": {}
+      "path": "/"
     },
     {
-      "method": "GET",
-      "path": "/content/v1/manifest",
-      "headers": {}
+      "path": "/content/v1/runtime/manifest"
     },
     {
+      "path": "/content/v1/runtime/manifest",
+      "method": "HEAD"
+    },
+    {
+      "path": "/content/v1/runtime/manifest?x=1"
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "W/$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "\"x\", $etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "*"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "\"nope\""
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "\"nope\""
+        ],
+        [
+          "if-none-match",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "method": "POST"
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "method": "DELETE"
+    },
+    {
+      "path": "/nothing",
+      "method": "POST"
+    },
+    {
+      "path": "/content/v1/runtime/manifest/"
+    },
+    {
+      "path": "/CONTENT/v1/runtime/manifest"
+    },
+    {
+      "path": "/content/v1/runtime"
+    },
+    {
+      "path": "/content/v1/files/x",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/manifest"
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll"
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-undaunted-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_refused"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_down"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_junk"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_noid"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_unknown"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "has space"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ],
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
       "method": "HEAD",
-      "path": "/content/v1/manifest",
-      "headers": {}
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
     },
     {
-      "method": "GET",
-      "path": "/content/v1/manifest?x=1",
-      "headers": {}
+      "path": "/content/v1/runtime/files/MysticParadox.dll?download=1",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
     },
     {
-      "method": "GET",
-      "path": "/content/v1/manifest",
-      "headers": {
-        "if-none-match": "*"
-      }
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
     },
     {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ],
+        [
+          "if-none-match",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "method": "HEAD",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ],
+        [
+          "if-none-match",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ],
+        [
+          "range",
+          "bytes=0-9"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ],
+        [
+          "range",
+          "bytes=0-9"
+        ],
+        [
+          "if-range",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ],
+        [
+          "range",
+          "bytes=999999-"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/mysticparadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/WINMM.DLL",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/runtime.json",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/../runtime.json",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/%2e%2e/runtime.json",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll/x",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/?name=winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm%2Edll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll%00",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
       "method": "POST",
-      "path": "/content/v1/manifest",
-      "headers": {}
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
     },
     {
-      "method": "DELETE",
-      "path": "/content/v1/other",
-      "headers": {}
+      "path": "/content/v1/branding"
     },
     {
-      "method": "GET",
-      "path": "/content/v1/files",
-      "headers": {}
-    },
-    {
-      "method": "GET",
       "path": "/content/v1/branding",
-      "headers": {}
+      "method": "HEAD"
     },
     {
-      "method": "GET",
+      "path": "/content/v1/branding/harbour.jpg"
+    },
+    {
+      "path": "/content/v1/branding/harbour.jpg",
+      "headers": [
+        [
+          "if-none-match",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/branding/harbour.jpg",
+      "method": "HEAD"
+    },
+    {
+      "path": "/content/v1/branding/second.png"
+    },
+    {
+      "path": "/content/v1/branding/fake.png"
+    },
+    {
+      "path": "/content/v1/branding/missing.jpg"
+    },
+    {
+      "path": "/content/v1/branding/..%2fsecret.jpg"
+    },
+    {
+      "path": "/content/v1/branding/notes.txt"
+    },
+    {
+      "path": "/content/v1/branding/harbour.jpg",
+      "method": "PUT"
+    },
+    {
+      "path": "/content/v1/branding/"
+    },
+    {
+      "path": "/content/v1/news"
+    },
+    {
       "path": "/content/v1/news",
-      "headers": {}
+      "method": "HEAD"
     },
     {
-      "method": "HEAD",
-      "path": "/content/v1/news",
-      "headers": {}
+      "path": "/content/v1/news?x"
     },
     {
-      "method": "GET",
-      "path": "/content/v1/files/../../Windows/win.ini",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      "path": "/content/v1/news/"
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "x-forwarded-for",
+          "203.0.113.9"
+        ]
+      ]
+    },
+    {
+      "write": "winmm.dll",
+      "spec": {
+        "pattern": 2999
       }
     },
     {
-      "method": "GET",
-      "path": "/content/v1/files/..%2f..%2fx",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest"
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "write": "winmm.dll",
+      "spec": {
+        "pattern": 3000
       }
     },
     {
-      "method": "GET",
-      "path": "/content/v1/files/%252e%252e/x",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
+      "path": "/content/v1/runtime/manifest"
     },
     {
-      "method": "GET",
-      "path": "/content/v1/files/C:/Windows/win.ini",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/%E0%A4%A",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/../Version.txt",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/not-in-manifest.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/nothing.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Version.txt",
-      "headers": {}
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Version.txt",
-      "headers": {
-        "x-undaunted-user-api-key": "has space"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Version.txt",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_wrong_key_000000000000000000"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Version.txt",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_down_key_00000000000"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Version.txt",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "method": "HEAD",
-      "path": "/content/v1/files/Version.txt",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/small.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_other_key_0123456789"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/empty.log",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/small.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
-        "range": "bytes=0-9"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/small.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
-        "range": "bytes=4990-"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/small.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
-        "range": "bytes=-5"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/small.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
-        "range": "bytes=4999-6000"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/small.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
-        "range": "bytes=5000-"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/small.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
-        "range": "bytes=0-1,4-5"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/small.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
-        "range": "items=0-1"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/small.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
-        "range": "bytes=0-9",
-        "if-range": "\"stale\""
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/empty.log",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
-        "range": "bytes=0-"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/small.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
-        "if-none-match": "*"
-      }
-    },
-    {
-      "method": "HEAD",
-      "path": "/content/v1/files/Data/small.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
-        "range": "bytes=1-2"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/gone.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/resized.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "touch": "Data/changes.bin"
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/changes.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/files/Data/changes.bin",
-      "headers": {
-        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/branding/harbour.jpg",
-      "headers": {}
-    },
-    {
-      "method": "HEAD",
-      "path": "/content/v1/branding/harbour.jpg",
-      "headers": {}
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/branding/harbour.jpg",
-      "headers": {
-        "if-none-match": "W/\"x\", \"8-18bcfe56800\""
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/branding/second.png",
-      "headers": {}
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/branding/fake.png",
-      "headers": {}
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/branding/missing.jpg",
-      "headers": {}
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/branding/..%2fsecret.jpg",
-      "headers": {}
-    },
-    {
-      "method": "GET",
-      "path": "/content/v1/branding/notes.txt",
-      "headers": {}
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
     }
   ]
 }

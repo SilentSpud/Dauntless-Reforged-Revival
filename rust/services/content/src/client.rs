@@ -1,4 +1,4 @@
-//! Outgoing GETs (Node's `fetch` with `redirect: "error"` and a timeout): the metagame's account
+//! Outgoing GETs (Node's `fetch` with `redirect: "error"` and a timeout): the backend's account
 //! lookup and the GitHub news file. HTTP or HTTPS (rustls with the webpki roots); a redirect is an
 //! error, as `redirect: "error"` made it.
 

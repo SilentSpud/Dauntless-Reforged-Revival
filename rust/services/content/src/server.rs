@@ -1,10 +1,12 @@
-//! `content serve` (`src/server.ts`): the settings, the manifest and the startup check of the game
-//! folder, then one listener per bind address. A download whose client stopped reading for two
-//! minutes is dropped, which frees its slot; at most 512 connections per listener.
+//! `content serve` (`src/server.ts`): the settings, the runtime store and the news, then one listener
+//! per bind address. There is no game folder to check at start: a runtime that is missing or does not
+//! check out is logged, and players are told the host has not published one. A download whose client
+//! stopped reading for two minutes is dropped, which frees its slot; at most 512 connections per
+//! listener.
 
 use std::net::SocketAddr;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::task::{Context, Poll};
 use std::time::Duration;
 
@@ -16,93 +18,39 @@ use tokio::sync::Semaphore;
 use tower::ServiceExt;
 
 use crate::app::{App, AppState, Deps};
-use crate::auth::{AuthCache, metagame_lookup};
+use crate::auth::{AuthCache, backend_lookup};
 use crate::branding::Branding;
 use crate::config::Config;
-use crate::gamedir::{self, FileState};
 use crate::limits::StreamLimiter;
 use crate::log;
-use crate::manifest::{self, EXPECTED_BUILD};
 use crate::news::News;
+use crate::runtime::RuntimeStore;
 
 const IDLE: Duration = Duration::from_secs(120);
 const HEADERS_TIMEOUT: Duration = Duration::from_secs(20);
 const MAX_CONNECTIONS: usize = 512;
 
-fn state_json(state: Option<&FileState>) -> serde_json::Value {
-    match state {
-        Some(FileState::SizeMismatch { actual }) => json!({"status": "size_mismatch", "actual": actual}),
-        Some(other) => json!({"status": other.status()}),
-        None => serde_json::Value::Null,
-    }
-}
-
-/// Everything up to listening: the manifest, the game folder check and the app. The reason it
-/// can't start is an error.
-pub fn prepare(config: &Config) -> Result<AppState, String> {
-    let shown = config
-        .manifest_path
-        .as_ref()
-        .map_or_else(|| "built-in".to_owned(), |p| p.display().to_string());
-    let manifest = manifest::load(config.manifest_path.as_deref()).map_err(|e| format!("Manifest {shown}: {e}"))?;
-    if manifest.build != EXPECTED_BUILD {
-        log::warn(
-            "manifest is for a different build than this server was written for",
-            json!({"build": manifest.build}),
-        );
-    }
-    // Startup check: every manifest file present with the right size. Files that fail are not served.
-    let report = gamedir::check(&config.game_dir, &manifest);
-    log::info(
-        "game folder checked (sizes only; content verify hashes everything)",
-        json!({
-            "gameDir": config.game_dir.display().to_string(),
-            "build": manifest.build,
-            "files": manifest.files.len(),
-            "ok": report.ok,
-            "missing": report.missing.len(),
-            "mismatched": report.mismatched.len(),
-            "bytesOk": report.bytes_ok,
-            "totalBytes": manifest.total_bytes,
-        }),
-    );
-    if report.ok == 0 {
-        return Err(format!(
-            "None of the {} manifest files is in {}. Is CONTENT_GAME_DIR the folder that contains Archon\\?",
-            manifest.files.len(),
-            config.game_dir.display()
-        ));
-    }
-    for path in report.missing.iter().take(20) {
-        log::warn("missing game file (not served)", json!({"path": path}));
-    }
-    for path in report.mismatched.iter().take(20) {
-        log::warn(
-            "game file has the wrong size or is not a regular file (not served)",
-            json!({"path": path, "state": state_json(report.states.get(path))}),
-        );
-    }
-    if report.missing.len() + report.mismatched.len() > 40 {
-        log::warn(
-            "more problems than listed; run content verify for the full list",
-            json!({}),
-        );
-    }
+/// Everything up to listening: the runtime store (checked once now) and the app.
+pub fn prepare(config: &Config) -> AppState {
     let clock: crate::auth::Clock = Arc::new(crate::now_ms);
-    Ok(App::new(Deps {
-        download_base_url: config.download_base_url.clone(),
-        index: manifest::index(&manifest),
-        manifest,
-        game_dir: config.game_dir.clone(),
-        states: Mutex::new(report.states),
+    let runtime = Arc::new(RuntimeStore::new(config.runtime_dir.clone(), clock.clone()));
+    let first = runtime.get();
+    if let Some(reason) = first.reason() {
+        log::warn(
+            "no runtime is offered to players yet; the launcher shows them that the host has to publish one",
+            json!({"dir": config.runtime_dir.as_ref().map(|d| d.display().to_string()), "reason": reason}),
+        );
+    }
+    App::new(Deps {
+        runtime,
         auth: AuthCache::new(
-            metagame_lookup(&config.metagame_url, Duration::from_secs(5)),
+            backend_lookup(&config.backend_url, Duration::from_secs(5)),
             Duration::from_secs(config.auth_cache_seconds),
         ),
         limiter: StreamLimiter::new(config.max_streams_per_account, config.max_streams_total),
         branding: Branding::new(config.branding_dir.clone(), clock.clone()),
         news: Arc::new(News::new(config.news_file.clone(), config.news_url.clone(), clock)),
-    }))
+    })
 }
 
 /// A connection that ends after two minutes in which nothing could be read or written (Node's
@@ -211,37 +159,31 @@ pub async fn serve(listener: TcpListener, app: AppState, mut stop: tokio::sync::
 
 /// Starts every listener and serves until asked to stop.
 pub async fn run(config: Config) -> Result<(), String> {
-    let app = prepare(&config)?;
+    let app = prepare(&config);
     let (stop_tx, stop_rx) = tokio::sync::watch::channel(false);
     let mut servers = Vec::new();
     for host in &config.bind_hosts {
-        let address = if host == "localhost" {
-            "127.0.0.1"
-        } else {
-            host.as_str()
-        };
-        let ip: std::net::IpAddr = address
-            .parse()
-            .map_err(|_| format!("Could not listen on {host}:{}: not an address", config.port))?;
+        let ip = Config::bind_address(host)
+            .ok_or_else(|| format!("Could not listen on {host}:{}: not an address", config.port))?;
         let listener = TcpListener::bind(SocketAddr::new(ip, config.port))
             .await
             .map_err(|e| format!("Could not listen on {host}:{}: {e}", config.port))?;
-        log::info(
-            &format!("Dauntless Revived content server on {host}:{}", config.port),
-            json!({}),
-        );
         servers.push(tokio::spawn(serve(listener, app.clone(), stop_rx.clone())));
     }
     log::info(
         "content server ready",
         json!({
-            "metagame": config.metagame_url,
+            "listen": config.bind_hosts.iter().map(|h| format!("{h}:{}", config.port)).collect::<Vec<_>>(),
+            "backend": config.backend_url,
+            "runtime": config.runtime_dir.as_ref().map(|d| d.display().to_string()),
             "branding": config.branding_dir.as_ref().map(|d| d.display().to_string()),
-            "news": config.news_file.as_ref().map(|d| d.display().to_string()),
+            "news": config.news_file.as_ref().map(|d| d.display().to_string()).or_else(|| config.news_url.clone()),
             "maxStreamsPerAccount": config.max_streams_per_account,
             "maxStreamsTotal": config.max_streams_total,
         }),
     );
+    // Ctrl+C, SIGTERM, Ctrl+Break (Node's SIGBREAK: a console window closed on Windows) or
+    // "shutdown" on stdin
     service_kit::serve::stop_requested().await;
     log::info("stopping", json!({"signal": "stop"}));
     let _ = stop_tx.send(true);

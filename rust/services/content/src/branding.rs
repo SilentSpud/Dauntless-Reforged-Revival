@@ -305,27 +305,187 @@ impl Branding {
 
 #[cfg(test)]
 mod tests {
+    //! test/branding-news.test.ts, the branding half
     use super::*;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicI64, Ordering};
+
+    // Synthetic image bytes: just the right signature plus filler. No real artwork anywhere in the tests.
+    fn jpeg() -> Vec<u8> {
+        [&[0xff, 0xd8, 0xff, 0xe0][..], &[1; 60]].concat()
+    }
+    fn png() -> Vec<u8> {
+        [&[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a][..], &[2; 60]].concat()
+    }
+    fn webp() -> Vec<u8> {
+        [&b"RIFF"[..], &[0x40, 0, 0, 0], b"WEBP", &[3; 52]].concat()
+    }
+
+    fn clock() -> crate::auth::Clock {
+        Arc::new(|| 0)
+    }
 
     #[test]
-    fn names_credits_and_accents() {
-        for good in ["a.jpg", "Harbour-Dusk.JPEG", "x_1.y-2.png", "z.webp"] {
+    fn image_names() {
+        for good in ["a.jpg", "Harbour-Dusk_2.JPEG", "x.png", "bg.v2.webp"] {
             assert!(is_safe_image_name(good), "{good}");
         }
+        let long = format!("{}.jpg", "x".repeat(100));
         for bad in [
-            ".a.jpg", "-a.jpg", "a.gif", "a..jpg", "a b.png", "../a.png", "a.png/", "jpg",
+            "../a.jpg",
+            "a/b.jpg",
+            "a\\b.jpg",
+            ".a.jpg",
+            "a..jpg",
+            "a.gif",
+            "a.svg",
+            "a.html",
+            "a.jpg.exe",
+            "a b.jpg",
+            "",
+            "branding.json",
+            long.as_str(),
         ] {
             assert!(!is_safe_image_name(bad), "{bad}");
         }
+    }
+
+    #[test]
+    fn signatures_must_match_the_extension() {
+        assert!(magic_matches(&jpeg(), "image/jpeg"));
+        assert!(magic_matches(&png(), "image/png"));
+        assert!(magic_matches(&webp(), "image/webp"));
+        assert!(!magic_matches(&png(), "image/jpeg"));
+        assert!(!magic_matches(b"<html>", "image/png"));
+        assert!(!magic_matches(&[], "image/webp"));
+    }
+
+    #[test]
+    fn accent_and_credit_cleaning() {
+        assert_eq!(clean_accent(Some(&json!("#C8A24A"))).as_deref(), Some("#c8a24a"));
+        assert_eq!(clean_accent(Some(&json!(" #abc "))).as_deref(), Some("#abc"));
+        for bad in [
+            json!("red"),
+            json!("#abcd"),
+            json!("#12345g"),
+            json!("url(x)"),
+            json!(5),
+            Value::Null,
+        ] {
+            assert_eq!(clean_accent(Some(&bad)), None, "{bad}");
+        }
         assert_eq!(
-            clean_credit(Some(&json!("  Photo\tby\n\na  friend "))),
-            Some("Photo by a friend".into())
+            clean_credit(Some(&json!("  Photo\nby   a friend "))).as_deref(),
+            Some("Photo by a friend")
         );
-        assert_eq!(clean_credit(Some(&json!("   "))), None);
-        assert_eq!(clean_credit(Some(&json!(5))), None);
-        assert_eq!(clean_accent(Some(&json!(" #C8A24A "))), Some("#c8a24a".into()));
-        assert_eq!(clean_accent(Some(&json!("#abcd"))), None);
-        assert!(magic_matches(&[0xff, 0xd8, 0xff, 0], "image/jpeg"));
-        assert!(!magic_matches(b"GIF89a", "image/png"));
+        assert_eq!(clean_credit(Some(&json!(""))), None);
+        assert_eq!(clean_credit(Some(&json!(7))), None);
+        assert_eq!(clean_credit(Some(&json!("x".repeat(500)))).map(|c| c.len()), Some(200));
+    }
+
+    #[test]
+    fn no_branding_folder_means_no_art() {
+        let branding = Branding::new(None, clock());
+        assert_eq!(branding.body(), json!({"backgrounds": [], "accent": null}));
+        assert!(branding.image("a.jpg").is_none());
+    }
+
+    #[test]
+    fn without_branding_json_every_valid_image_is_listed_in_name_order() {
+        let dir = tempfile::tempdir().unwrap();
+        let at = |name: &str| dir.path().join(name);
+        std::fs::write(at("b.png"), png()).unwrap();
+        std::fs::write(at("a.jpg"), jpeg()).unwrap();
+        std::fs::write(at("c.webp"), webp()).unwrap();
+        std::fs::write(at("fake.jpg"), "<script>alert(1)</script>").unwrap();
+        std::fs::write(at("notes.txt"), "hello").unwrap();
+        std::fs::write(at("empty.png"), "").unwrap();
+        std::fs::create_dir(at("sub.jpg")).unwrap();
+
+        let state = scan(Some(dir.path()));
+        assert_eq!(
+            state.images.iter().map(|i| i.file.as_str()).collect::<Vec<_>>(),
+            ["a.jpg", "b.png", "c.webp"]
+        );
+        assert_eq!(state.images[1].content_type, "image/png");
+        assert_eq!(state.accent, None);
+
+        let branding = Branding::new(Some(dir.path().into()), clock());
+        assert_eq!(
+            branding.body(),
+            json!({
+                "backgrounds": [
+                    {"url": "/content/v1/branding/a.jpg", "credit": null},
+                    {"url": "/content/v1/branding/b.png", "credit": null},
+                    {"url": "/content/v1/branding/c.webp", "credit": null},
+                ],
+                "accent": null,
+            })
+        );
+        assert_eq!(branding.image("a.jpg").map(|(_, full)| full), Some(at("a.jpg")));
+        for refused in ["fake.jpg", "notes.txt", "../a.jpg"] {
+            assert!(branding.image(refused).is_none(), "{refused}");
+        }
+    }
+
+    #[test]
+    fn branding_json_sets_order_credits_and_the_accent_and_can_t_reach_outside_the_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.jpg"), jpeg()).unwrap();
+        std::fs::write(dir.path().join("b.png"), png()).unwrap();
+        std::fs::write(
+            dir.path().join("branding.json"),
+            json!({
+                "accent": "#D4A24C",
+                "backgrounds": [
+                    {"file": "b.png", "credit": "Photo by a friend"},
+                    "a.jpg",
+                    {"file": "../../secret.jpg", "credit": "nope"},
+                    {"file": "missing.jpg"},
+                    "a.jpg",
+                ],
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let (state, lines) = crate::log::tests::captured(|| scan(Some(dir.path())));
+        assert_eq!(
+            state
+                .images
+                .iter()
+                .map(|i| (i.file.as_str(), i.credit.as_deref()))
+                .collect::<Vec<_>>(),
+            [("b.png", Some("Photo by a friend")), ("a.jpg", None)]
+        );
+        assert_eq!(state.accent.as_deref(), Some("#d4a24c"));
+        assert!(lines.len() >= 3, "skipped entries are logged");
+    }
+
+    #[test]
+    fn a_broken_branding_json_or_a_missing_folder_never_throws() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.jpg"), jpeg()).unwrap();
+        std::fs::write(dir.path().join("branding.json"), "{ nope").unwrap();
+        let state = scan(Some(dir.path()));
+        assert_eq!(
+            state.images.iter().map(|i| i.file.as_str()).collect::<Vec<_>>(),
+            ["a.jpg"]
+        );
+        assert!(scan(Some(&dir.path().join("does-not-exist"))).images.is_empty());
+    }
+
+    #[test]
+    fn the_folder_is_re_read_after_the_rescan_interval() {
+        let dir = tempfile::tempdir().unwrap();
+        let now = Arc::new(AtomicI64::new(0));
+        let read = now.clone();
+        let branding = Branding::new(Some(dir.path().into()), Arc::new(move || read.load(Ordering::SeqCst)));
+        let count = |b: &Branding| b.body()["backgrounds"].as_array().unwrap().len();
+        assert_eq!(count(&branding), 0);
+        std::fs::write(dir.path().join("a.jpg"), jpeg()).unwrap();
+        now.fetch_add(5_000, Ordering::SeqCst);
+        assert_eq!(count(&branding), 0, "cached");
+        now.fetch_add(5_000, Ordering::SeqCst);
+        assert_eq!(count(&branding), 1, "rescanned");
     }
 }

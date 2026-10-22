@@ -1,8 +1,8 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)] // test helpers
 
-//! The content server's parity with the Node one (MIGRATION_PLAN.md S1): each
+//! The content server's parity with the Node one (MIGRATION_PLAN.md RS2): each
 //! `tests/parity/<name>.requests.json` script runs against the Rust server, and every reply's status,
-//! headers and body must be what the Node server answered (`<name>.expected.json`, written by
+//! headers and body must be what `legacy/ReforgedContent` answered (`<name>.expected.json`, written by
 //! `tests/parity/record.cjs` on the same fixture). Requests go out as raw HTTP over TCP, the path
 //! exactly as written.
 
@@ -31,92 +31,88 @@ fn bytes_of(spec: &Value) -> Vec<u8> {
         .collect()
 }
 
-fn mtime(seconds: u64) -> SystemTime {
-    SystemTime::UNIX_EPOCH + Duration::from_secs(seconds)
+fn hex(data: &[u8]) -> String {
+    Sha256::digest(data).iter().map(|b| format!("{b:02x}")).collect()
 }
 
-fn write_file(full: &Path, data: &[u8], modified: SystemTime) {
+fn write_file(full: &Path, data: &[u8]) {
     std::fs::create_dir_all(full.parent().unwrap()).unwrap();
     let mut file = std::fs::File::create(full).unwrap();
     file.write_all(data).unwrap();
-    file.set_modified(modified).unwrap();
+    // Every file's modification time, so ETags made from it are the same on both servers
+    file.set_modified(SystemTime::UNIX_EPOCH + Duration::from_secs(1_700_000_000))
+        .unwrap();
 }
 
-fn under(root: &Path, relative: &str) -> std::path::PathBuf {
-    relative.split('/').fold(root.to_path_buf(), |p, s| p.join(s))
+/// An object as `JSON.stringify` writes it, or text as it is.
+fn text(value: &Value) -> String {
+    value
+        .as_str()
+        .map_or_else(|| service_kit::jsjson::stringify(value), str::to_owned)
 }
 
 /// Kept in step with fixture() in record.cjs.
 fn fixture(script: &Value, dir: &Path) {
-    let game = dir.join("game");
-    std::fs::create_dir_all(&game).unwrap();
-    let mut files: Vec<(String, Vec<u8>)> = script["files"]
-        .as_object()
-        .unwrap()
-        .iter()
-        .map(|(rel, spec)| (rel.clone(), bytes_of(spec)))
-        .collect();
-    for (rel, data) in &files {
-        write_file(&under(&game, rel), data, mtime(1_700_000_000));
-    }
-    files.sort_by(|a, b| a.0.cmp(&b.0));
-    let manifest = json!({
-        "build": script["build"].as_str().unwrap_or("dauntless_rel-1.4.4_Shipping_2020-10-28_20-11-15_239827"),
-        "totalBytes": files.iter().map(|(_, d)| d.len()).sum::<usize>(),
-        "files": files.iter().map(|(rel, data)| json!({
-            "path": rel,
-            "size": data.len(),
-            "sha256": Sha256::digest(data).iter().map(|b| format!("{b:02x}")).collect::<String>(),
-        })).collect::<Vec<_>>(),
-    });
-    std::fs::write(dir.join("manifest.json"), manifest.to_string()).unwrap();
-    for rel in script["gone"].as_array().into_iter().flatten() {
-        std::fs::remove_file(under(&game, rel.as_str().unwrap())).unwrap();
-    }
-    for key in ["resized", "extra"] {
-        for (rel, spec) in script[key].as_object().into_iter().flatten() {
-            write_file(&under(&game, rel), &bytes_of(spec), mtime(1_700_000_000));
+    if let Some(runtime) = script.get("runtime").filter(|r| !r.is_null()) {
+        let folder = dir.join("runtime");
+        std::fs::create_dir_all(&folder).unwrap();
+        let files: Vec<(String, Vec<u8>)> = runtime["files"]
+            .as_object()
+            .into_iter()
+            .flatten()
+            .map(|(name, spec)| (name.clone(), bytes_of(spec)))
+            .collect();
+        for (name, data) in &files {
+            write_file(&folder.join(name), data);
         }
+        let index = runtime.get("index").cloned().unwrap_or_else(|| {
+            json!({
+                "version": "20261014-1a2b3c4d",
+                "build": {"changelist": 647472},
+                "files": files.iter().map(|(name, data)| json!({"name": name, "size": data.len(), "sha256": hex(data)})).collect::<Vec<_>>(),
+            })
+        });
+        // "$sha:<file>" in an index given as text is that file's SHA-256
+        let mut index = text(&index);
+        for (name, data) in &files {
+            index = index.replace(&format!("$sha:{name}"), &hex(data));
+        }
+        write_file(&folder.join("runtime.json"), index.as_bytes());
     }
     if let Some(branding) = script.get("branding") {
         let art = dir.join("art");
         std::fs::create_dir_all(&art).unwrap();
         for (file, spec) in branding["files"].as_object().into_iter().flatten() {
-            write_file(&art.join(file), &bytes_of(spec), mtime(1_700_000_000));
+            write_file(&art.join(file), &bytes_of(spec));
         }
-        if let Some(text) = branding.get("json") {
-            let text = text
-                .as_str()
-                .map_or_else(|| service_kit::jsjson::stringify(text), str::to_owned);
-            write_file(&art.join("branding.json"), text.as_bytes(), mtime(1_700_000_000));
+        if let Some(json) = branding.get("json") {
+            write_file(&art.join("branding.json"), text(json).as_bytes());
         }
     }
     if let Some(news) = script.get("news") {
-        let text = news
-            .as_str()
-            .map_or_else(|| service_kit::jsjson::stringify(news), str::to_owned);
-        write_file(&dir.join("news.json"), text.as_bytes(), mtime(1_700_000_000));
+        write_file(&dir.join("news.json"), text(news).as_bytes());
     }
 }
 
-/// The fake metagame: what `keys` says for each key, else 401.
-async fn fake_metagame(keys: Value) -> String {
+/// The fake backend: what `keys` says for each key at GetUserInfo, else 401.
+async fn fake_backend(keys: Value) -> String {
     let handler = move |request: axum::extract::Request| {
         let keys = keys.clone();
         async move {
             let key = request
                 .headers()
-                .get("x-undaunted-user-api-key")
+                .get("x-reforged-user-api-key")
                 .and_then(|v| v.to_str().ok())
                 .unwrap_or("");
-            let answer = keys.get(key).cloned().unwrap_or(json!({"status": 401, "body": {}}));
-            let body = answer["body"]
-                .as_str()
-                .map_or_else(|| answer["body"].to_string(), str::to_owned);
+            let answer = keys
+                .get(key)
+                .filter(|_| request.uri() == "/reforged/api/GetUserInfo")
+                .cloned()
+                .unwrap_or(json!({"status": 401, "body": {}}));
             (
                 axum::http::StatusCode::from_u16(answer["status"].as_u64().unwrap() as u16).unwrap(),
                 [("content-type", "application/json")],
-                body,
+                text(&answer["body"]),
             )
         }
     };
@@ -145,13 +141,19 @@ const HEADERS: [&str; 11] = [
 ];
 
 /// One raw HTTP/1.1 exchange on its own connection, as record.cjs makes it.
-async fn raw(port: u16, request: &Value) -> Vec<u8> {
+async fn raw(port: u16, request: &Value, last_etag: &str) -> Vec<u8> {
     let mut socket = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.unwrap();
     let headers: String = request["headers"]
-        .as_object()
+        .as_array()
         .into_iter()
         .flatten()
-        .map(|(k, v)| format!("{k}: {}\r\n", v.as_str().unwrap()))
+        .map(|pair| {
+            format!(
+                "{}: {}\r\n",
+                pair[0].as_str().unwrap(),
+                pair[1].as_str().unwrap().replacen("$etag", last_etag, 1)
+            )
+        })
         .collect();
     let text = format!(
         "{} {} HTTP/1.1\r\nhost: content\r\n{headers}connection: close\r\n\r\n",
@@ -183,14 +185,7 @@ fn parse(reply: &[u8], label: String) -> Value {
     let body = &reply[end + 4..];
     let shown = match std::str::from_utf8(body) {
         Ok(text) if body.len() <= 4096 && !text.bytes().any(|b| b <= 8) => text.to_owned(),
-        _ => format!(
-            "<{} bytes sha256 {}>",
-            body.len(),
-            Sha256::digest(body)
-                .iter()
-                .map(|b| format!("{b:02x}"))
-                .collect::<String>()
-        ),
+        _ => format!("<{} bytes sha256 {}>", body.len(), hex(body)),
     };
     json!({"request": label, "status": status, "headers": headers, "body": shown})
 }
@@ -203,13 +198,12 @@ async fn run(name: &str) {
         serde_json::from_str(&std::fs::read_to_string(here.join(format!("{name}.expected.json"))).unwrap()).unwrap();
     let dir = tempfile::tempdir().unwrap();
     fixture(&script, dir.path());
-    let metagame = fake_metagame(script["keys"].clone()).await;
+    let backend = fake_backend(script["keys"].clone()).await;
     let path = |p: &str| dir.path().join(p).to_string_lossy().into_owned();
-    let mut pairs = vec![
-        ("CONTENT_GAME_DIR".to_owned(), path("game")),
-        ("CONTENT_MANIFEST".to_owned(), path("manifest.json")),
-        ("METAGAME_URL".to_owned(), metagame),
-    ];
+    let mut pairs = vec![("BACKEND_URL".to_owned(), backend)];
+    if script.get("runtime").is_some_and(|r| !r.is_null()) {
+        pairs.push(("CONTENT_RUNTIME_DIR".into(), path("runtime")));
+    }
     if script.get("branding").is_some() {
         pairs.push(("CONTENT_BRANDING_DIR".into(), path("art")));
     }
@@ -222,28 +216,29 @@ async fn run(name: &str) {
     let env = Env::from_pairs(pairs.iter().map(|(k, v)| (k.as_str(), v.as_str())));
     let config = content::config::Config::from_env(&env).unwrap();
     content::log::set_sink(Some(Box::new(|_, _| {})));
-    let app = content::server::prepare(&config).unwrap();
+    let app = content::server::prepare(&config);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let (stop, stopping) = tokio::sync::watch::channel(false);
     let server = tokio::spawn(content::server::serve(listener, app, stopping));
     let mut actual = Vec::new();
+    let mut last_etag = String::new();
     for request in script["requests"].as_array().unwrap() {
-        if let Some(touched) = request["touch"].as_str() {
-            let file = std::fs::OpenOptions::new()
-                .write(true)
-                .open(under(&dir.path().join("game"), touched))
-                .unwrap();
-            file.set_modified(mtime(1_700_000_001)).unwrap();
+        if let Some(file) = request["write"].as_str() {
+            write_file(&dir.path().join("runtime").join(file), &bytes_of(&request["spec"]));
             continue;
         }
-        let reply = raw(port, request).await;
+        let reply = raw(port, request, &last_etag).await;
         let label = format!(
             "{} {}",
             request["method"].as_str().unwrap_or("GET"),
             request["path"].as_str().unwrap()
         );
-        actual.push(parse(&reply, label));
+        let result = parse(&reply, label);
+        if let Some(etag) = result["headers"]["etag"].as_str() {
+            last_etag = etag.to_owned();
+        }
+        actual.push(result);
     }
     let _ = stop.send(true);
     let _ = server.await;
@@ -271,6 +266,16 @@ async fn content() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn content_plain() {
-    run("content-plain").await;
+async fn content_none() {
+    run("content-none").await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn content_invalid() {
+    run("content-invalid").await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn content_index() {
+    run("content-index").await;
 }

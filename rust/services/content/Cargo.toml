@@ -1,6 +1,6 @@
 [package]
 name = "content"
-description = "Serves the verified 1.4.4 game files to registered accounts, plus the host's news and art pack (MIGRATION_PLAN.md S1)"
+description = "The content server: the host-built game runtime for registered players, plus the host's news and art pack (MIGRATION_PLAN.md RS2)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -27,14 +27,12 @@ service-kit.workspace = true
 sha2.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net", "fs", "time", "sync", "signal", "io-util"] }
 tokio-util.workspace = true
-dotenvy.workspace = true
 tower.workspace = true
 url.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
 futures-util.workspace = true
-regex.workspace = true
 
 [lints]
 workspace = true

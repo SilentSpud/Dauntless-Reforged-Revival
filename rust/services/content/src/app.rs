@@ -1,7 +1,10 @@
-//! The routes (`src/app.ts`), all GET or HEAD:
+//! The routes (`src/app.ts`), all GET or HEAD, behind the gateway:
 //!
-//! - /content/v1/manifest: the file list, public inside the tailnet (it is in the launcher anyway)
-//! - /content/v1/files/<path>: one game file; needs `x-undaunted-user-api-key`; one HTTP range
+//! - /content/v1/runtime/manifest: the game runtime the host published, its version and files with
+//!   their sizes and SHA-256 (no key needed: the launcher shows it to the player before asking them
+//!   to accept it)
+//! - /content/v1/runtime/files/<name>: `MysticParadox.dll` or `winmm.dll`; needs
+//!   `x-reforged-user-api-key`; always the whole file (no HTTP ranges)
 //! - /content/v1/branding: the host's art pack (background image URLs and an accent colour)
 //! - /content/v1/branding/<file>: one of those images
 //! - /content/v1/news: the host's news items
@@ -9,12 +12,10 @@
 //! Anything else is 404; there is no directory listing anywhere. Every request is logged once its
 //! answer is done (or the client went away), downloads with how many bytes went out.
 
-use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::path::PathBuf;
 use std::pin::Pin;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use std::time::{Instant, SystemTime};
 
@@ -24,28 +25,23 @@ use axum::http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode};
 use axum::response::Response;
 use bytes::Bytes;
 use futures_util::StreamExt;
+use protocol::manifest::{RUNTIME_FILE_NAMES, RUNTIME_MANIFEST_PATH};
 use serde_json::{Map, Value, json};
-use sha2::{Digest, Sha256};
-use tokio::io::{AsyncReadExt, AsyncSeekExt};
+use tokio::io::AsyncReadExt;
 
 use crate::auth::{AuthCache, LookupResult};
 use crate::branding::{BRANDING_PREFIX, Branding, MAX_IMAGE_BYTES, is_safe_image_name};
-use crate::gamedir::FileState;
 use crate::limits::{Refusal, Slot, StreamLimiter};
 use crate::log;
-use crate::manifest::{Manifest, ManifestFile, on_disk_path};
 use crate::news::News;
-use crate::paths::{FILES_PREFIX, parse_file_request_path};
-use crate::range::{Range, if_none_match_hits, if_range_allows_partial, parse_range};
+use crate::runtime::{RuntimeStatus, RuntimeStore};
 
-const READ_CHUNK: usize = 1024 * 1024;
+pub const RUNTIME_FILES_PREFIX: &str = "/content/v1/runtime/files/";
+pub const KEY_HEADER: &str = "x-reforged-user-api-key";
+const READ_CHUNK: usize = 256 * 1024;
 
 pub struct Deps {
-    pub download_base_url: Option<String>,
-    pub manifest: Manifest,
-    pub index: HashMap<String, ManifestFile>,
-    pub game_dir: PathBuf,
-    pub states: Mutex<HashMap<String, FileState>>,
+    pub runtime: Arc<RuntimeStore>,
     pub auth: AuthCache,
     pub limiter: StreamLimiter,
     pub branding: Branding,
@@ -56,31 +52,90 @@ pub type AppState = Arc<App>;
 
 pub struct App {
     deps: Deps,
-    manifest_text: String,
-    manifest_etag: String,
 }
 
 impl App {
     pub fn new(deps: Deps) -> AppState {
-        let manifest_text = crate::manifest::to_json(&deps.manifest, deps.download_base_url.as_deref());
-        let digest: String = Sha256::digest(manifest_text.as_bytes())
-            .iter()
-            .map(|b| format!("{b:02x}"))
-            .collect();
-        Arc::new(Self {
-            deps,
-            manifest_text,
-            manifest_etag: format!("\"{digest}\""),
-        })
+        Arc::new(Self { deps })
     }
 
     pub fn deps(&self) -> &Deps {
         &self.deps
     }
+
+    /// The runtime's status, read off the async threads (a check may hash both files).
+    async fn runtime(&self) -> RuntimeStatus {
+        let store = self.deps.runtime.clone();
+        tokio::task::spawn_blocking(move || store.get())
+            .await
+            .unwrap_or_else(|_| RuntimeStatus::Invalid("runtime check failed".into()))
+    }
 }
 
 pub fn router(state: AppState) -> axum::Router {
     axum::Router::new().fallback(handle).with_state(state)
+}
+
+/// `IfNoneMatchHits`: "*" or a list of entity tags, weak ones included (RFC 9110 13.1.2).
+pub fn if_none_match_hits(header: Option<&str>, etag: &str) -> bool {
+    let Some(header) = header else {
+        return false;
+    };
+    service_kit::js::trim(header) == "*"
+        || header.split(',').any(|tag| {
+            let tag = service_kit::js::trim(tag);
+            tag.strip_prefix("W/").unwrap_or(tag) == etag
+        })
+}
+
+/// The route a request path names, before the method is looked at (`IsKnownRoute` and the order
+/// `CreateContentHandler` tries them in).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Route<'a> {
+    RuntimeManifest,
+    Branding,
+    News,
+    BrandingImage(&'a str),
+    RuntimeFile(&'a str),
+    Unknown,
+}
+
+impl Route<'_> {
+    /// The path up to any `?`, as it came (no decoding, no dot segments removed).
+    pub fn of(path_only: &str) -> Route<'_> {
+        if path_only == RUNTIME_MANIFEST_PATH {
+            Route::RuntimeManifest
+        } else if path_only == "/content/v1/branding" {
+            Route::Branding
+        } else if path_only == "/content/v1/news" {
+            Route::News
+        } else if let Some(name) = path_only.strip_prefix(BRANDING_PREFIX) {
+            Route::BrandingImage(name)
+        } else if let Some(name) = path_only.strip_prefix(RUNTIME_FILES_PREFIX) {
+            Route::RuntimeFile(name)
+        } else {
+            Route::Unknown
+        }
+    }
+}
+
+/// A runtime file name: exactly one of the two, letter case included (no decoding, no folders, no
+/// lookalikes).
+pub fn is_runtime_file_name(name: &str) -> bool {
+    RUNTIME_FILE_NAMES.contains(&name)
+}
+
+/// A header as Node's `req.headers` gives it: repeated lines joined with ", ", each byte a Latin-1
+/// character.
+pub fn header_text(headers: &HeaderMap, name: &str) -> Option<String> {
+    let mut values = headers.get_all(name).iter().peekable();
+    values.peek()?;
+    Some(
+        values
+            .map(|v| v.as_bytes().iter().map(|&b| b as char).collect::<String>())
+            .collect::<Vec<_>>()
+            .join(", "),
+    )
 }
 
 // ---- The request log ----
@@ -92,7 +147,6 @@ struct Info {
     reason: Option<String>,
     account: Option<String>,
     user: Option<String>,
-    range: Option<String>,
     /// Bytes sent and expected, for a download
     bytes: Option<(Arc<AtomicU64>, u64)>,
 }
@@ -127,11 +181,17 @@ impl http_body::Body for Logged {
     }
 
     fn is_end_stream(&self) -> bool {
-        self.inner.is_end_stream()
+        self.status != 304 && self.inner.is_end_stream()
     }
 
+    /// A 304 has no length: an empty body's exact 0 would make hyper add `content-length: 0` to the
+    /// answer to a HEAD, which Node does not send
     fn size_hint(&self) -> http_body::SizeHint {
-        self.inner.size_hint()
+        if self.status == 304 {
+            http_body::SizeHint::default()
+        } else {
+            self.inner.size_hint()
+        }
     }
 }
 
@@ -153,7 +213,6 @@ impl Drop for Logged {
             ("reason", &self.info.reason),
             ("account", &self.info.account),
             ("user", &self.info.user),
-            ("range", &self.info.range),
         ] {
             if let Some(value) = value {
                 fields.insert(name.into(), json!(value));
@@ -171,7 +230,7 @@ impl Drop for Logged {
         } else {
             log::Level::Info
         };
-        let msg = if self.info.route == "files" && self.method == "GET" && self.info.bytes.is_some() {
+        let msg = if self.info.route == "runtime-file" && self.method == "GET" && self.info.bytes.is_some() {
             "download"
         } else {
             "request"
@@ -180,7 +239,7 @@ impl Drop for Logged {
     }
 }
 
-/// A reply being built: Node sets headers on `res` as it goes and removes some on an error.
+/// A reply being built: Node sets headers on `res` as it goes.
 struct Reply {
     status: StatusCode,
     headers: HeaderMap,
@@ -207,21 +266,8 @@ impl Reply {
         }
     }
 
-    fn remove(&mut self, names: &[&str]) {
-        for name in names {
-            self.headers.remove(*name);
-        }
-    }
-
-    /// For the public, key-free JSON and images, so the launcher's window can read them directly.
-    fn public(&mut self) {
-        self.set("access-control-allow-origin", "*");
-        self.set("cross-origin-resource-policy", "cross-origin");
-    }
-
-    /// `SendJson`.
-    fn json(&mut self, head: bool, status: u16, body: &Value, extra: &[(&'static str, &str)]) {
-        let text = service_kit::jsjson::stringify(body);
+    /// `SendJson` with text already serialised: it goes out byte for byte.
+    fn text(&mut self, head: bool, status: u16, text: String, extra: &[(&'static str, &str)]) {
         self.status = StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
         self.set("content-type", "application/json; charset=utf-8");
         self.set("content-length", text.len());
@@ -232,13 +278,14 @@ impl Reply {
         self.body = if head { Body::empty() } else { Body::from(text) };
     }
 
+    /// `SendJson`.
+    fn json(&mut self, head: bool, status: u16, body: &Value, extra: &[(&'static str, &str)]) {
+        self.text(head, status, service_kit::jsjson::stringify(body), extra);
+    }
+
     fn error(&mut self, head: bool, status: u16, code: &str, extra: &[(&'static str, &str)]) {
         self.json(head, status, &json!({"error": code}), extra);
     }
-}
-
-fn header_text<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a str> {
-    headers.get(name).and_then(|v| v.to_str().ok())
 }
 
 async fn handle(State(app): State<AppState>, ConnectInfo(peer): ConnectInfo<SocketAddr>, request: Request) -> Response {
@@ -253,55 +300,44 @@ async fn handle(State(app): State<AppState>, ConnectInfo(peer): ConnectInfo<Sock
     // The request's headers alone cross the awaits below (a request is not Sync)
     let headers = request.headers().clone();
     drop(request);
+    let ip = header_text(&headers, "x-forwarded-for").unwrap_or_else(|| peer.ip().to_string());
     let mut info = Info {
         route: "other",
         ..Info::default()
     };
     let mut reply = Reply::new();
     let mut slot = None;
-    let known = path_only == "/content/v1/manifest"
-        || path_only.starts_with(FILES_PREFIX)
-        || path_only == "/content/v1/branding"
-        || path_only.starts_with(BRANDING_PREFIX)
-        || path_only == "/content/v1/news";
-    if !known {
+    let route = Route::of(&path_only);
+    if route == Route::Unknown {
         reply.error(head, 404, "not_found", &[]);
     } else if method != Method::GET && method != Method::HEAD {
         reply.error(head, 405, "method_not_allowed", &[("allow", "GET, HEAD")]);
-    } else if path_only == "/content/v1/manifest" {
-        info.route = "manifest";
-        reply.public();
-        if if_none_match_hits(header_text(&headers, "if-none-match"), &app.manifest_etag) {
-            reply.status = StatusCode::NOT_MODIFIED;
-            reply.set("etag", &app.manifest_etag);
-        } else {
-            reply.set("content-type", "application/json; charset=utf-8");
-            reply.set("content-length", app.manifest_text.len());
-            reply.set("cache-control", "no-cache");
-            reply.set("etag", &app.manifest_etag);
-            reply.body = if head {
-                Body::empty()
-            } else {
-                Body::from(app.manifest_text.clone())
-            };
-        }
-    } else if path_only == "/content/v1/branding" {
-        info.route = "branding";
-        reply.public();
-        let body = app.deps.branding.body();
-        reply.json(head, 200, &body, &[]);
-    } else if path_only == "/content/v1/news" {
-        info.route = "news";
-        reply.public();
-        let body = app.deps.news.body();
-        reply.json(head, 200, &body, &[]);
-    } else if let Some(name) = path_only.strip_prefix(BRANDING_PREFIX) {
-        info.route = "branding-image";
-        reply.public();
-        branding_image(&app, &headers, head, name, &mut reply, &mut info).await;
     } else {
-        info.route = "files";
-        slot = game_file(&app, &headers, head, &target, &mut reply, &mut info).await;
+        match route {
+            Route::RuntimeManifest => {
+                info.route = "runtime-manifest";
+                runtime_manifest(&app, &headers, head, &mut reply, &mut info).await;
+            }
+            Route::Branding => {
+                info.route = "branding";
+                let body = app.deps.branding.body();
+                reply.json(head, 200, &body, &[]);
+            }
+            Route::News => {
+                info.route = "news";
+                let body = app.deps.news.body();
+                reply.json(head, 200, &body, &[]);
+            }
+            Route::BrandingImage(name) => {
+                info.route = "branding-image";
+                branding_image(&app, &headers, head, name, &mut reply, &mut info).await;
+            }
+            Route::RuntimeFile(name) => {
+                info.route = "runtime-file";
+                slot = runtime_file(&app, &headers, head, name, &mut reply, &mut info).await;
+            }
+            Route::Unknown => {}
+        }
     }
     let status = reply.status.as_u16();
     let logged = Logged {
@@ -310,7 +346,7 @@ async fn handle(State(app): State<AppState>, ConnectInfo(peer): ConnectInfo<Sock
         path_only,
         status,
         started,
-        ip: peer.ip().to_string(),
+        ip,
         info,
         _slot: slot,
     };
@@ -318,6 +354,30 @@ async fn handle(State(app): State<AppState>, ConnectInfo(peer): ConnectInfo<Sock
     *response.status_mut() = reply.status;
     *response.headers_mut() = reply.headers;
     response
+}
+
+async fn runtime_manifest(app: &App, headers: &HeaderMap, head: bool, reply: &mut Reply, info: &mut Info) {
+    let (body, etag) = match app.runtime().await {
+        RuntimeStatus::Ok { body, etag, .. } => (body, etag),
+        // 404: nothing published yet (the launcher shows "waiting for the host").
+        // 503: something is published but does not check out; the host has to fix it.
+        RuntimeStatus::None(reason) => {
+            info.reason = Some(reason);
+            reply.error(head, 404, "no_runtime", &[]);
+            return;
+        }
+        RuntimeStatus::Invalid(reason) => {
+            info.reason = Some(reason);
+            reply.error(head, 503, "runtime_invalid", &[]);
+            return;
+        }
+    };
+    if if_none_match_hits(header_text(headers, "if-none-match").as_deref(), &etag) {
+        reply.status = StatusCode::NOT_MODIFIED;
+        reply.set("etag", &etag);
+        return;
+    }
+    reply.text(head, 200, body, &[("etag", &etag)]);
 }
 
 /// Milliseconds since 1970, floored (`Math.floor(stat.mtimeMs)`).
@@ -353,7 +413,10 @@ async fn branding_image(app: &App, headers: &HeaderMap, head: bool, name: &str, 
     let etag = format!("W/\"{size:x}-{:x}\"", modified_ms(meta.modified().ok()));
     reply.set("etag", &etag);
     reply.set("cache-control", "public, max-age=300");
-    if if_none_match_hits(header_text(headers, "if-none-match"), etag.trim_start_matches("W/")) {
+    if if_none_match_hits(
+        header_text(headers, "if-none-match").as_deref(),
+        etag.trim_start_matches("W/"),
+    ) {
         reply.status = StatusCode::NOT_MODIFIED;
         return;
     }
@@ -364,43 +427,29 @@ async fn branding_image(app: &App, headers: &HeaderMap, head: bool, name: &str, 
     }
 }
 
-/// The file's bytes in 1 MB reads (`createReadStream`), `length` of them from where it stands.
+/// The file's bytes in 256 KiB reads (`createReadStream`), `length` of them.
 fn file_body(file: tokio::fs::File, length: u64) -> Body {
     let stream = tokio_util::io::ReaderStream::with_capacity(file.take(length), READ_CHUNK);
     Body::from_stream(stream.map(|chunk| chunk.map_err(axum::Error::new)))
 }
 
-/// One game file; the download slot it holds, if it got one.
-async fn game_file(
+/// One runtime file; the download slot it holds, if it got one.
+async fn runtime_file(
     app: &App,
     headers: &HeaderMap,
     head: bool,
-    target: &str,
+    name: &str,
     reply: &mut Reply,
     info: &mut Info,
 ) -> Option<Slot> {
     let deps = &app.deps;
-    let path = match parse_file_request_path(target) {
-        Ok(path) => path,
-        Err(reason) => {
-            info.reason = Some(reason.into());
-            reply.error(head, 400, "bad_path", &[]);
-            return None;
-        }
-    };
-    let Some(entry) = deps.index.get(&path) else {
-        info.reason = Some("not_in_manifest".into());
+    if !is_runtime_file_name(name) {
+        info.reason = Some("not_a_runtime_file".into());
         reply.error(head, 404, "not_found", &[]);
         return None;
-    };
-    info.path = Some(entry.path.clone());
-    let key = headers.get("x-undaunted-user-api-key");
-    let key = match key {
-        None => None,
-        Some(value) if value.is_empty() => None,
-        Some(value) => Some(String::from_utf8_lossy(value.as_bytes()).into_owned()),
-    };
-    let Some(key) = key else {
+    }
+    info.path = Some(name.to_owned());
+    let Some(key) = header_text(headers, KEY_HEADER).filter(|key| !key.is_empty()) else {
         info.reason = Some("no_key".into());
         reply.error(head, 401, "unauthorized", &[]);
         return None;
@@ -420,69 +469,33 @@ async fn game_file(
     };
     info.account = Some(account.user_id.clone());
     info.user = Some(account.username.clone());
-    let state = deps
-        .states
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
-        .get(&entry.path)
-        .cloned();
-    let Some(FileState::Ok {
-        modified: seen_modified,
-        ..
-    }) = state
-    else {
-        info.reason = Some(format!("file_{}", state.as_ref().map_or("unknown", FileState::status)));
-        reply.error(head, 503, "file_unavailable", &[]);
+    let store = deps.runtime.clone();
+    let wanted = name.to_owned();
+    let found = tokio::task::spawn_blocking(move || store.file(&wanted))
+        .await
+        .ok()
+        .flatten();
+    let Some((file, full)) = found else {
+        info.reason = Some("no_runtime".into());
+        reply.error(head, 404, "not_found", &[]);
         return None;
     };
-    let etag = format!("\"{}\"", entry.sha256);
-    reply.set("etag", &etag);
-    reply.set("accept-ranges", "bytes");
-    reply.set("cache-control", "private, no-transform");
-    if if_none_match_hits(header_text(headers, "if-none-match"), &etag) {
+    let etag = format!("\"{}\"", file.sha256);
+    if if_none_match_hits(header_text(headers, "if-none-match").as_deref(), &etag) {
         reply.status = StatusCode::NOT_MODIFIED;
+        reply.set("etag", &etag);
         return None;
-    }
-    // A stale If-Range means the client's partial copy is of something else: send it all
-    let if_range = header_text(headers, "if-range");
-    let range_header = if if_range_allows_partial(if_range, &etag) {
-        header_text(headers, "range")
-    } else {
-        None
-    };
-    let range = parse_range(range_header, entry.size);
-    if let Some(range_header) = range_header {
-        info.range = Some(crate::branding::slice_utf16(range_header, 64));
-    }
-    let (start, end) = match range {
-        Range::Unsatisfiable => {
-            info.reason = Some("bad_range".into());
-            let content_range = format!("bytes */{}", entry.size);
-            reply.error(head, 416, "range_not_satisfiable", &[("content-range", &content_range)]);
-            return None;
-        }
-        Range::Partial { start, end } => (start, end as i64),
-        Range::Full => (0, entry.size as i64 - 1),
-    };
-    let length = (end - start as i64 + 1).max(0) as u64;
-    reply.status = if matches!(range, Range::Partial { .. }) {
-        StatusCode::PARTIAL_CONTENT
-    } else {
-        StatusCode::OK
-    };
-    reply.set("content-type", "application/octet-stream");
-    reply.set("content-length", length);
-    if matches!(range, Range::Partial { .. }) {
-        reply.set("content-range", format!("bytes {start}-{end}/{}", entry.size));
     }
     if head {
+        reply.set("etag", &etag);
+        reply.set("content-type", "application/octet-stream");
+        reply.set("content-length", file.size);
         return None;
     }
     let slot = match deps.limiter.try_acquire(&account.user_id) {
         Ok(slot) => slot,
         Err(refusal) => {
             info.reason = Some(refusal.as_str().into());
-            reply.remove(&["content-range", "etag", "accept-ranges"]);
             match refusal {
                 Refusal::AccountLimit => reply.error(head, 429, "too_many_streams", &[("retry-after", "2")]),
                 Refusal::TotalLimit => reply.error(head, 503, "server_busy", &[("retry-after", "10")]),
@@ -490,58 +503,69 @@ async fn game_file(
             return None;
         }
     };
-    let unavailable = |reply: &mut Reply| {
-        reply.remove(&[
-            "content-range",
-            "etag",
-            "accept-ranges",
-            "content-type",
-            "content-length",
-        ]);
-        reply.error(head, 503, "file_unavailable", &[]);
-    };
-    let mut file = match tokio::fs::File::open(on_disk_path(&deps.game_dir, entry)).await {
-        Ok(file) => file,
-        Err(error) => {
-            deps.states
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .insert(entry.path.clone(), FileState::Missing);
+    let opened = match tokio::fs::File::open(&full).await {
+        Ok(opened) => opened,
+        Err(_) => {
+            deps.runtime.invalidate();
             info.reason = Some("open_failed".into());
-            log::warn(
-                "game file could not be opened; no longer serving it",
-                json!({"path": entry.path, "error": error.to_string()}),
-            );
-            unavailable(reply);
+            reply.error(head, 503, "file_unavailable", &[]);
             return Some(slot);
         }
     };
-    let Ok(meta) = file.metadata().await else {
-        unavailable(reply);
+    let Ok(meta) = opened.metadata().await else {
+        reply.error(head, 503, "file_unavailable", &[]);
         return Some(slot);
     };
-    // Changed on disk since the startup check: no longer served until the host verifies and restarts
-    if !meta.is_file() || meta.len() != entry.size || meta.modified().ok() != seen_modified {
-        deps.states
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .insert(entry.path.clone(), FileState::Changed);
+    // Replaced since the last check (a new publish in progress): never send a size the list does not name
+    if !meta.is_file() || meta.len() != file.size {
+        deps.runtime.invalidate();
         info.reason = Some("changed_on_disk".into());
-        log::warn(
-            "game file changed since startup; no longer serving it (run content verify, then restart)",
-            json!({"path": entry.path}),
-        );
-        unavailable(reply);
+        reply.error(head, 503, "file_unavailable", &[("retry-after", "10")]);
         return Some(slot);
     }
-    info.bytes = Some((Arc::new(AtomicU64::new(0)), length));
-    if length == 0 {
-        return Some(slot);
-    }
-    if file.seek(std::io::SeekFrom::Start(start)).await.is_err() {
-        unavailable(reply);
-        return Some(slot);
-    }
-    reply.body = file_body(file, length);
+    reply.set("etag", &etag);
+    reply.set("content-type", "application/octet-stream");
+    reply.set("content-length", file.size);
+    reply.set("cache-control", "private, no-transform");
+    info.bytes = Some((Arc::new(AtomicU64::new(0)), file.size));
+    reply.body = file_body(opened, file.size);
     Some(slot)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn conditional_headers() {
+        let tag = "\"abc\"";
+        assert!(!if_none_match_hits(None, tag));
+        assert!(if_none_match_hits(Some(" * "), tag));
+        assert!(if_none_match_hits(Some("\"x\", \"abc\""), tag));
+        assert!(if_none_match_hits(Some("W/\"abc\""), tag));
+        assert!(!if_none_match_hits(Some("\"abcd\""), tag));
+        assert!(!if_none_match_hits(Some("*, \"x\""), tag));
+    }
+
+    #[test]
+    fn routes_are_matched_on_the_raw_path() {
+        assert_eq!(Route::of("/content/v1/runtime/manifest"), Route::RuntimeManifest);
+        assert_eq!(Route::of("/content/v1/runtime/manifest/"), Route::Unknown);
+        assert_eq!(
+            Route::of("/content/v1/runtime/files/%2e%2e/runtime.json"),
+            Route::RuntimeFile("%2e%2e/runtime.json")
+        );
+        assert_eq!(Route::of("/content/v1/branding/"), Route::BrandingImage(""));
+        assert_eq!(Route::of("/content/v1/files/x"), Route::Unknown);
+        assert!(is_runtime_file_name("winmm.dll") && !is_runtime_file_name("winmm.DLL"));
+    }
+
+    #[test]
+    fn repeated_headers_are_joined_as_node_joins_them() {
+        let mut headers = HeaderMap::new();
+        headers.append(KEY_HEADER, HeaderValue::from_static("RRK_a"));
+        headers.append(KEY_HEADER, HeaderValue::from_static("RRK_b"));
+        assert_eq!(header_text(&headers, KEY_HEADER).as_deref(), Some("RRK_a, RRK_b"));
+        assert_eq!(header_text(&headers, "if-none-match"), None);
+    }
 }

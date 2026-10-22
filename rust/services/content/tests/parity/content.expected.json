@@ -1,5 +1,5 @@
 {
-  "about": "The content server: routes, methods, file paths, account keys, ranges, conditions, files gone or changed, branding and news (MIGRATION_PLAN.md S1).",
+  "about": "The content server with a published runtime: routes, methods, paths, account keys, conditions, ranges (ignored), a file changed under the list and back, branding and news (MIGRATION_PLAN.md RS2).",
   "results": [
     {
       "request": "GET /",
@@ -13,60 +13,100 @@
       "body": "{\"error\":\"not_found\"}"
     },
     {
-      "request": "GET /content/v1/manifest",
+      "request": "GET /content/v1/runtime/manifest",
       "status": 200,
       "headers": {
         "content-type": "application/json; charset=utf-8",
-        "content-length": "768",
-        "etag": "\"0af49b814bde318f34e4ffea2416feb7b33f1845c575c9b911e7d67100d23153\"",
+        "content-length": "325",
+        "etag": "\"6c1cf69ca0d163a9b39f6c25541e012d00a9c2339c22355bfdcc6115d730a7df\"",
         "cache-control": "no-cache",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
         "x-content-type-options": "nosniff"
       },
-      "body": "{\"build\":\"dauntless_rel-1.4.4_Shipping_2020-10-28_20-11-15_239827\",\"totalBytes\":5058,\"files\":[{\"path\":\"Data/changes.bin\",\"size\":15,\"sha256\":\"bbe43ff5f900a0d8539c4a3a2f340316ca3edd3ce510253b8ab6e52aeda4c820\"},{\"path\":\"Data/empty.log\",\"size\":0,\"sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},{\"path\":\"Data/gone.bin\",\"size\":15,\"sha256\":\"1a86792d08efce6274e707b05da95dd373bdecdb4290039739ded11ce81e9abc\"},{\"path\":\"Data/resized.bin\",\"size\":15,\"sha256\":\"a104c88c41a3995e2d19b23cea7339584b2db33afe842586f0e592b1b09bde1e\"},{\"path\":\"Data/small.bin\",\"size\":5000,\"sha256\":\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"},{\"path\":\"Version.txt\",\"size\":13,\"sha256\":\"e7eb5abec5bcdb3be3c12f9a7477e709fd99d4b1c6713ca85b4fb94eb90f2efe\"}]}"
+      "body": "{\"version\":\"20261014-1a2b3c4d\",\"build\":{\"name\":\"rel-1.14.7-Archon\",\"changelist\":647472},\"files\":[{\"name\":\"MysticParadox.dll\",\"size\":70000,\"sha256\":\"9f6d8bb550591a5410aa72b997e7d49e3eed1ce025e83628addaf4382d2295bd\"},{\"name\":\"winmm.dll\",\"size\":3000,\"sha256\":\"f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45\"}]}"
     },
     {
-      "request": "HEAD /content/v1/manifest",
+      "request": "HEAD /content/v1/runtime/manifest",
       "status": 200,
       "headers": {
         "content-type": "application/json; charset=utf-8",
-        "content-length": "768",
-        "etag": "\"0af49b814bde318f34e4ffea2416feb7b33f1845c575c9b911e7d67100d23153\"",
+        "content-length": "325",
+        "etag": "\"6c1cf69ca0d163a9b39f6c25541e012d00a9c2339c22355bfdcc6115d730a7df\"",
         "cache-control": "no-cache",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
         "x-content-type-options": "nosniff"
       },
       "body": ""
     },
     {
-      "request": "GET /content/v1/manifest?x=1",
+      "request": "GET /content/v1/runtime/manifest?x=1",
       "status": 200,
       "headers": {
         "content-type": "application/json; charset=utf-8",
-        "content-length": "768",
-        "etag": "\"0af49b814bde318f34e4ffea2416feb7b33f1845c575c9b911e7d67100d23153\"",
+        "content-length": "325",
+        "etag": "\"6c1cf69ca0d163a9b39f6c25541e012d00a9c2339c22355bfdcc6115d730a7df\"",
         "cache-control": "no-cache",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
         "x-content-type-options": "nosniff"
       },
-      "body": "{\"build\":\"dauntless_rel-1.4.4_Shipping_2020-10-28_20-11-15_239827\",\"totalBytes\":5058,\"files\":[{\"path\":\"Data/changes.bin\",\"size\":15,\"sha256\":\"bbe43ff5f900a0d8539c4a3a2f340316ca3edd3ce510253b8ab6e52aeda4c820\"},{\"path\":\"Data/empty.log\",\"size\":0,\"sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},{\"path\":\"Data/gone.bin\",\"size\":15,\"sha256\":\"1a86792d08efce6274e707b05da95dd373bdecdb4290039739ded11ce81e9abc\"},{\"path\":\"Data/resized.bin\",\"size\":15,\"sha256\":\"a104c88c41a3995e2d19b23cea7339584b2db33afe842586f0e592b1b09bde1e\"},{\"path\":\"Data/small.bin\",\"size\":5000,\"sha256\":\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"},{\"path\":\"Version.txt\",\"size\":13,\"sha256\":\"e7eb5abec5bcdb3be3c12f9a7477e709fd99d4b1c6713ca85b4fb94eb90f2efe\"}]}"
+      "body": "{\"version\":\"20261014-1a2b3c4d\",\"build\":{\"name\":\"rel-1.14.7-Archon\",\"changelist\":647472},\"files\":[{\"name\":\"MysticParadox.dll\",\"size\":70000,\"sha256\":\"9f6d8bb550591a5410aa72b997e7d49e3eed1ce025e83628addaf4382d2295bd\"},{\"name\":\"winmm.dll\",\"size\":3000,\"sha256\":\"f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45\"}]}"
     },
     {
-      "request": "GET /content/v1/manifest",
+      "request": "GET /content/v1/runtime/manifest",
       "status": 304,
       "headers": {
-        "etag": "\"0af49b814bde318f34e4ffea2416feb7b33f1845c575c9b911e7d67100d23153\"",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
+        "etag": "\"6c1cf69ca0d163a9b39f6c25541e012d00a9c2339c22355bfdcc6115d730a7df\"",
         "x-content-type-options": "nosniff"
       },
       "body": ""
     },
     {
-      "request": "POST /content/v1/manifest",
+      "request": "GET /content/v1/runtime/manifest",
+      "status": 304,
+      "headers": {
+        "etag": "\"6c1cf69ca0d163a9b39f6c25541e012d00a9c2339c22355bfdcc6115d730a7df\"",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/runtime/manifest",
+      "status": 304,
+      "headers": {
+        "etag": "\"6c1cf69ca0d163a9b39f6c25541e012d00a9c2339c22355bfdcc6115d730a7df\"",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/runtime/manifest",
+      "status": 304,
+      "headers": {
+        "etag": "\"6c1cf69ca0d163a9b39f6c25541e012d00a9c2339c22355bfdcc6115d730a7df\"",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/runtime/manifest",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "325",
+        "etag": "\"6c1cf69ca0d163a9b39f6c25541e012d00a9c2339c22355bfdcc6115d730a7df\"",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"version\":\"20261014-1a2b3c4d\",\"build\":{\"name\":\"rel-1.14.7-Archon\",\"changelist\":647472},\"files\":[{\"name\":\"MysticParadox.dll\",\"size\":70000,\"sha256\":\"9f6d8bb550591a5410aa72b997e7d49e3eed1ce025e83628addaf4382d2295bd\"},{\"name\":\"winmm.dll\",\"size\":3000,\"sha256\":\"f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45\"}]}"
+    },
+    {
+      "request": "GET /content/v1/runtime/manifest",
+      "status": 304,
+      "headers": {
+        "etag": "\"6c1cf69ca0d163a9b39f6c25541e012d00a9c2339c22355bfdcc6115d730a7df\"",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "POST /content/v1/runtime/manifest",
       "status": 405,
       "headers": {
         "content-type": "application/json; charset=utf-8",
@@ -78,7 +118,19 @@
       "body": "{\"error\":\"method_not_allowed\"}"
     },
     {
-      "request": "DELETE /content/v1/other",
+      "request": "DELETE /content/v1/runtime/files/winmm.dll",
+      "status": 405,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "30",
+        "cache-control": "no-cache",
+        "allow": "GET, HEAD",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"method_not_allowed\"}"
+    },
+    {
+      "request": "POST /nothing",
       "status": 404,
       "headers": {
         "content-type": "application/json; charset=utf-8",
@@ -89,7 +141,7 @@
       "body": "{\"error\":\"not_found\"}"
     },
     {
-      "request": "GET /content/v1/files",
+      "request": "GET /content/v1/runtime/manifest/",
       "status": 404,
       "headers": {
         "content-type": "application/json; charset=utf-8",
@@ -100,123 +152,7 @@
       "body": "{\"error\":\"not_found\"}"
     },
     {
-      "request": "GET /content/v1/branding",
-      "status": 200,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "164",
-        "cache-control": "no-cache",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"backgrounds\":[{\"url\":\"/content/v1/branding/harbour.jpg\",\"credit\":\"Photo by a friend\"},{\"url\":\"/content/v1/branding/second.png\",\"credit\":null}],\"accent\":\"#c8a24a\"}"
-    },
-    {
-      "request": "GET /content/v1/news",
-      "status": 200,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "157",
-        "cache-control": "no-cache",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"items\":[{\"date\":\"2026-09-21T18:00:00.000Z\",\"title\":\"Friends night\",\"body\":\"\"},{\"date\":\"2026-09-20T00:00:00.000Z\",\"title\":\"Older\",\"body\":\"line 1\\nline 2\"}]}"
-    },
-    {
-      "request": "HEAD /content/v1/news",
-      "status": 200,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "157",
-        "cache-control": "no-cache",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
-        "x-content-type-options": "nosniff"
-      },
-      "body": ""
-    },
-    {
-      "request": "GET /content/v1/files/../../Windows/win.ini",
-      "status": 400,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "20",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"bad_path\"}"
-    },
-    {
-      "request": "GET /content/v1/files/..%2f..%2fx",
-      "status": 400,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "20",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"bad_path\"}"
-    },
-    {
-      "request": "GET /content/v1/files/%252e%252e/x",
-      "status": 400,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "20",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"bad_path\"}"
-    },
-    {
-      "request": "GET /content/v1/files/C:/Windows/win.ini",
-      "status": 400,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "20",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"bad_path\"}"
-    },
-    {
-      "request": "GET /content/v1/files/%E0%A4%A",
-      "status": 400,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "20",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"bad_path\"}"
-    },
-    {
-      "request": "GET /content/v1/files/",
-      "status": 400,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "20",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"bad_path\"}"
-    },
-    {
-      "request": "GET /content/v1/files/Data/../Version.txt",
-      "status": 400,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "20",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"bad_path\"}"
-    },
-    {
-      "request": "GET /content/v1/files/Data/not-in-manifest.bin",
+      "request": "GET /CONTENT/v1/runtime/manifest",
       "status": 404,
       "headers": {
         "content-type": "application/json; charset=utf-8",
@@ -227,7 +163,7 @@
       "body": "{\"error\":\"not_found\"}"
     },
     {
-      "request": "GET /content/v1/files/nothing.bin",
+      "request": "GET /content/v1/runtime",
       "status": 404,
       "headers": {
         "content-type": "application/json; charset=utf-8",
@@ -238,7 +174,29 @@
       "body": "{\"error\":\"not_found\"}"
     },
     {
-      "request": "GET /content/v1/files/Version.txt",
+      "request": "GET /content/v1/files/x",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/manifest",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll",
       "status": 401,
       "headers": {
         "content-type": "application/json; charset=utf-8",
@@ -249,7 +207,7 @@
       "body": "{\"error\":\"unauthorized\"}"
     },
     {
-      "request": "GET /content/v1/files/Version.txt",
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll",
       "status": 401,
       "headers": {
         "content-type": "application/json; charset=utf-8",
@@ -260,7 +218,7 @@
       "body": "{\"error\":\"unauthorized\"}"
     },
     {
-      "request": "GET /content/v1/files/Version.txt",
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll",
       "status": 401,
       "headers": {
         "content-type": "application/json; charset=utf-8",
@@ -271,7 +229,18 @@
       "body": "{\"error\":\"unauthorized\"}"
     },
     {
-      "request": "GET /content/v1/files/Version.txt",
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll",
+      "status": 401,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "24",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll",
       "status": 503,
       "headers": {
         "content-type": "application/json; charset=utf-8",
@@ -283,250 +252,306 @@
       "body": "{\"error\":\"auth_unavailable\"}"
     },
     {
-      "request": "GET /content/v1/files/Version.txt",
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "28",
+        "cache-control": "no-cache",
+        "retry-after": "5",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"auth_unavailable\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "28",
+        "cache-control": "no-cache",
+        "retry-after": "5",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"auth_unavailable\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll",
+      "status": 401,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "24",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll",
+      "status": 401,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "24",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll",
+      "status": 401,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "24",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll",
       "status": 200,
       "headers": {
         "content-type": "application/octet-stream",
-        "content-length": "13",
-        "etag": "\"e7eb5abec5bcdb3be3c12f9a7477e709fd99d4b1c6713ca85b4fb94eb90f2efe\"",
-        "accept-ranges": "bytes",
+        "content-length": "70000",
+        "etag": "\"9f6d8bb550591a5410aa72b997e7d49e3eed1ce025e83628addaf4382d2295bd\"",
         "cache-control": "private, no-transform",
         "x-content-type-options": "nosniff"
       },
-      "body": "test-build \r\n"
+      "body": "<70000 bytes sha256 9f6d8bb550591a5410aa72b997e7d49e3eed1ce025e83628addaf4382d2295bd>"
     },
     {
-      "request": "HEAD /content/v1/files/Version.txt",
+      "request": "HEAD /content/v1/runtime/files/MysticParadox.dll",
       "status": 200,
       "headers": {
         "content-type": "application/octet-stream",
-        "content-length": "13",
-        "etag": "\"e7eb5abec5bcdb3be3c12f9a7477e709fd99d4b1c6713ca85b4fb94eb90f2efe\"",
-        "accept-ranges": "bytes",
-        "cache-control": "private, no-transform",
+        "content-length": "70000",
+        "etag": "\"9f6d8bb550591a5410aa72b997e7d49e3eed1ce025e83628addaf4382d2295bd\"",
         "x-content-type-options": "nosniff"
       },
       "body": ""
     },
     {
-      "request": "GET /content/v1/files/Data/small.bin",
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll?download=1",
       "status": 200,
       "headers": {
         "content-type": "application/octet-stream",
-        "content-length": "5000",
-        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
-        "accept-ranges": "bytes",
+        "content-length": "70000",
+        "etag": "\"9f6d8bb550591a5410aa72b997e7d49e3eed1ce025e83628addaf4382d2295bd\"",
         "cache-control": "private, no-transform",
         "x-content-type-options": "nosniff"
       },
-      "body": "<5000 bytes sha256 34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb>"
+      "body": "<70000 bytes sha256 9f6d8bb550591a5410aa72b997e7d49e3eed1ce025e83628addaf4382d2295bd>"
     },
     {
-      "request": "GET /content/v1/files/Data/empty.log",
+      "request": "GET /content/v1/runtime/files/winmm.dll",
       "status": 200,
       "headers": {
         "content-type": "application/octet-stream",
-        "content-length": "0",
-        "etag": "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"",
-        "accept-ranges": "bytes",
+        "content-length": "3000",
+        "etag": "\"f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45\"",
         "cache-control": "private, no-transform",
         "x-content-type-options": "nosniff"
       },
-      "body": ""
+      "body": "<3000 bytes sha256 f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45>"
     },
     {
-      "request": "GET /content/v1/files/Data/small.bin",
-      "status": 206,
-      "headers": {
-        "content-type": "application/octet-stream",
-        "content-length": "10",
-        "content-range": "bytes 0-9/5000",
-        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
-        "accept-ranges": "bytes",
-        "cache-control": "private, no-transform",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "<10 bytes sha256 aadd73eb67f4e48bdb358638d0c42f341afcf9f60d717418d863a6f69238e01f>"
-    },
-    {
-      "request": "GET /content/v1/files/Data/small.bin",
-      "status": 206,
-      "headers": {
-        "content-type": "application/octet-stream",
-        "content-length": "10",
-        "content-range": "bytes 4990-4999/5000",
-        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
-        "accept-ranges": "bytes",
-        "cache-control": "private, no-transform",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "<10 bytes sha256 1ad4167732795162bc1634895e0a6b6beb649b14e805ca5e3891ab2f888fa3f4>"
-    },
-    {
-      "request": "GET /content/v1/files/Data/small.bin",
-      "status": 206,
-      "headers": {
-        "content-type": "application/octet-stream",
-        "content-length": "5",
-        "content-range": "bytes 4995-4999/5000",
-        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
-        "accept-ranges": "bytes",
-        "cache-control": "private, no-transform",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "<5 bytes sha256 bf7fcebc973b4422ef12f8520dc5aeb8fe3753feb63845b8a5a52059b5cdf68e>"
-    },
-    {
-      "request": "GET /content/v1/files/Data/small.bin",
-      "status": 206,
-      "headers": {
-        "content-type": "application/octet-stream",
-        "content-length": "1",
-        "content-range": "bytes 4999-4999/5000",
-        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
-        "accept-ranges": "bytes",
-        "cache-control": "private, no-transform",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "<1 bytes sha256 27952171c7fcdf0ddc765ab4f4e1c537cb29e5e533d57b3456257ee785c81711>"
-    },
-    {
-      "request": "GET /content/v1/files/Data/small.bin",
-      "status": 416,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "33",
-        "content-range": "bytes */5000",
-        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
-        "accept-ranges": "bytes",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"range_not_satisfiable\"}"
-    },
-    {
-      "request": "GET /content/v1/files/Data/small.bin",
-      "status": 416,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "33",
-        "content-range": "bytes */5000",
-        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
-        "accept-ranges": "bytes",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"range_not_satisfiable\"}"
-    },
-    {
-      "request": "GET /content/v1/files/Data/small.bin",
-      "status": 416,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "33",
-        "content-range": "bytes */5000",
-        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
-        "accept-ranges": "bytes",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"range_not_satisfiable\"}"
-    },
-    {
-      "request": "GET /content/v1/files/Data/small.bin",
-      "status": 200,
-      "headers": {
-        "content-type": "application/octet-stream",
-        "content-length": "5000",
-        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
-        "accept-ranges": "bytes",
-        "cache-control": "private, no-transform",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "<5000 bytes sha256 34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb>"
-    },
-    {
-      "request": "GET /content/v1/files/Data/empty.log",
-      "status": 416,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "33",
-        "content-range": "bytes */0",
-        "etag": "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"",
-        "accept-ranges": "bytes",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"range_not_satisfiable\"}"
-    },
-    {
-      "request": "GET /content/v1/files/Data/small.bin",
+      "request": "GET /content/v1/runtime/files/winmm.dll",
       "status": 304,
       "headers": {
-        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
-        "accept-ranges": "bytes",
-        "cache-control": "private, no-transform",
+        "etag": "\"f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45\"",
         "x-content-type-options": "nosniff"
       },
       "body": ""
     },
     {
-      "request": "HEAD /content/v1/files/Data/small.bin",
-      "status": 206,
+      "request": "HEAD /content/v1/runtime/files/winmm.dll",
+      "status": 304,
+      "headers": {
+        "etag": "\"f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45\"",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/runtime/files/winmm.dll",
+      "status": 200,
       "headers": {
         "content-type": "application/octet-stream",
-        "content-length": "2",
-        "content-range": "bytes 1-2/5000",
-        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
-        "accept-ranges": "bytes",
+        "content-length": "3000",
+        "etag": "\"f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45\"",
         "cache-control": "private, no-transform",
         "x-content-type-options": "nosniff"
       },
+      "body": "<3000 bytes sha256 f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45>"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/winmm.dll",
+      "status": 200,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "3000",
+        "etag": "\"f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45\"",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "<3000 bytes sha256 f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45>"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/winmm.dll",
+      "status": 200,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "3000",
+        "etag": "\"f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45\"",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "<3000 bytes sha256 f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45>"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/mysticparadox.dll",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/WINMM.DLL",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/runtime.json",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/../runtime.json",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/%2e%2e/runtime.json",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/MysticParadox.dll/x",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/?name=winmm.dll",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/winmm%2Edll",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/winmm.dll%00",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "POST /content/v1/runtime/files/winmm.dll",
+      "status": 405,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "30",
+        "cache-control": "no-cache",
+        "allow": "GET, HEAD",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"method_not_allowed\"}"
+    },
+    {
+      "request": "GET /content/v1/branding",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "164",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"backgrounds\":[{\"url\":\"/content/v1/branding/harbour.jpg\",\"credit\":\"Photo by a friend\"},{\"url\":\"/content/v1/branding/second.png\",\"credit\":null}],\"accent\":\"#c8a24a\"}"
+    },
+    {
+      "request": "HEAD /content/v1/branding",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "164",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
       "body": ""
-    },
-    {
-      "request": "GET /content/v1/files/Data/gone.bin",
-      "status": 503,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "28",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"file_unavailable\"}"
-    },
-    {
-      "request": "GET /content/v1/files/Data/resized.bin",
-      "status": 503,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "28",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"file_unavailable\"}"
-    },
-    {
-      "request": "GET /content/v1/files/Data/changes.bin",
-      "status": 503,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "28",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"file_unavailable\"}"
-    },
-    {
-      "request": "GET /content/v1/files/Data/changes.bin",
-      "status": 503,
-      "headers": {
-        "content-type": "application/json; charset=utf-8",
-        "content-length": "28",
-        "cache-control": "no-cache",
-        "x-content-type-options": "nosniff"
-      },
-      "body": "{\"error\":\"file_unavailable\"}"
     },
     {
       "request": "GET /content/v1/branding/harbour.jpg",
@@ -536,11 +561,19 @@
         "content-length": "8",
         "etag": "W/\"8-18bcfe56800\"",
         "cache-control": "public, max-age=300",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
         "x-content-type-options": "nosniff"
       },
       "body": "<8 bytes sha256 8b6e4a0b5965159b6343d01a018d6bc9e2df1ab84bd24f1b8c40d72ea0e24889>"
+    },
+    {
+      "request": "GET /content/v1/branding/harbour.jpg",
+      "status": 304,
+      "headers": {
+        "etag": "W/\"8-18bcfe56800\"",
+        "cache-control": "public, max-age=300",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
     },
     {
       "request": "HEAD /content/v1/branding/harbour.jpg",
@@ -550,20 +583,6 @@
         "content-length": "8",
         "etag": "W/\"8-18bcfe56800\"",
         "cache-control": "public, max-age=300",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
-        "x-content-type-options": "nosniff"
-      },
-      "body": ""
-    },
-    {
-      "request": "GET /content/v1/branding/harbour.jpg",
-      "status": 304,
-      "headers": {
-        "etag": "W/\"8-18bcfe56800\"",
-        "cache-control": "public, max-age=300",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
         "x-content-type-options": "nosniff"
       },
       "body": ""
@@ -576,8 +595,6 @@
         "content-length": "9",
         "etag": "W/\"9-18bcfe56800\"",
         "cache-control": "public, max-age=300",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
         "x-content-type-options": "nosniff"
       },
       "body": "<9 bytes sha256 843ac23b1736b4487ec81cf7c07ddd9bb46ae5b7818c2c3843d99d62fa75f3c9>"
@@ -589,8 +606,6 @@
         "content-type": "application/json; charset=utf-8",
         "content-length": "21",
         "cache-control": "no-cache",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
         "x-content-type-options": "nosniff"
       },
       "body": "{\"error\":\"not_found\"}"
@@ -602,8 +617,6 @@
         "content-type": "application/json; charset=utf-8",
         "content-length": "21",
         "cache-control": "no-cache",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
         "x-content-type-options": "nosniff"
       },
       "body": "{\"error\":\"not_found\"}"
@@ -615,8 +628,6 @@
         "content-type": "application/json; charset=utf-8",
         "content-length": "21",
         "cache-control": "no-cache",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
         "x-content-type-options": "nosniff"
       },
       "body": "{\"error\":\"not_found\"}"
@@ -628,8 +639,141 @@
         "content-type": "application/json; charset=utf-8",
         "content-length": "21",
         "cache-control": "no-cache",
-        "access-control-allow-origin": "*",
-        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "PUT /content/v1/branding/harbour.jpg",
+      "status": 405,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "30",
+        "cache-control": "no-cache",
+        "allow": "GET, HEAD",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"method_not_allowed\"}"
+    },
+    {
+      "request": "GET /content/v1/branding/",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/news",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "157",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"items\":[{\"date\":\"2026-09-21T18:00:00.000Z\",\"title\":\"Friends night\",\"body\":\"\"},{\"date\":\"2026-09-20T00:00:00.000Z\",\"title\":\"Older\",\"body\":\"line 1\\nline 2\"}]}"
+    },
+    {
+      "request": "HEAD /content/v1/news",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "157",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/news?x",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "157",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"items\":[{\"date\":\"2026-09-21T18:00:00.000Z\",\"title\":\"Friends night\",\"body\":\"\"},{\"date\":\"2026-09-20T00:00:00.000Z\",\"title\":\"Older\",\"body\":\"line 1\\nline 2\"}]}"
+    },
+    {
+      "request": "GET /content/v1/news/",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/manifest",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "325",
+        "etag": "\"6c1cf69ca0d163a9b39f6c25541e012d00a9c2339c22355bfdcc6115d730a7df\"",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"version\":\"20261014-1a2b3c4d\",\"build\":{\"name\":\"rel-1.14.7-Archon\",\"changelist\":647472},\"files\":[{\"name\":\"MysticParadox.dll\",\"size\":70000,\"sha256\":\"9f6d8bb550591a5410aa72b997e7d49e3eed1ce025e83628addaf4382d2295bd\"},{\"name\":\"winmm.dll\",\"size\":3000,\"sha256\":\"f541874101876255b4baf3a739778d04cb9cba25ffa38b30bc1fb8b0701f2a45\"}]}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/winmm.dll",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "28",
+        "cache-control": "no-cache",
+        "retry-after": "10",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"file_unavailable\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/manifest",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "27",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"runtime_invalid\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/winmm.dll",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/manifest",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "27",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"runtime_invalid\"}"
+    },
+    {
+      "request": "GET /content/v1/runtime/files/winmm.dll",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
         "x-content-type-options": "nosniff"
       },
       "body": "{\"error\":\"not_found\"}"
