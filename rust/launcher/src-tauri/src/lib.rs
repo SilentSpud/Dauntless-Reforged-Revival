@@ -1,13 +1,22 @@
-//! The Dauntless Revived Launcher on Tauri 2 (MIGRATION_PLAN.md Part A). The page is the same
-//! TypeScript page the Electron launcher shows; everything the Electron main process did moves here.
+//! The Dauntless Reforged Revival Launcher on Tauri 2 (MIGRATION_PLAN.md section 4.6), on Dauntless
+//! Revived's launcher backend (e1c5fec). The page is the same TypeScript page the Electron launcher shows
+//! (`legacy/ReforgedLauncher`, built by `../vite.config.ts`); everything the Electron main process did
+//! moves here.
+//!
+//! RA1 and RA2 set the seams: the app's identity, the window, every command the page calls (`bridge/`)
+//! and a stub for every module a later row fills (`stub`), so each of those rows only fills its own files.
+//! Until RA13 wires the controller to them, the network and platform layers are not called outside their
+//! tests.
 
 mod bridge;
 mod controller;
+#[allow(dead_code, reason = "RA13's controller uses the core rules")]
 mod core;
+#[allow(dead_code, reason = "RA13's controller uses the network layer")]
 mod net;
-#[cfg(feature = "offline")]
-pub mod offline;
+#[allow(dead_code, reason = "RA13's controller uses the platform layer")]
 mod platform;
+mod stub;
 mod window;
 
 use bridge::backend::Backend;
@@ -55,7 +64,7 @@ pub fn run() -> tauri::Result<()> {
     platform::log::log_to_file(paths.logs_dir());
     let context = tauri::generate_context!();
     let version = context.package_info().version.to_string();
-    platform::log::info(&format!("Dauntless Revived Launcher {version} starting"));
+    platform::log::info(&format!("Dauntless Reforged Revival Launcher {version} starting"));
     let encryptors = tauri::async_runtime::block_on(platform::keystore::os::encryptors(&paths.user_data));
     #[cfg(target_os = "linux")]
     if !encryptors.0.is_available() && secure_storage::bootstrap(&args, &paths.home) {
@@ -92,18 +101,16 @@ pub fn run() -> tauri::Result<()> {
             commands::import_key_file,
             commands::save_key_backup,
             commands::dismiss_backup_offer,
-            commands::choose_install_dir,
-            commands::use_existing_game_folder,
-            commands::use_existing_game_path,
-            commands::start_install,
-            commands::pause_task,
-            commands::resume_task,
+            commands::choose_game_folder,
+            commands::use_game_path,
+            commands::use_detected_game,
+            commands::verify_game,
+            commands::trust_runtime,
+            commands::install_runtime,
+            commands::choose_local_runtime,
+            commands::clear_local_runtime,
             commands::cancel_task,
-            commands::repair,
             commands::play,
-            commands::start_offline,
-            commands::stop_offline,
-            commands::offline_status,
             commands::set_settings,
             commands::set_status_polling,
             commands::refresh_status,
@@ -111,13 +118,28 @@ pub fn run() -> tauri::Result<()> {
             commands::get_branding,
             commands::open_external,
             commands::open_game_folder,
+            commands::open_logs_folder,
             commands::logout,
             commands::install_update,
+            commands::host_get,
+            commands::host_choose_workspace,
+            commands::host_choose_dumper,
+            commands::host_import_gamedata,
+            commands::host_import_sdk_folder,
+            commands::host_download_project,
+            commands::host_action,
+            commands::host_open,
+            commands::host_server_get,
+            commands::host_server_start,
+            commands::host_server_stop,
+            commands::host_setup,
+            commands::host_create_invite,
+            commands::host_update,
+            commands::host_set_multipliers,
+            commands::copy_text,
             commands::take_invite_link,
             commands::dismiss_notice,
             commands::dismiss_error,
-            commands::offline_export_save,
-            commands::offline_import_save,
             commands::subscribe_progress,
         ])
         .setup(move |app| {
@@ -165,9 +187,9 @@ pub fn run() -> tauri::Result<()> {
     Ok(())
 }
 
-/// Linux without a Secret Service (`ensureLinuxSecureStorageDependency` in `main.ts`): a packaged launcher
-/// installs gnome-keyring and libsecret through the package manager once, then starts again. Without it, keys
-/// cannot be saved ("unavailable"), as before. `DAUNTLESS_REVIVED_AUTO_INSTALL=0` turns this off.
+/// Linux without a Secret Service (DR's `ensureLinuxSecureStorageDependency`): a packaged launcher
+/// installs gnome-keyring and libsecret through the package manager once, then starts again. Without it,
+/// keys cannot be saved ("unavailable"), as before. `REFORGED_AUTO_INSTALL=0` turns this off.
 #[cfg(target_os = "linux")]
 mod secure_storage {
     use std::path::Path;
@@ -176,8 +198,8 @@ mod secure_storage {
     use crate::platform::linux_runtime::{DependencyKind, current_env, install_plan, run_install};
     use crate::platform::log;
 
-    const BOOTSTRAPPED: &str = "DAUNTLESS_REVIVED_STORAGE_BOOTSTRAPPED";
-    const PARENT: &str = "DAUNTLESS_REVIVED_PARENT_PID";
+    const BOOTSTRAPPED: &str = "REFORGED_STORAGE_BOOTSTRAPPED";
+    const PARENT: &str = "REFORGED_PARENT_PID";
 
     /// A launcher started again after the install waits for the old one to exit, which still holds the
     /// single-launcher channel; else the new one would hand its arguments to it and stop.
@@ -198,7 +220,7 @@ mod secure_storage {
         log::warn("secure storage unavailable (no Secret Service)");
         let env = current_env();
         if cfg!(dev)
-            || env.get("DAUNTLESS_REVIVED_AUTO_INSTALL").map(String::as_str) == Some("0")
+            || env.get("REFORGED_AUTO_INSTALL").map(String::as_str) == Some("0")
             || env.get(BOOTSTRAPPED).map(String::as_str) == Some("1")
         {
             return false;
@@ -233,7 +255,7 @@ mod secure_storage {
     }
 }
 
-/// The controller with this PC's folders, the compiled-in manifest and the app's resources.
+/// The controller with this PC's folders and the app's resources.
 fn make_controller(
     app: &AppHandle,
     paths: Paths,
@@ -243,48 +265,30 @@ fn make_controller(
         Option<Arc<dyn platform::keystore::Encryptor>>,
     ),
 ) -> tauri::Result<ControllerHandle> {
-    use crate::core::manifest::GAME_MANIFEST;
     use crate::core::pins::{EXE_RELATIVE_PATH, PINNED_EXE_SHA256};
 
-    // Offline play's game executable is the current install's, known once the controller exists
-    #[cfg(feature = "offline")]
-    let game_root: Arc<OnceLock<std::sync::Weak<Controller>>> = Arc::default();
     let resources_dir = if cfg!(dev) {
-        std::path::PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../assets"))
+        std::path::PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../brand/launcher"))
     } else {
         app.path().resource_dir()?
     };
-    let manifest = (!GAME_MANIFEST.files.is_empty()).then(|| GAME_MANIFEST.clone());
-    match &manifest {
-        Some(manifest) => platform::log::info(&format!(
-            "game manifest {} files, fingerprint {}",
-            manifest.files.len(),
-            crate::core::manifest::manifest_fingerprint(manifest)
-        )),
-        None => platform::log::error("compiled-in game manifest is not usable"),
-    }
-    let relay_port = net::relay::relay_port_override(std::env::var("DAUNTLESS_REVIVED_RELAY_PORT").ok().as_deref())
+    let relay_port = net::relay::relay_port_override(std::env::var("REFORGED_RELAY_PORT").ok().as_deref())
         .unwrap_or(net::relay::DEFAULT_RELAY_PORT);
     let config = Config {
         user_data: paths.user_data.clone(),
         documents: Some(paths.documents.clone()),
-        resources_dir: resources_dir.clone(),
-        default_install_dir: paths.default_install_dir.clone(),
+        resources_dir,
         host: platform::settings::Platform::current(),
         app_version: version,
         packaged: !cfg!(dev),
         language: core::i18n::os_language(),
         system_locale: sys_locale::get_locale().unwrap_or_else(|| "en-US".into()),
-        manifest,
         game_config_dir: platform::game_config::default_config_dir(),
         relay_port,
         exe_pin: (EXE_RELATIVE_PATH.into(), PINNED_EXE_SHA256.into()),
         status_poll: std::time::Duration::from_millis(core::pins::STATUS_POLL_MS),
-        #[cfg(feature = "offline")]
-        offline: offline_setup(&paths, &resources_dir, &encryptor, &legacy_encryptor, game_root.clone()),
         encryptor,
         legacy_encryptor,
-        spawn: None,
     };
     let platform = TauriPlatform {
         app: app.clone(),
@@ -292,52 +296,5 @@ fn make_controller(
         documents: paths.documents,
         home: paths.home,
     };
-    let controller = Controller::new(Arc::new(platform), config);
-    #[cfg(feature = "offline")]
-    let _ = game_root.set(Arc::downgrade(&controller));
-    Ok(controller)
-}
-
-/// Offline play's stack and saves (Windows only, as in the Electron launcher).
-#[cfg(feature = "offline")]
-fn offline_setup(
-    paths: &Paths,
-    resources_dir: &std::path::Path,
-    encryptor: &Arc<dyn platform::keystore::Encryptor>,
-    legacy_encryptor: &Option<Arc<dyn platform::keystore::Encryptor>>,
-    game_root: Arc<OnceLock<std::sync::Weak<Controller>>>,
-) -> Option<controller::offline::OfflineSetup> {
-    use offline::layout::OfflineLayout;
-    use offline::stack::{ProcessRuntime, StackManager, before_start};
-
-    if !cfg!(windows) {
-        return None;
-    }
-    let program = std::env::current_exe().ok()?;
-    let layout = OfflineLayout::new(&paths.user_data, resources_dir);
-    // The offline identity stays in userData: no Documents copy, unlike online keys
-    let keys = platform::keystore::KeyStore::new(paths.keys_dir(), encryptor.clone(), legacy_encryptor.clone(), None);
-    let executable = move || {
-        let root = game_root
-            .get()
-            .and_then(std::sync::Weak::upgrade)
-            .map(|controller| controller.install_dir())
-            .unwrap_or_default();
-        std::path::Path::new(&root).join(core::pins::EXE_RELATIVE_PATH)
-    };
-    // Server diagnostics are opt-in apart from the game's own console setting
-    let server_console = std::env::var("DAUNTLESS_REVIVED_LOCAL_SERVER_CONSOLE").as_deref() == Ok("1");
-    let prepare = before_start(
-        layout.clone(),
-        executable,
-        platform::game_config::default_config_dir(),
-        server_console,
-    );
-    let runtime = ProcessRuntime::offline(program, &layout, prepare);
-    Some(controller::offline::OfflineSetup {
-        stack: Arc::new(StackManager::new(Arc::new(runtime))),
-        save: Arc::new(offline::save::PortableSave::new(layout, paths.user_data.clone(), keys)),
-        free_memory: Some(offline::free_memory),
-        port: 61000,
-    })
+    Ok(Controller::new(Arc::new(platform), config))
 }

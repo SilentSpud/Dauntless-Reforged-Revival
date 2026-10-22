@@ -20,6 +20,9 @@ use tokio_util::sync::CancellationToken;
 use super::pinned::{ConnectError, PinnedTarget, pinned_connect};
 use crate::core::invite::{is_private_mode_host, is_valid_host};
 
+/// `request_to_file`, RA7's (its own file, so RA5 and RA7 do not share this one)
+pub mod to_file;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Endpoint {
     pub host: String,

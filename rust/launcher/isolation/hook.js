@@ -1,14 +1,14 @@
-// The isolation hook (MIGRATION_PLAN.md L9, D4). Tauri runs it in a sandboxed frame of its own, with its
-// own Content-Security-Policy and no network, and passes it every call the page makes before the call is
-// encrypted for the backend. It lets through only the commands in commands.js (generated from the
-// backend's list) and the few Tauri calls the page needs, with arguments of the right shape and size.
-// Anything else is dropped: the call never settles, so the page's api.ts times it out.
-// Keep this file free of dependencies and of anything but the list: the backend checks again anyway.
+// The isolation hook (MIGRATION_PLAN.md L9, D4; RA2). Tauri runs it in a sandboxed frame of its own, with
+// its own Content-Security-Policy and no network, and passes it every call the page makes before the call
+// is encrypted for the backend. It lets through only the commands in commands.js (generated from the
+// backend's list, src-tauri/src/bridge/spec.rs) and the few Tauri calls the page needs, with arguments of
+// the right shape and size. Anything else is dropped: the call never settles, so the page's api.ts times
+// it out. Keep this file free of dependencies and of anything but the list: the backend checks again.
 "use strict";
 
 (function () {
-  var COMMANDS = window.__DR_COMMANDS__;
-  var SETTINGS_KEYS = window.__DR_SETTINGS_KEYS__;
+  var COMMANDS = window.__RR_COMMANDS__;
+  var SETTINGS_KEYS = window.__RR_SETTINGS_KEYS__;
   var EVENT_MAX = 64;
 
   // Tauri's own calls the page makes: events (listen/unlisten), the window controls and the title bar's
@@ -29,13 +29,31 @@
     return Object.prototype.hasOwnProperty.call(object, key);
   };
 
+  var isObject = function (value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  };
+
   function settingsPatch(value) {
-    if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+    if (!isObject(value)) return false;
     var keys = Object.keys(value);
     for (var i = 0; i < keys.length; i++) {
       var field = value[keys[i]];
       if (SETTINGS_KEYS.indexOf(keys[i]) < 0) return false;
       if (typeof field === "string" ? field.length > 16 : typeof field !== "number" && typeof field !== "boolean") return false;
+    }
+    return true;
+  }
+
+  // Exactly the named fields, each of the right shape
+  function fields(specs, value) {
+    if (!isObject(value)) return false;
+    var names = Object.keys(value);
+    for (var i = 0; i < names.length; i++) {
+      if (!own(specs, names[i])) return false;
+    }
+    var expected = Object.keys(specs);
+    for (var j = 0; j < expected.length; j++) {
+      if (!fits(specs[expected[j]], value[expected[j]], own(value, expected[j]))) return false;
     }
     return true;
   }
@@ -48,8 +66,20 @@
         return !present || value === undefined || value === null || (typeof value === "string" && value.length <= spec.max);
       case "flag":
         return present && typeof value === "boolean";
+      case "index":
+        return present && typeof value === "number" && Math.floor(value) === value && value >= 0 && value <= spec.max;
+      case "name":
+        return present && typeof value === "string" && spec.names.indexOf(value) >= 0;
       case "number":
-        return present && typeof value === "number" && isFinite(value);
+        return (
+          present &&
+          typeof value === "number" &&
+          isFinite(value) &&
+          (spec.min === undefined || value >= spec.min) &&
+          (spec.max === undefined || value <= spec.max)
+        );
+      case "object":
+        return present && ((spec.nullable && value === null) || fields(spec.fields, value));
       case "settingsPatch":
         return present && settingsPatch(value);
       case "channel":
@@ -66,16 +96,7 @@
     var specs = own(COMMANDS, cmd) ? COMMANDS[cmd] : own(TAURI, cmd) ? TAURI[cmd] : null;
     if (specs === null) return false;
     if (args === undefined || args === null) args = {};
-    if (typeof args !== "object" || Array.isArray(args)) return false;
-    var names = Object.keys(args);
-    for (var i = 0; i < names.length; i++) {
-      if (!own(specs, names[i])) return false;
-    }
-    var expected = Object.keys(specs);
-    for (var j = 0; j < expected.length; j++) {
-      if (!fits(specs[expected[j]], args[expected[j]], own(args, expected[j]))) return false;
-    }
-    return true;
+    return fields(specs, args);
   }
 
   var never = new Promise(function () {});

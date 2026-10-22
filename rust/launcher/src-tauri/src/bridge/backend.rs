@@ -24,6 +24,11 @@ pub struct Backend {
 /// Tells the page an invite link is waiting (`onInviteLink`).
 pub const INVITE_LINK_EVENT: &str = "invite-link";
 
+/// The Host page's state (`onHostKit`, `onHostServer`). The server's carries the newest invite link, a
+/// secret: it is never logged.
+pub const HOST_KIT_EVENT: &str = "host-kit";
+pub const HOST_SERVER_EVENT: &str = "host-server";
+
 /// A poisoned lock only means a panic elsewhere while holding it; the data is still whole.
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -74,8 +79,7 @@ mod tests {
         });
         let backend = Backend::default();
         let mut progress = TaskProgress {
-            kind: TaskKind::Download,
-            paused: false,
+            kind: TaskKind::Runtime,
             total_bytes: 10,
             done_bytes: 1,
             files_total: 1,
@@ -91,7 +95,7 @@ mod tests {
         progress.done_bytes = 2;
         backend.push_progress(&progress);
         assert_eq!(lock(&sent).len(), 1);
-        progress.paused = true;
+        progress.kind = TaskKind::Verify;
         backend.push_progress(&progress);
         assert_eq!(lock(&sent).len(), 2);
     }

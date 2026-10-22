@@ -1,13 +1,15 @@
-//! The values that cross the bridge between the page and the backend: `src/shared/types.ts` of the
-//! Electron launcher, field for field (row L6). The TypeScript declarations in
-//! `src/shared/generated/types.ts` are generated from these (`generate.rs`), so the page and the
-//! backend cannot drift apart.
+//! The values that cross the bridge between the page and the backend: Reforged's `src/shared/types.ts`
+//! (`legacy/ReforgedLauncher`), field for field, without what only Dauntless Revived's 1.4.4 servers
+//! used (RD5: `GameEdition`, `RevivedInfo`, `Snapshot.revived`, the 1.4.4 error and notice codes). The
+//! TypeScript declarations in `page/generated/types.ts` are generated from these (`generate.rs`), so
+//! the page and the backend cannot drift apart.
 
 use protocol::invite::ServerMode;
 use protocol::status::ServerStatus;
 use serde::{Deserialize, Serialize, Serializer};
 
-/// The launcher's languages, made from the page's strings by build.rs (L14).
+/// The launcher's languages, made from the page's strings by build.rs (L14; RA3 makes them `en` and
+/// `pt-BR`).
 pub use crate::core::i18n::Language;
 
 /// -1 = leave graphics to the in-game menu, 0..4 = Low, Medium, High, Epic, Cinematic.
@@ -17,7 +19,8 @@ pub struct GraphicsPreset(i8);
 
 impl GraphicsPreset {
     pub const GAME_MENU: Self = Self(-1);
-    pub const DEFAULT: Self = Self(4);
+    /// `DEFAULT_GRAPHICS`: leave graphics to the game
+    pub const DEFAULT: Self = Self::GAME_MENU;
 
     pub fn value(self) -> i8 {
         self.0
@@ -40,15 +43,6 @@ impl From<GraphicsPreset> for i8 {
     fn from(preset: GraphicsPreset) -> Self {
         preset.0
     }
-}
-
-/// Keep the game's scene-specific exposure by default; basic is an opt-in experiment.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(test, derive(ts_rs::TS))]
-#[serde(rename_all = "lowercase")]
-pub enum ExposureMode {
-    Game,
-    Basic,
 }
 
 /// The game's own text language, sent to it as -epiclocale; "auto" follows the operating system.
@@ -75,14 +69,14 @@ pub enum GameLanguage {
     RuRu,
 }
 
+/// The game runtime's log profile (`MYSTICPARADOX_RUNTIME_PROFILE`). "development" also honours the
+/// runtime's diagnostic .flag files next to the game executable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "lowercase")]
-pub enum HuntRegion {
-    Auto,
-    Main,
-    Ger,
-    Us,
+pub enum RuntimeProfile {
+    Production,
+    Development,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -96,12 +90,12 @@ pub enum Phase {
     Connect,
     /// Server reachable, no account key yet
     Register,
-    /// Account ready, game not installed
-    Install,
-    /// Download / verify / repair running (or paused)
+    /// Account ready, but no Dauntless 1.14.7 folder chosen, found or accepted
+    Locate,
+    /// Game found; the server's game runtime is not installed, out of date or not trusted yet
+    Runtime,
+    /// A check or the runtime download is running
     Installing,
-    /// Game present but files are missing, damaged or the DLLs need refreshing
-    Update,
     /// PLAY
     Ready,
     /// The game is running
@@ -116,10 +110,44 @@ pub enum ConnectProblem {
     TailscaleMissing,
     /// No answer within 5 s
     Unreachable,
-    /// Something answered but it is not a Dauntless Revived server
+    /// Something answered but it is not a Reforged server
     BadAnswer,
     /// Public mode: the certificate is not the one from the invite
     CertMismatch,
+}
+
+/// Why the chosen game folder cannot be used yet.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum GameProblem {
+    /// Nothing chosen and nothing found on this PC
+    NotSet,
+    /// The chosen folder no longer holds the game
+    NotFound,
+    /// Found, but its executable has not been checked yet (or changed since)
+    Unverified,
+    /// The executable is not the Dauntless 1.14.7 build (CL 647472)
+    WrongVersion,
+}
+
+/// The server's game runtime (the Mystic Paradox DLL and its loader, built by the host).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "lowercase")]
+pub enum RuntimeState {
+    /// Installed next to the game and matching the server's list
+    Ok,
+    /// Not installed yet
+    Missing,
+    /// Installed, but the server now offers another build
+    Outdated,
+    /// Offered, but not accepted on this PC yet (the player is asked first)
+    Untrusted,
+    /// The server offers no runtime: its host has not built one yet
+    Unavailable,
+    /// A local runtime folder is used instead (Settings > Advanced)
+    Local,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -138,28 +166,30 @@ pub enum ErrorCode {
     KeyInvalid,
     KeyRejected,
     KeyStorageUnavailable,
-    NoContentServer,
-    ManifestMismatch,
-    ManifestUnavailable,
-    DiskSpace,
     FolderInvalid,
-    /// "I already have the game files": no 1.4.4 game in the layouts looked at
+    /// No Dauntless game in the layouts looked at
     GameFolderNotFound,
-    FolderNotEmpty,
+    /// The executable is not the 1.14.7 build
+    GameWrongVersion,
+    /// The server offers no runtime yet
+    RuntimeUnavailable,
+    /// The player has not accepted this server's runtime
+    RuntimeUntrusted,
+    /// Downloading or installing the runtime failed
+    RuntimeFailed,
+    /// A file did not match the server's own list
+    RuntimeDifferentOnServer,
+    /// A runtime file is held by a program that would not let it be replaced
+    RuntimeInUse,
+    LocalRuntimeInvalid,
     DownloadFailed,
-    FileMissingOnServer,
-    FileDifferentOnServer,
-    VerifyFailed,
-    DllFailed,
-    GameFilesInvalid,
+    DiskSpace,
     AlreadyRunning,
     LaunchFailed,
-    WindowsRuntimeMissing,
+    /// Linux: no Proton or Wine to start the game with (DR's; RA10 decides its text)
     CompatRuntimeMissing,
     ConfigFailed,
     Busy,
-    /// The file picked to restore is not an offline save
-    OfflineSaveInvalid,
     Cancelled,
     CertMismatch,
     /// A public invite whose certificate differs from the one this PC's key belongs to
@@ -167,9 +197,9 @@ pub enum ErrorCode {
     RateLimited,
     RelayPortBusy,
     RelayFailed,
+    /// A Host tools action failed (detail says which)
+    HostFailed,
     Unknown,
-    OfflineUnavailable,
-    OfflineInsufficientMemory,
 }
 
 /// Short messages that are not errors.
@@ -179,8 +209,11 @@ pub enum ErrorCode {
 pub enum NoticeCode {
     KeepOpen,
     BackupSaved,
-    RepairDone,
-    InstallDone,
+    RuntimeInstalled,
+    RuntimeInstalledRestart,
+    GameVerified,
+    SdkImported,
+    HostDone,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -197,41 +230,19 @@ impl LauncherError {
     pub fn new(code: ErrorCode) -> Self {
         Self { code, detail: None }
     }
-}
 
-/// Offline play's local runtime state.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(test, derive(ts_rs::TS))]
-#[serde(rename_all = "kebab-case")]
-pub enum OfflinePhase {
-    Preparing,
-    StartingMetagame,
-    StartingDeploy,
-    /// First offline start only: no local account yet
-    NeedsUsername,
-    LaunchingGame,
-    Running,
-    Stopping,
-    Stopped,
-    Error,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(test, derive(ts_rs::TS))]
-pub struct OfflineStatus {
-    pub phase: OfflinePhase,
-    /// 0..1 when meaningful
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(test, ts(optional))]
-    pub progress: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(test, ts(optional))]
-    pub error: Option<LauncherError>,
+    pub fn with_detail(code: ErrorCode, detail: &str) -> Self {
+        Self {
+            code,
+            detail: Some(detail.to_owned()),
+        }
+    }
 }
 
 /// `{ ok: true } | { ok: false, error }`, as the page reads it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionResult {
+    #[allow(dead_code, reason = "the controller's stubs only refuse until RA13")]
     Ok,
     Err(LauncherError),
 }
@@ -263,11 +274,15 @@ impl Serialize for ActionResult {
 
 /// Asked before joining from an invite. `certificate_changed`: this PC has a key for the invite's
 /// host:port that belongs to another certificate (`previous_fingerprint`, None if not recorded).
+/// `moved_from`: a private server this PC has an account on, now at the invite's new address (its old
+/// address).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InviteCheck {
+    #[allow(dead_code, reason = "the controller's stubs only refuse until RA13")]
     Ok {
         certificate_changed: bool,
         previous_fingerprint: Option<String>,
+        moved_from: Option<String>,
     },
     Err(LauncherError),
 }
@@ -280,15 +295,18 @@ impl Serialize for InviteCheck {
             ok: bool,
             certificate_changed: bool,
             previous_fingerprint: &'a Option<String>,
+            moved_from: &'a Option<String>,
         }
         match self {
             Self::Ok {
                 certificate_changed,
                 previous_fingerprint,
+                moved_from,
             } => Checked {
                 ok: true,
                 certificate_changed: *certificate_changed,
                 previous_fingerprint,
+                moved_from,
             }
             .serialize(serializer),
             Self::Err(error) => Failed { ok: false, error }.serialize(serializer),
@@ -298,7 +316,10 @@ impl Serialize for InviteCheck {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RegisterOutcome {
-    Ok { username: String },
+    #[allow(dead_code, reason = "the controller's stubs only refuse until RA13")]
+    Ok {
+        username: String,
+    },
     Err(LauncherError),
 }
 
@@ -320,10 +341,10 @@ impl Serialize for RegisterOutcome {
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "lowercase")]
 pub enum TaskKind {
-    Download,
+    /// Hashing the game executable
     Verify,
-    Repair,
-    Dlls,
+    /// Downloading and installing the server's runtime
+    Runtime,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -331,7 +352,6 @@ pub enum TaskKind {
 #[serde(rename_all = "camelCase")]
 pub struct TaskProgress {
     pub kind: TaskKind,
-    pub paused: bool,
     pub total_bytes: u64,
     pub done_bytes: u64,
     pub files_total: u32,
@@ -371,25 +391,76 @@ pub struct SavedServerInfo {
     pub username: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "lowercase")]
+pub enum GameSource {
+    Epic,
+    Legendary,
+    Heroic,
+    Chosen,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+pub struct DetectedGame {
+    pub root: String,
+    pub source: GameSource,
+    /// What the store says (Legendary, Heroic), or Version.txt
+    pub version: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct GameInfo {
+    /// The "Dauntless" folder, the one that holds Archon\
+    pub root: Option<String>,
+    pub problem: Option<GameProblem>,
+    /// Version.txt, e.g. dauntless_rel-1.14.7_Shipping_2024-04-01_14-59-21_647472
+    pub version_text: Option<String>,
+    /// Version.txt names 1.14.7, changelist 647472
+    pub version_ok: bool,
+    /// The executable's SHA-256 is the 1.14.7 one (checked once per file change)
+    pub exe_verified: bool,
+    /// Installs found on this PC (Epic, Legendary, Heroic)
+    pub detected: Vec<DetectedGame>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+pub struct RuntimeFileInfo {
+    pub name: String,
+    pub size: u64,
+    pub sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeInfo {
+    pub state: RuntimeState,
+    /// The server's runtime version
+    pub version: Option<String>,
+    /// What the server offers (shown when the player is asked to trust it)
+    pub files: Vec<RuntimeFileInfo>,
+    pub local_dir: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(test, ts(optional))]
-    pub hunt_region: Option<HuntRegion>,
     #[cfg_attr(test, ts(type = "GraphicsPreset"))]
     pub graphics: GraphicsPreset,
-    pub exposure: ExposureMode,
     pub windowed: bool,
     pub language: Language,
     pub game_language: GameLanguage,
-    /// The DLL's log window, normally hidden (DR_SHOW_CONSOLE=1)
-    pub show_console: bool,
+    pub runtime_profile: RuntimeProfile,
     /// Hide addresses, fingerprints, paths and player names on screen
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(test, ts(optional))]
-    pub streamer_mode: Option<bool>,
+    pub streamer_mode: bool,
+    /// Show the Host page in the rail
+    pub host_tools: bool,
 }
 
 /// What `setSettings` may change: any of the settings, each checked; an unknown field or a wrong value
@@ -397,14 +468,13 @@ pub struct Settings {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SettingsPatch {
-    pub hunt_region: Option<HuntRegion>,
     pub graphics: Option<GraphicsPreset>,
-    pub exposure: Option<ExposureMode>,
     pub windowed: Option<bool>,
+    pub streamer_mode: Option<bool>,
+    pub host_tools: Option<bool>,
     pub language: Option<Language>,
     pub game_language: Option<GameLanguage>,
-    pub show_console: Option<bool>,
-    pub streamer_mode: Option<bool>,
+    pub runtime_profile: Option<RuntimeProfile>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -429,30 +499,8 @@ pub struct SnapshotAccount {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
-pub struct SnapshotInstall {
-    pub dir: String,
-    pub default_dir: String,
-    /// Every file present with the right size, and the DLLs in place
-    pub installed: bool,
-    pub missing_files: u32,
-    /// This folder's files were fully checked or downloaded by the launcher
-    pub verified: bool,
-    pub dlls_ok: bool,
-    pub free_bytes: Option<u64>,
-    pub required_bytes: u64,
-    pub total_bytes: u64,
-    pub vc_runtime_missing: Vec<String>,
-    #[serde(default, rename = "directXMissing", skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(test, ts(optional))]
-    pub direct_x_missing: Option<Vec<String>>,
-    pub content_available: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(test, derive(ts_rs::TS))]
-#[serde(rename_all = "camelCase")]
-pub struct SnapshotGame {
-    pub running: bool,
+pub struct SnapshotRunning {
+    pub game: bool,
     pub relay_port: Option<u16>,
 }
 
@@ -463,6 +511,8 @@ pub struct SnapshotApp {
     pub version: String,
     pub packaged: bool,
     pub update_ready: bool,
+    /// `process.platform`: "win32" or "linux"
+    pub platform: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -475,13 +525,14 @@ pub struct Snapshot {
     pub saved_servers: Vec<SavedServerInfo>,
     pub connect: SnapshotConnect,
     pub account: SnapshotAccount,
-    pub install: SnapshotInstall,
+    pub game: GameInfo,
+    pub runtime: RuntimeInfo,
     pub task: Option<TaskProgress>,
-    pub game: SnapshotGame,
+    pub running: SnapshotRunning,
     pub settings: Settings,
     pub app: SnapshotApp,
     pub status: Option<ServerStatus>,
-    /// The host answers but has no ServerStatus endpoint yet
+    /// The host answers but has no ServerStatus endpoint
     pub status_unsupported: bool,
     pub last_error: Option<LauncherError>,
     pub notice: Option<NoticeCode>,
@@ -498,7 +549,7 @@ pub struct NewsItem {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]
 pub struct Background {
-    /// An app-internal dr-art URL
+    /// An app-internal `rr-art://` URL
     pub url: String,
     pub credit: Option<String>,
 }
@@ -510,6 +561,277 @@ pub struct Branding {
     pub accent: Option<String>,
 }
 
+// ------------------------------------------------------------------ Host tools
+
+/// What the Host page shows comes from files on this PC; nothing here is secret.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "lowercase")]
+pub enum GameDataState {
+    Real,
+    Synthetic,
+    Missing,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+pub struct HostUpstream {
+    /// .workspace\Mystic-Paradox holds the pinned source
+    pub present: bool,
+    /// And the Reforged patches are applied
+    pub patched: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct HostSdk {
+    /// ParadoxRuntime\SDK.hpp
+    pub present: bool,
+    /// ParadoxRuntime\SDK\*_functions.cpp
+    pub function_files: u32,
+}
+
+/// A Dumper-7 CppSDK output found on this PC.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+pub struct HostDump {
+    pub dir: String,
+    pub name: String,
+    pub modified: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+pub struct HostBuilds {
+    /// ParadoxRuntime\x64\Release\MysticParadox.dll
+    pub runtime: bool,
+    /// tools\RuntimeLoader\target\release\winmm.dll
+    pub loader: bool,
+    /// tools\CatalogExporter\x64\Release\CatalogExporter.dll
+    pub exporter: bool,
+    /// Both runtime files in the content server's runtime folder
+    pub published: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct HostToolchain {
+    /// e.g. "Visual Studio 2022 (17.14)"
+    pub visual_studio: Option<String>,
+    pub msbuild: bool,
+    pub cargo: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+pub struct HostGameData {
+    pub backend: GameDataState,
+    pub director: GameDataState,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct HostExports {
+    /// Items_Analysis in the workspace
+    pub present: bool,
+    /// And beside the game (CatalogExporter's output)
+    pub in_game: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "lowercase")]
+pub enum HostServerMode {
+    Private,
+    Public,
+}
+
+/// The server's .workspace\config\host.json (no secrets there: they are in secrets.env).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+pub struct HostServerConfig {
+    pub configured: bool,
+    pub name: Option<String>,
+    pub mode: Option<HostServerMode>,
+    pub host: Option<String>,
+    /// The test XP and reward multipliers (private servers only), null when off
+    pub multipliers: Option<HostMultipliers>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct HostKit {
+    /// A Dauntless Reforged Revival checkout
+    pub workspace: Option<String>,
+    pub workspace_ok: bool,
+    pub upstream: HostUpstream,
+    pub sdk: HostSdk,
+    pub dumps: Vec<HostDump>,
+    /// The Dumper-7 DLL the host picked
+    pub dumper_dll: Option<String>,
+    pub builds: HostBuilds,
+    pub toolchain: HostToolchain,
+    pub game_data: HostGameData,
+    pub exports: HostExports,
+    pub server_config: HostServerConfig,
+    pub requirements: Vec<Requirement>,
+    pub job: Option<HostJob>,
+    /// What the last "Update" found, since the launcher started
+    pub update: Option<HostUpdateView>,
+    /// Where the project folder is downloaded to: beside the game's folder
+    pub project_target: Option<String>,
+}
+
+/// XP and reward multipliers for a private test server: 1 to `MAX_MULTIPLIER` each.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+pub struct HostMultipliers {
+    pub xp: f64,
+    pub rewards: f64,
+}
+
+pub const MAX_MULTIPLIER: f64 = 100.0;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum HostUpdateState {
+    UpToDate,
+    Updated,
+}
+
+/// The project compared with GitHub.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct HostUpdateView {
+    pub state: HostUpdateState,
+    /// The short commit this PC is at now
+    pub head: String,
+    /// Files the update changed
+    pub files: u32,
+    /// The game runtime changed: build MysticParadox.dll again and publish it
+    pub runtime_changed: bool,
+}
+
+/// What the Requirements tab lists, each one detected on this PC.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum RequirementId {
+    Dauntless,
+    Git,
+    Node,
+    Mongodb,
+    Tailscale,
+    VisualStudio,
+    Rust,
+    Dumper7,
+    VcRedist,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "lowercase")]
+pub enum RequirementState {
+    Ok,
+    Missing,
+    Problem,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+pub struct Requirement {
+    pub id: RequirementId,
+    pub state: RequirementState,
+    /// The version or place found; never a secret
+    pub detail: Option<String>,
+    /// What is wrong when state is "problem": node "too_old"; mongodb "service_running"; visual_studio
+    /// "no_cpp"
+    pub problem: Option<String>,
+}
+
+/// The server the Host page starts and stops. `external`: the server answers, but was started elsewhere
+/// (a terminal): the launcher cannot stop it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "lowercase")]
+pub enum HostServerState {
+    Stopped,
+    Starting,
+    Running,
+    Stopping,
+    External,
+    Failed,
+}
+
+/// The invite made last: a secret, shown blurred in streamer mode and never logged.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+pub struct HostInvite {
+    pub link: String,
+    #[serde(rename = "for")]
+    pub for_name: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+pub struct HostServerView {
+    pub state: HostServerState,
+    /// The error line when it failed
+    pub message: Option<String>,
+    /// The newest output of the server and of the host kit commands started here
+    pub lines: Vec<String>,
+    pub invite: Option<HostInvite>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum HostJobKind {
+    Inject,
+    BuildRuntime,
+    BuildLoader,
+    BuildExporter,
+    ImportSdk,
+    CopyExports,
+    SyntheticData,
+    ImportGamedata,
+    PublishRuntime,
+    Setup,
+    GenerateGamedata,
+    ExportGamedata,
+    CreateInvite,
+    Update,
+    Multipliers,
+    Upstream,
+    DownloadProject,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "lowercase")]
+pub enum HostJobState {
+    Running,
+    Done,
+    Failed,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct HostJob {
+    pub kind: HostJobKind,
+    pub state: HostJobState,
+    /// The last line of its log, never a secret
+    pub message: Option<String>,
+    pub log_file: Option<String>,
+}
+
 /// The links the page can ask the backend to open. The page names one of these; it never passes a URL.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(ts_rs::TS))]
@@ -518,22 +840,77 @@ pub enum ExternalTarget {
     TailscaleDownload,
     TailscaleShare,
     VcRedist,
-    DirectxRuntime,
     ServerSource,
     ProjectSource,
     ProjectLicense,
-    ProjectContributors,
-    UpstreamSource,
-    UpstreamContributors,
-    Eugamehost,
-    EugamehostGame1,
-    EugamehostGame2,
-    EugamehostGame3,
-    EugamehostGame5,
-    #[serde(rename = "eugamehost_5800x")]
-    Eugamehost5800x,
-    Discord,
-    Patreon,
+    ProjectIssues,
+    ProjectDocsPlayers,
+    ProjectDocsHosting,
+    ProjectDocsSdk,
+    InstallingGuide,
+    Legendary,
+    Dumper7,
+    VisualStudio,
+    Rust,
+    Nodejs,
+    Mongodb,
+    Git,
+    VisualStudioInstaller,
+    RustInstaller,
+    #[serde(rename = "dumper7_zip")]
+    Dumper7Zip,
+    RevivedSource,
+    MysticSource,
+    UndauntedSource,
+}
+
+/// Host page actions, by name (the page never passes a path or a command).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum HostAction {
+    /// Start the game without the runtime and load Dumper-7 into it
+    InjectDumper,
+    /// Copy the newest Dumper-7 CppSDK into the runtime source
+    ImportSdk,
+    BuildRuntime,
+    BuildLoader,
+    BuildExporter,
+    /// Load CatalogExporter into the running game
+    InjectExporter,
+    /// Copy the exporter's Items_Analysis into the workspace
+    CopyExports,
+    /// Copy the example game data (startup tests only)
+    SyntheticData,
+    /// Copy the built runtime files to the content server
+    PublishRuntime,
+    GenerateGamedata,
+    ExportGamedata,
+}
+
+/// The folders the Host page may open, by name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum HostFolder {
+    Workspace,
+    RuntimeSource,
+    Dumps,
+    GameData,
+    RuntimePublish,
+    HostLogs,
+    GamedataPacks,
+}
+
+/// The Host page's server setup form. The game folder is the launcher's own.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub struct HostSetupRequest {
+    pub name: String,
+    pub mode: HostServerMode,
+    /// Public mode: the server's public IPv4 or DNS name
+    pub public_host: Option<String>,
 }
 
 #[cfg(test)]
@@ -551,10 +928,11 @@ mod tests {
         let check = InviteCheck::Ok {
             certificate_changed: true,
             previous_fingerprint: None,
+            moved_from: Some("100.64.0.1:61000".into()),
         };
         assert_eq!(
             serde_json::to_value(check).unwrap(),
-            json!({ "ok": true, "certificateChanged": true, "previousFingerprint": null })
+            json!({ "ok": true, "certificateChanged": true, "previousFingerprint": null, "movedFrom": "100.64.0.1:61000" })
         );
         let registered = RegisterOutcome::Ok {
             username: "Slayer".into(),
@@ -563,47 +941,67 @@ mod tests {
             serde_json::to_value(registered).unwrap(),
             json!({ "ok": true, "username": "Slayer" })
         );
-        let error = LauncherError {
-            code: ErrorCode::DiskSpace,
-            detail: Some("12".into()),
-        };
+        let error = LauncherError::with_detail(ErrorCode::HostFailed, "setup_form");
         assert_eq!(
             serde_json::to_value(RegisterOutcome::Err(error)).unwrap(),
-            json!({ "ok": false, "error": { "code": "disk_space", "detail": "12" } })
+            json!({ "ok": false, "error": { "code": "host_failed", "detail": "setup_form" } })
         );
     }
 
     #[test]
     fn names_match_the_typescript_ones() {
         assert_eq!(
-            serde_json::to_value(ExternalTarget::Eugamehost5800x).unwrap(),
-            json!("eugamehost_5800x")
+            serde_json::to_value(ExternalTarget::Dumper7Zip).unwrap(),
+            json!("dumper7_zip")
         );
+        assert_eq!(serde_json::to_value(ExternalTarget::Dumper7).unwrap(), json!("dumper7"));
         assert_eq!(
-            serde_json::to_value(ExternalTarget::EugamehostGame1).unwrap(),
-            json!("eugamehost_game1")
-        );
-        assert_eq!(
-            serde_json::to_value(OfflinePhase::StartingMetagame).unwrap(),
-            json!("starting-metagame")
+            serde_json::to_value(ExternalTarget::ProjectDocsSdk).unwrap(),
+            json!("project_docs_sdk")
         );
         assert_eq!(serde_json::to_value(GameLanguage::PtBr).unwrap(), json!("pt-BR"));
         assert_eq!(
-            serde_json::to_value(ErrorCode::GameFolderNotFound).unwrap(),
-            json!("game_folder_not_found")
+            serde_json::to_value(ErrorCode::RuntimeDifferentOnServer).unwrap(),
+            json!("runtime_different_on_server")
+        );
+        assert_eq!(
+            serde_json::to_value(NoticeCode::RuntimeInstalledRestart).unwrap(),
+            json!("runtime_installed_restart")
+        );
+        assert_eq!(
+            serde_json::to_value(HostFolder::GamedataPacks).unwrap(),
+            json!("gamedata_packs")
+        );
+        assert_eq!(
+            serde_json::to_value(HostUpdateState::UpToDate).unwrap(),
+            json!("up_to_date")
+        );
+        let invite = HostInvite {
+            link: "x".into(),
+            for_name: None,
+        };
+        assert_eq!(
+            serde_json::to_value(invite).unwrap(),
+            json!({ "link": "x", "for": null })
         );
     }
 
     #[test]
     fn a_settings_patch_is_checked_whole() {
-        let patch: SettingsPatch = serde_json::from_value(json!({ "huntRegion": "us", "graphics": -1 })).unwrap();
-        assert_eq!(patch.hunt_region, Some(HuntRegion::Us));
+        let patch: SettingsPatch =
+            serde_json::from_value(json!({ "runtimeProfile": "development", "graphics": -1, "hostTools": true }))
+                .unwrap();
+        assert_eq!(patch.runtime_profile, Some(RuntimeProfile::Development));
         assert_eq!(patch.graphics, Some(GraphicsPreset::GAME_MENU));
+        assert_eq!(patch.host_tools, Some(true));
         for bad in [
             json!({ "graphics": 5 }),
             json!({ "unexpected": true }),
+            json!({ "huntRegion": "us" }),
+            json!({ "exposure": "basic" }),
             json!({ "language": "xx" }),
             json!({ "windowed": "yes" }),
+            json!({ "runtimeProfile": "debug" }),
             json!([]),
         ] {
             assert!(serde_json::from_value::<SettingsPatch>(bad.clone()).is_err(), "{bad}");

@@ -8,7 +8,7 @@ use protocol::invite::{Invite, ServerMode};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use crate::bridge::types::{ExposureMode, GameLanguage, GraphicsPreset, HuntRegion, Language};
+use crate::bridge::types::{GameLanguage, GraphicsPreset, Language};
 use crate::net::http::Endpoint;
 use crate::platform::keystore::{KeySlot, server_id};
 
@@ -72,14 +72,10 @@ pub struct Stored {
     pub install_dir: Option<String>,
     pub verified_dir: Option<String>,
     pub graphics: GraphicsPreset,
-    pub exposure: ExposureMode,
     pub windowed: bool,
     pub streamer_mode: bool,
     pub language: Language,
     pub game_language: GameLanguage,
-    pub show_console: bool,
-    #[serde(default)]
-    pub hunt_region: Option<HuntRegion>,
     pub usernames: HashMap<String, String>,
     pub backup_offered: HashMap<String, bool>,
 }
@@ -99,13 +95,10 @@ impl Default for Stored {
             install_dir: None,
             verified_dir: None,
             graphics: GraphicsPreset::DEFAULT,
-            exposure: ExposureMode::Game,
             windowed: false,
             streamer_mode: false,
             language: Language::En,
             game_language: GameLanguage::Auto,
-            show_console: false,
-            hunt_region: None,
             usernames: HashMap::new(),
             backup_offered: HashMap::new(),
         }
@@ -175,7 +168,8 @@ mod tests {
         let defaults = Stored::of(&default_settings(Language::De));
         assert!(defaults.server.is_none());
         assert_eq!(defaults.language, Language::De);
-        assert_eq!(defaults.graphics, GraphicsPreset::DEFAULT);
+        // DR's default (4) until RA8 takes Reforged's (-1, `GraphicsPreset::DEFAULT`)
+        assert_eq!(defaults.graphics.value(), 4);
 
         let mut map = default_settings(Language::En);
         let server = StoredServer {
@@ -190,13 +184,11 @@ mod tests {
         set_server(&mut map, Some(&server));
         set_username(&mut map, &server.id(), Some("Sam"));
         set_backup_offered(&mut map, &server.id(), true);
-        map.insert("huntRegion".into(), Value::from("ger"));
         let map = sanitize_settings(&Value::Object(map), Language::En, Platform::current());
         let stored = Stored::of(&map);
         assert_eq!(stored.server.as_ref(), Some(&server));
         assert_eq!(stored.saved_servers, vec![server.clone()]);
         assert_eq!(stored.usernames.get(&server.id()).map(String::as_str), Some("Sam"));
         assert_eq!(stored.backup_offered.get(&server.id()), Some(&true));
-        assert_eq!(stored.hunt_region, Some(HuntRegion::Ger));
     }
 }
