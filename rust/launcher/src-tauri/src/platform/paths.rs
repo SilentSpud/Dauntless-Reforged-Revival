@@ -1,19 +1,18 @@
 //! Where the launcher keeps its files (row L26). Tauri's own app data folder would be
-//! `…/io.github.mixutin.dauntlessrevived`; it is not used. The folders are the Electron launcher's,
-//! so settings, keys, `logs/` and `offline/` of an upgraded profile keep working.
+//! `…/io.github.freezamotoqueiro.dauntlessreforgedrevival`; it is not used. The folders are the Electron launcher's,
+//! so settings, keys and `logs/` of an upgraded 1.5 profile keep working.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Electron's `userData`: the app's product name under the roaming app data folder (Windows) or
 /// `$XDG_CONFIG_HOME` / `~/.config` (Linux).
-pub const PRODUCT_NAME: &str = "Dauntless Revived Launcher";
+pub const PRODUCT_NAME: &str = "Dauntless Reforged Revival Launcher";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Paths {
     pub user_data: PathBuf,
     pub documents: PathBuf,
     pub home: PathBuf,
-    pub default_install_dir: PathBuf,
 }
 
 impl Paths {
@@ -22,35 +21,23 @@ impl Paths {
         let home = dirs::home_dir()?;
         // Debug builds only: a throwaway profile, so a developer's real settings and keys stay untouched
         if cfg!(debug_assertions)
-            && let Some(dir) = std::env::var_os("DAUNTLESS_REVIVED_DEV_PROFILE").map(PathBuf::from)
+            && let Some(dir) = std::env::var_os("REFORGED_DEV_PROFILE").map(PathBuf::from)
         {
-            let local = dir.join("Local");
-            return Some(Self::with(dir.join("User Data"), dir.join("Documents"), home, &local));
+            return Some(Self {
+                user_data: dir.join("User Data"),
+                documents: dir.join("Documents"),
+                home,
+            });
         }
         let user_data = dirs::config_dir()?.join(PRODUCT_NAME);
         let documents = dirs::document_dir().unwrap_or_else(|| home.join("Documents"));
-        let local = std::env::var_os("LOCALAPPDATA").map_or_else(|| home.join("AppData").join("Local"), PathBuf::from);
-        Some(Self::with(user_data, documents, home, &local))
-    }
-
-    fn with(user_data: PathBuf, documents: PathBuf, home: PathBuf, local_app_data: &Path) -> Self {
-        let default_install_dir = if cfg!(target_os = "linux") {
-            home.join("Games").join("DauntlessRevived")
-        } else {
-            local_app_data.join("DauntlessRevived").join("Game")
-        };
-        Self {
+        Some(Self {
             user_data,
             documents,
             home,
-            default_install_dir,
-        }
+        })
     }
 
-    #[cfg_attr(
-        not(any(test, feature = "offline")),
-        expect(dead_code, reason = "the tests and offline play use it")
-    )]
     pub fn keys_dir(&self) -> PathBuf {
         self.user_data.join("keys")
     }
@@ -72,13 +59,6 @@ mod tests {
         if cfg!(windows) {
             let appdata = PathBuf::from(std::env::var_os("APPDATA").unwrap());
             assert_eq!(paths.user_data, appdata.join(PRODUCT_NAME));
-            assert!(
-                paths
-                    .default_install_dir
-                    .ends_with(Path::new("DauntlessRevived").join("Game"))
-            );
-        } else {
-            assert!(paths.default_install_dir.ends_with("Games/DauntlessRevived"));
         }
     }
 }

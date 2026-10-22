@@ -1,6 +1,6 @@
 //! The file and message dialogs (row L36), shown from Rust with `tauri-plugin-dialog` and the backend's
 //! own text (row L14); the page has no dialog permission and never names a path. As in `src/main.ts`:
-//! folders start where the current one is (when it exists), key backups and offline saves in Documents.
+//! folders start where the current one is (when it exists), key backups in Documents.
 
 use std::path::{Path, PathBuf};
 
@@ -76,7 +76,7 @@ pub async fn choose_save_file(
         .flatten()
 }
 
-/// A file to open (a key backup or an offline save).
+/// A file to open (a key backup).
 pub async fn choose_open_file(app: &AppHandle, start: Option<&Path>, filter: (&str, &str)) -> Option<PathBuf> {
     let mut dialog = app.dialog().file().add_filter(filter.0, &[filter.1]);
     if let Some(start) = start {
@@ -91,30 +91,21 @@ pub async fn choose_open_file(app: &AppHandle, start: Option<&Path>, filter: (&s
 }
 
 pub const TEXT_FILES: (&str, &str) = ("Text", "txt");
-#[cfg_attr(
-    not(feature = "offline"),
-    expect(dead_code, reason = "offline play returns with the Rust services (row L42, X2)")
-)]
-pub const OFFLINE_SAVES: (&str, &str) = ("Dauntless Revived offline save", "drsave");
+/// The Host page's pickers (RA11 gives them their titles, `dialog_dumper_dll` and `dialog_gamedata_pack`)
+pub const DLL_FILES: (&str, &str) = ("DLL", "dll");
+pub const GAMEDATA_PACKS: (&str, &str) = ("Game data pack", "gz");
 
 /// Why the launcher should stay open while the player closes its window.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeepOpen {
-    /// The public-mode relay carries the game's connection
+    /// The local relay carries the game's connection
     Relay,
-    /// The offline services run the game's world
-    #[cfg_attr(
-        not(feature = "offline"),
-        expect(dead_code, reason = "offline play returns with the Rust services (row L42, X2)")
-    )]
-    Offline,
 }
 
 /// Asks whether to close anyway; true means keep the launcher open (the default answer).
 pub async fn confirm_keep_open(app: &AppHandle, language: Language, reason: KeepOpen) -> bool {
     let text = match reason {
         KeepOpen::Relay => i18n::CLOSE_TEXT,
-        KeepOpen::Offline => i18n::CLOSE_TEXT_OFFLINE,
     };
     let message = format!(
         "{}\n\n{}",

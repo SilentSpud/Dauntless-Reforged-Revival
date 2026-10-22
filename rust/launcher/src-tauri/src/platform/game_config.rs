@@ -10,10 +10,19 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::bridge::types::{ExposureMode, GraphicsPreset};
+use crate::bridge::types::GraphicsPreset;
 use crate::core::invite::is_valid_host;
 use crate::core::pins::XMPP_PORT;
 use crate::core::text::{is_js_space, js_number};
+
+/// DR's exposure setting: keep the game's scene-specific exposure, or basic as an opt-in experiment. No
+/// longer a bridge type (Reforged has no such setting); RA9 decides whether it goes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ExposureMode {
+    Game,
+    Basic,
+}
 
 pub const SCALABILITY_GROUPS: [&str; 8] = [
     "ViewDistance",

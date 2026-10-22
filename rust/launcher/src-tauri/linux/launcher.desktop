@@ -8,4 +8,4 @@ Name={{name}}
 GenericName=Game Launcher
 Terminal=false
 Type=Application
-MimeType=x-scheme-handler/dauntless-revived;
+MimeType=x-scheme-handler/reforged-revival;

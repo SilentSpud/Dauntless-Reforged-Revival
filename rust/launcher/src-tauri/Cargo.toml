@@ -1,10 +1,9 @@
 [package]
 name = "launcher"
-description = "Dauntless Revived Launcher: the Tauri backend (MIGRATION_PLAN.md Part A)"
-# The launcher's own version, not the workspace's: kept equal to package.json's (a test checks it).
-version = "0.1.39"
-# A member outside the workspace folder until the launcher moves to rust/launcher (R5, R7)
-workspace = "../../../rust"
+description = "Dauntless Reforged Revival Launcher: the Tauri backend (MIGRATION_PLAN.md section 4.6)"
+# The launcher's own version, not the workspace's: kept equal to ../package.json's (a test checks it).
+# RA14 sets the release line (2.0.0-beta).
+version = "2.0.0-alpha.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -15,14 +14,11 @@ publish.workspace = true
 name = "launcher"
 
 [[bin]]
-name = "dauntless-revived-launcher"
+name = "reforged-revival-launcher"
 path = "src/main.rs"
 
 [build-dependencies]
-# The manifest's types, for the check build.rs runs (X4)
-protocol.workspace = true
 serde_json = { version = "1", features = ["preserve_order"] }
-sha2 = "0.11"
 tauri-build = { version = "2.7", features = ["isolation"] }
 
 [dependencies]
@@ -68,17 +64,9 @@ tauri-plugin-updater = { version = "2.14", default-features = false, features = 
 # The deb and rpm update check (the updater plugin's own HTTP client)
 reqwest = { version = "0.13", default-features = false, features = ["json"] }
 url.workspace = true
-# Offline play (feature `offline`)
-metagame = { path = "../../../rust/services/metagame", optional = true }
-deploy = { path = "../../../rust/services/deploy", optional = true }
-rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem", "crypto"], optional = true }
-thiserror = { workspace = true, optional = true }
 
 [dev-dependencies]
 sha1_smol = "1"
-service-kit.workspace = true
-diesel.workspace = true
-store.workspace = true
 tokio-stream = "0.1"
 tempfile.workspace = true
 rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem", "crypto"] }
@@ -94,9 +82,6 @@ dbus-secret-service = { version = "4.1", features = ["crypto-rust"] }
 [features]
 # Set by `tauri build`: serve the built page from the binary instead of the Vite dev server
 custom-protocol = ["tauri/custom-protocol"]
-# Offline play on the Rust metagame and DeployServer, run by this binary as `--service` (D12, L43). Off in
-# 0.2.0 (D1, L42) until X2 turns it on.
-offline = ["dep:metagame", "dep:deploy", "dep:rcgen", "dep:thiserror"]
 
 [lints]
 workspace = true

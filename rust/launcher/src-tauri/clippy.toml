@@ -1,3 +1,0 @@
-# The workspace's clippy.toml (rust/clippy.toml) is not an ancestor of this folder until R7
-allow-unwrap-in-tests = true
-allow-expect-in-tests = true

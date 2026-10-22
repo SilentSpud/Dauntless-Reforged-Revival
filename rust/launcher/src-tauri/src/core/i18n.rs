@@ -15,7 +15,6 @@ include!(concat!(env!("OUT_DIR"), "/languages.rs"));
 pub const APP_TITLE: &str = "app_title";
 pub const CLOSE_TITLE: &str = "close_title";
 pub const CLOSE_TEXT: &str = "close_text";
-pub const CLOSE_TEXT_OFFLINE: &str = "close_text_offline";
 pub const CLOSE_KEEP: &str = "close_keep";
 pub const CLOSE_ANYWAY: &str = "close_anyway";
 pub const DIALOG_INSTALL_FOLDER: &str = "dialog_install_folder";
@@ -26,7 +25,6 @@ const USED: &[&str] = &[
     APP_TITLE,
     CLOSE_TITLE,
     CLOSE_TEXT,
-    CLOSE_TEXT_OFFLINE,
     CLOSE_KEEP,
     CLOSE_ANYWAY,
     DIALOG_INSTALL_FOLDER,

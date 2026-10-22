@@ -216,7 +216,7 @@ pub fn parse_invite(input: &str) -> Result<Invite, InviteError> {
     if js_length(text) > MAX_INVITE_LENGTH {
         return Err(InviteError::TooLong);
     }
-    let rest = strip_prefix_ignore_case(text, "dauntless-revived://join").ok_or(InviteError::NotInvite)?;
+    let rest = strip_prefix_ignore_case(text, "reforged-revival://join").ok_or(InviteError::NotInvite)?;
     let rest = rest.strip_prefix('/').unwrap_or(rest);
     let query = rest.strip_prefix('?').ok_or(InviteError::NotInvite)?;
     if query.contains('#') {
@@ -377,10 +377,13 @@ mod tests {
             share: None,
             fp: Some("3f".repeat(32)),
         };
-        assert_eq!(
-            parse_invite(&protocol::invite::format_invite(&invite).unwrap()),
-            Ok(invite)
+        // The protocol crate writes DR's scheme until RS1 lands; RA4 moves this file onto RS1's parser
+        let link = protocol::invite::format_invite(&invite).unwrap().replacen(
+            "dauntless-revived://",
+            "reforged-revival://",
+            1,
         );
+        assert_eq!(parse_invite(&link), Ok(invite));
     }
 
     #[test]

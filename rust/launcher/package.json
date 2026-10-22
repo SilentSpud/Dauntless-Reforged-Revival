@@ -1,0 +1,26 @@
+{
+  "name": "reforged-revival-launcher",
+  "productName": "Dauntless Reforged Revival Launcher",
+  "version": "2.0.0-alpha.0",
+  "description": "The Tauri launcher's page build and its bridge to the Rust backend (MIGRATION_PLAN.md section 4.6). The page itself is legacy/ReforgedLauncher's until RR5 moves it here.",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "tauri": "tauri",
+    "page:dev": "vite --config vite.config.ts",
+    "page:build": "vite build --config vite.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test \"test/*.test.ts\""
+  },
+  "devDependencies": {
+    "@tauri-apps/api": "2.12.4",
+    "@tauri-apps/cli": "2.12.4",
+    "@types/node": "^24.19.2",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.0"
+  }
+}

@@ -1,2 +1,0 @@
-# rust/rustfmt.toml: this crate is outside rust/ until R7
-max_width = 120

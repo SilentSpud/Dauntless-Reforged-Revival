@@ -4,7 +4,7 @@
 //!
 //! The first launcher listens on a per-user channel (a named pipe on Windows, a socket in
 //! `$XDG_RUNTIME_DIR` on Linux); a second one sends it its arguments and exits, and the first focuses its
-//! window and takes the invite link from them. In a packaged build the `dauntless-revived:` scheme points
+//! window and takes the invite link from them. In a packaged build the `reforged-revival:` scheme points
 //! at this launcher (the current user's registry on Windows, a desktop entry for the AppImage on Linux;
 //! deb and rpm install their own).
 
@@ -18,7 +18,7 @@ use crate::core::invite::parse_invite;
 use crate::core::text::js_trim;
 use crate::platform::log;
 
-pub const INVITE_SCHEME: &str = "dauntless-revived";
+pub const INVITE_SCHEME: &str = "reforged-revival";
 
 /// The invite link among a launcher's arguments, if it is a valid one.
 pub fn invite_from_args<S: AsRef<str>>(args: &[S]) -> Option<String> {
@@ -33,7 +33,7 @@ pub type OnArgs = Arc<dyn Fn(Vec<String>) -> Pin<Box<dyn Future<Output = ()> + S
 
 /// The channel's name for this user.
 pub fn channel_name() -> String {
-    let id = "io.github.mixutin.dauntlessrevived";
+    let id = "io.github.freezamotoqueiro.dauntlessreforgedrevival";
     if cfg!(windows) {
         let user: String = std::env::var("USERNAME")
             .unwrap_or_default()
@@ -184,7 +184,7 @@ pub async fn claim(name: &str, args: &[String], on_args: OnArgs) -> Claim {
     channel::claim(name, args, on_args).await
 }
 
-/// Points the `dauntless-revived:` scheme at this launcher (packaged builds only: a development build must
+/// Points the `reforged-revival:` scheme at this launcher (packaged builds only: a development build must
 /// not take over the scheme).
 pub fn register_scheme(exe: &std::path::Path) {
     let program = exe.to_string_lossy();
@@ -194,7 +194,7 @@ pub fn register_scheme(exe: &std::path::Path) {
         let command = format!("\"{program}\" \"%1\"");
         let command_key = format!(r"{key}\shell\open\command");
         let steps: [&[&str]; 3] = [
-            &["add", &key, "/ve", "/d", "URL:Dauntless Revived invite", "/f"],
+            &["add", &key, "/ve", "/d", "URL:Dauntless Reforged Revival invite", "/f"],
             &["add", &key, "/v", "URL Protocol", "/d", "", "/f"],
             &["add", &command_key, "/ve", "/d", &command, "/f"],
         ];
@@ -220,16 +220,16 @@ pub fn register_scheme(exe: &std::path::Path) {
         return;
     };
     let entry = format!(
-        "[Desktop Entry]\nType=Application\nName=Dauntless Revived Launcher\nExec=\"{}\" %u\nMimeType=x-scheme-handler/{INVITE_SCHEME};\nNoDisplay=true\nTerminal=false\n",
+        "[Desktop Entry]\nType=Application\nName=Dauntless Reforged Revival Launcher\nExec=\"{}\" %u\nMimeType=x-scheme-handler/{INVITE_SCHEME};\nNoDisplay=true\nTerminal=false\n",
         std::path::Path::new(&appimage).display()
     );
-    let file = applications.join("dauntless-revived-launcher-handler.desktop");
+    let file = applications.join("reforged-revival-launcher-handler.desktop");
     let written = std::fs::create_dir_all(&applications).is_ok() && std::fs::write(&file, entry).is_ok();
     let registered = written
         && std::process::Command::new("xdg-mime")
             .args([
                 "default",
-                "dauntless-revived-launcher-handler.desktop",
+                "reforged-revival-launcher-handler.desktop",
                 &format!("x-scheme-handler/{INVITE_SCHEME}"),
             ])
             .status()
@@ -245,7 +245,7 @@ mod tests {
 
     use super::*;
 
-    const LINK: &str = "dauntless-revived://join?v=1&host=100.64.0.1&port=61000&code=abcd&name=x";
+    const LINK: &str = "reforged-revival://join?v=1&host=100.64.0.1&port=61000&code=abcd&name=x";
 
     #[test]
     fn the_invite_link_among_the_arguments() {
@@ -253,13 +253,13 @@ mod tests {
         assert_eq!(
             invite_from_args(&[
                 "launcher.exe",
-                "DAUNTLESS-REVIVED://join?v=1&host=100.64.0.1&port=61000&code=abcd&name=x "
+                "REFORGED-REVIVAL://join?v=1&host=100.64.0.1&port=61000&code=abcd&name=x "
             ])
             .as_deref(),
-            Some("DAUNTLESS-REVIVED://join?v=1&host=100.64.0.1&port=61000&code=abcd&name=x")
+            Some("REFORGED-REVIVAL://join?v=1&host=100.64.0.1&port=61000&code=abcd&name=x")
         );
         assert_eq!(
-            invite_from_args(&["launcher.exe", "dauntless-revived://join?v=9"]),
+            invite_from_args(&["launcher.exe", "reforged-revival://join?v=9"]),
             None,
             "the first link counts, and it must be valid"
         );
@@ -269,10 +269,10 @@ mod tests {
     #[tokio::test]
     async fn a_second_launcher_hands_its_arguments_to_the_first() {
         let name = if cfg!(windows) {
-            format!(r"\\.\pipe\dr-launcher-test-{}", std::process::id())
+            format!(r"\\.\pipe\rr-launcher-test-{}", std::process::id())
         } else {
             std::env::temp_dir()
-                .join(format!("dr-launcher-test-{}.sock", std::process::id()))
+                .join(format!("rr-launcher-test-{}.sock", std::process::id()))
                 .to_string_lossy()
                 .into_owned()
         };

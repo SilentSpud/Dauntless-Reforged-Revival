@@ -1,13 +1,12 @@
 //! `test/cases/game-config.json`, made from the TypeScript: Engine.ini, GameUserSettings.ini, the display
-//! repair, the game folder rules on both platforms and the mods.txt edits.
+//! repair and the game folder rules on both platforms (DR's client mods are not brought in).
 
 use serde_json::Value;
 
-use super::client_mods::{add_missing_mod_lines, disable_mod_lines, safe_relative};
 use super::game_config::*;
 use super::game_folder::{clean_game_folder_input, game_root_candidates};
 use super::settings::Platform;
-use crate::bridge::types::{ExposureMode, GraphicsPreset};
+use crate::bridge::types::GraphicsPreset;
 
 fn cases() -> Value {
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../test/cases/game-config.json");
@@ -122,36 +121,6 @@ fn game_folder_rules_on_both_platforms() {
                 "{case}"
             );
         }
-    }
-}
-
-#[test]
-fn mods_txt_edits() {
-    let cases = cases();
-    for case in cases["disable"].as_array().unwrap() {
-        let (text, changed) = disable_mod_lines(case["text"].as_str().unwrap(), case["names"].as_array().unwrap());
-        assert_eq!(
-            (text.as_str(), u64::from(changed)),
-            (
-                case["out"]["text"].as_str().unwrap(),
-                case["out"]["changed"].as_u64().unwrap()
-            ),
-            "{case}"
-        );
-    }
-    for case in cases["add"].as_array().unwrap() {
-        assert_eq!(
-            add_missing_mod_lines(case["text"].as_str().unwrap(), case["defaults"].as_str().unwrap()),
-            case["out"].as_str().unwrap(),
-            "{case}"
-        );
-    }
-    for case in cases["safe"].as_array().unwrap() {
-        assert_eq!(
-            safe_relative(case["rel"].as_str().unwrap()).is_ok(),
-            case["ok"].as_bool().unwrap(),
-            "{case}"
-        );
     }
 }
 

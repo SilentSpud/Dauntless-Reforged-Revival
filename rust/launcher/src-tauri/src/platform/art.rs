@@ -1,7 +1,7 @@
-//! The host's art pack, served to the page through the app's own `dr-art` scheme (row L37): `protocol.handle`
+//! The host's art pack, served to the page through the app's own `rr-art` scheme (row L37): `protocol.handle`
 //! in `src/main.ts`. The page never loads art from the network; the controller downloads it (L21),
 //! checks it is an image, and registers each file here under its SHA-256. WebKitGTK asks for
-//! `dr-art://bg/<id>`, WebView2 for `http://dr-art.localhost/bg/<id>`; both are answered.
+//! `rr-art://bg/<id>`, WebView2 for `http://rr-art.localhost/bg/<id>`; both are answered.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -9,7 +9,7 @@ use std::sync::Mutex;
 
 use tauri::http::{Response, StatusCode, header};
 
-pub const SCHEME: &str = "dr-art";
+pub const SCHEME: &str = "rr-art";
 
 #[derive(Default)]
 pub struct ArtStore {
@@ -25,7 +25,7 @@ pub fn requested_id(uri: &tauri::http::Uri) -> Option<&str> {
     let path = uri.path().trim_start_matches('/');
     let id = match uri.host()? {
         "bg" => path,
-        "dr-art.localhost" => path.strip_prefix("bg/")?,
+        "rr-art.localhost" => path.strip_prefix("bg/")?,
         _ => return None,
     };
     is_id(id).then_some(id)
@@ -81,7 +81,7 @@ mod tests {
         let id = "a".repeat(64);
         let store = ArtStore::default();
         store.put(&id, file, "image/jpeg");
-        for url in [format!("dr-art://bg/{id}"), format!("http://dr-art.localhost/bg/{id}")] {
+        for url in [format!("rr-art://bg/{id}"), format!("http://rr-art.localhost/bg/{id}")] {
             let response = store.respond(&url.parse().unwrap());
             assert_eq!(response.status(), StatusCode::OK, "{url}");
             assert_eq!(response.headers()[header::CONTENT_TYPE], "image/jpeg");
@@ -89,9 +89,9 @@ mod tests {
             assert_eq!(response.body(), &[0xff, 0xd8, 0xff]);
         }
         for url in [
-            format!("dr-art://bg/{}", "b".repeat(64)),
-            format!("dr-art://other/{id}"),
-            "dr-art://bg/../../secret".into(),
+            format!("rr-art://bg/{}", "b".repeat(64)),
+            format!("rr-art://other/{id}"),
+            "rr-art://bg/../../secret".into(),
             format!("http://evil.localhost/bg/{id}"),
         ] {
             assert_eq!(
@@ -102,7 +102,7 @@ mod tests {
         }
         store.clear();
         assert_eq!(
-            store.respond(&format!("dr-art://bg/{id}").parse().unwrap()).status(),
+            store.respond(&format!("rr-art://bg/{id}").parse().unwrap()).status(),
             StatusCode::NOT_FOUND
         );
     }
