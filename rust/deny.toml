@@ -1,0 +1,50 @@
+# cargo-deny: licences that can ship in an AGPL-3.0-only release, known advisories, and duplicate
+# copies of crates that must exist once per binary (MIGRATION_PLAN.md X6).
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+yanked = "deny"
+ignore = [
+    # Tauri 2 on Linux draws with GTK3 through gtk-rs 0.18, which is no longer maintained; its macros
+    # use proc-macro-error. Build-time only, no known vulnerability; goes when Tauri moves off GTK3.
+    { id = "RUSTSEC-2024-0370", reason = "proc-macro-error, via gtk-rs GTK3 (Tauri 2 on Linux)" },
+]
+
+[licenses]
+version = 2
+confidence-threshold = 0.9
+# The list is for the whole port; crates arrive with later rows.
+unused-allowed-license = "allow"
+allow = [
+    "AGPL-3.0-only",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "MPL-2.0",
+    "OpenSSL",
+    "Unicode-3.0",
+    "Zlib",
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+deny = [
+    # One bundled SQLite per binary: Diesel and rusqlite must share it (M17).
+    { name = "libsqlite3-sys", deny-multiple-versions = true },
+    # rustls with aws-lc-rs everywhere (D10); no OpenSSL.
+    { name = "openssl-sys" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
