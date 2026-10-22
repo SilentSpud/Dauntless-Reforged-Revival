@@ -22,7 +22,6 @@ pub mod services;
 pub mod doctor;
 pub mod invite;
 pub mod mongo;
-pub mod upstream;
 // RH4
 pub mod captures;
 pub mod gamedata;

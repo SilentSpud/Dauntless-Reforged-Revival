@@ -7,7 +7,8 @@
     Uses the OpenSSH client that comes with Windows (ssh, scp). In order:
       1. checks your game: Dauntless 1.14.7, by the SHA-256 of its executable
       2. sets up an SSH key, so the VPS password is asked only once
-      3. runs setup-vps.sh on the VPS: packages, MongoDB, the server's user, the project, npm run setup
+      3. runs setup-vps.sh on the VPS: packages, MongoDB, the server's user, the server release
+         (checked against its SHA256SUMS.txt), reforged-host setup
       4. sends the game (about 15 GB; skipped when the VPS already has the same files)
       5. sends the runtime (MysticParadox.dll, winmm.dll) and the game data pack, when this PC has them
       6. runs setup-vps.sh --finish: starts the server and prints your first invite
@@ -28,7 +29,13 @@
     443 for its panel): 4443, for example. It goes into every invite; allow it in the VPS firewall.
 
 .PARAMETER GameData
-    A game data pack (npm run gamedata -- --export). Default: the newest pack of that project.
+    A game data pack (reforged-host gamedata --export). Default: the newest pack of that project.
+
+.PARAMETER Version
+    The server release to install (x.y.z). Default: the newest.
+
+.PARAMETER Branch
+    The branch setup-vps.sh is downloaded from, when it is not beside this script (default main).
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\Deploy-FromWindows.ps1 -Server 203.0.113.7 -Name "Freeza Hunts"
@@ -43,6 +50,7 @@ param(
     [string]$Runtime = '',
     [string]$GameData = '',
     [string]$Branch = 'main',
+    [string]$Version = '',
     [int]$MaxHunts = 0,
     [int]$PublicPort = 0,
     [switch]$SkipInstall,
@@ -54,7 +62,8 @@ $ErrorActionPreference = 'Stop'
 $PinnedExeSha256 = 'F3F95FBF22709EF077A11632ED95D675B7209B7E0172D9ECB9BA7D02A1FBB66B'
 $ExeRelative = 'Archon\Binaries\Win64\Dauntless-Win64-Shipping.exe'
 $ServerHome = '/home/reforged'
-$ScriptUrl = "https://raw.githubusercontent.com/FreezaMotoqueiro/Dauntless-Reforged-Revival/$Branch/legacy/ReforgedHost/linux/setup-vps.sh"
+$Repository = 'SilentSpud/Dauntless-Reforged-Revival'
+$ScriptUrl = "https://raw.githubusercontent.com/$Repository/$Branch/legacy/ReforgedHost/linux/setup-vps.sh"
 
 function Write-Step([string]$Text) {
     Write-Host ''
@@ -78,6 +87,7 @@ function ConvertTo-ShWord([string]$Text) {
 if ($Server -notmatch '^[A-Za-z0-9.:-]{1,253}$') { Stop-Deploy "-Server must be an IP address or a DNS name (got $Server)" }
 if ($User -notmatch '^[a-z_][a-z0-9_-]{0,31}$') { Stop-Deploy "-User must be a plain user name like root (got $User)" }
 if ($Branch -notmatch '^[A-Za-z0-9._/-]{1,100}$') { Stop-Deploy "-Branch must be a branch name (got $Branch)" }
+if ($Version -and $Version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$') { Stop-Deploy "-Version must be a version like 0.3.0 (got $Version)" }
 if ($Name -match '["\x00-\x1f]' -or $Name.Trim().Length -eq 0 -or $Name.Length -gt 48) { Stop-Deploy '-Name must be 1 to 48 characters, without double quotes' }
 if ($MaxHunts -ne 0 -and ($MaxHunts -lt 1 -or $MaxHunts -gt 10)) { Stop-Deploy '-MaxHunts must be 1 to 10' }
 if ($PublicPort -ne 0 -and ($PublicPort -lt 1 -or $PublicPort -gt 65535)) { Stop-Deploy '-PublicPort must be a TCP port from 1 to 65535' }
@@ -258,7 +268,7 @@ if (-not $NoKey) {
 $Upload = 'reforged-upload'
 Invoke-Remote "mkdir -p ~/$Upload"
 if (-not $SkipInstall) {
-    Write-Step 'Installing the server on the VPS (packages, MongoDB, the project; 5 to 15 minutes the first time)'
+    Write-Step 'Installing the server on the VPS (packages, MongoDB, the server release; 5 to 15 minutes the first time)'
     $Local = Join-Path $PSScriptRoot 'setup-vps.sh'
     $Script = Join-Path $env:TEMP 'reforged-setup-vps.sh'
     if (Test-Path -LiteralPath $Local) {
@@ -271,7 +281,8 @@ if (-not $SkipInstall) {
     [IO.File]::WriteAllText($Script, $Text.Replace("`r`n", "`n"), (New-Object Text.UTF8Encoding($false)))
     Send-Item $Script "$Upload/setup-vps.sh"
     # The address this PC reaches the VPS at is the one players use.
-    $Options = "--install-only --host $(ConvertTo-ShWord $Server) --name $(ConvertTo-ShWord $Name) --branch $(ConvertTo-ShWord $Branch)"
+    $Options = "--install-only --host $(ConvertTo-ShWord $Server) --name $(ConvertTo-ShWord $Name) --repo $(ConvertTo-ShWord $Repository)"
+    if ($Version) { $Options += " --version $(ConvertTo-ShWord $Version)" }
     if ($MaxHunts -ne 0) { $Options += " --max-hunts $MaxHunts" }
     if ($PublicPort -ne 0) { $Options += " --public-port $PublicPort" }
     Invoke-Remote "${Sudo}sh ~/$Upload/setup-vps.sh $Options" -Tty
@@ -322,7 +333,7 @@ Invoke-Remote "rm -rf ~/$Upload"
 Write-Step 'Done'
 Write-Host 'Send each friend an invite (the first one is above). For more, on the VPS:'
 Write-Host '  sudo -iu reforged'
-Write-Host '  cd Reforged/legacy/ReforgedHost; npm run invite -- --for "Alex"'
+Write-Host '  ~/Reforged/bin/reforged-host invite --for "Alex"'
 Write-Host ''
 Write-Host "If players cannot join: allow inbound TCP $PlayersPort and UDP $GamePorts in the VPS's Firewall page in Hostinger's hPanel." -ForegroundColor Yellow
 Write-Host "If the launcher says the certificate does not match, another program (a hosting panel) answers on port ${PlayersPort}: run this again with -PublicPort 4443 -SkipGame, allow TCP 4443 in the firewall, and use the new invite." -ForegroundColor Yellow

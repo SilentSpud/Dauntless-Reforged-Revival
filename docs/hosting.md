@@ -171,6 +171,15 @@ button for it.
   in the project, and says so. When it says the game runtime changed, build the runtime again and
   `npm run publish-runtime`; players are asked to accept a new runtime. `git pull` then `npm run setup`
   does the same by hand.
+- **Moving to the server release** (no Rust, git or npm builds on this PC; the backend and Director
+  still need Node.js): from the `server-v<version>` release on GitHub, download
+  `ReforgedRevivalServer-<version>-windows-x64.zip` and `SHA256SUMS.txt`, check the zip
+  (`Get-FileHash <zip>` against its line), take `bin\reforged-host.exe` out of it, put it in
+  `D:\Reforged` and run `.\reforged-host.exe update` there. It downloads the release again, checks it,
+  installs it over `D:\Reforged` (your `.workspace`, SDK and game data stay) and runs setup again.
+  From then on `D:\Reforged\bin\reforged-host.exe update` updates the server (delete the copy in
+  `D:\Reforged`); a new server can also start from the zip: extract it and run
+  `bin\reforged-host.exe setup` in the folder. See [hosting-linux.md](hosting-linux.md#running-it).
 - **A new certificate** (public) changes the fingerprint: send new invites. Players keep their
   accounts; the launcher asks them to confirm the new certificate first.
 - **CPU and RAM**: each game server is capped at 30 frames per second, and at 10 once nobody has been

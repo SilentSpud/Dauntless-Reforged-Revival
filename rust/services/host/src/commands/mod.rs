@@ -13,7 +13,6 @@
 //! | [`preset`] | `preset` | RH4 |
 //! | [`publish_runtime`] | `publish-runtime` | RH4 |
 //! | [`update`] | `update` | RH5 |
-//! | [`upstream`] | `upstream` (removed by RH5) | RH5 |
 //! | `crate::wine::run_game_server` | `gameserver` (hidden, Linux) | RH5 |
 
 pub mod backup;
@@ -26,7 +25,6 @@ pub mod publish_runtime;
 pub mod setup;
 pub mod start;
 pub mod update;
-pub mod upstream;
 
 use std::process::ExitCode;
 
@@ -45,7 +43,6 @@ pub fn dispatch(command: &Command, paths: &Paths) -> Outcome {
         Command::PublishRuntime(args) => publish_runtime::run(paths, args),
         Command::Preset(args) => preset::run(paths, args),
         Command::Multipliers(args) => multipliers::run(paths, args),
-        Command::Upstream => upstream::run(paths),
         Command::Update(args) => update::run(paths, args),
         Command::Backup => backup::run(paths),
         Command::Gameserver { args } => {

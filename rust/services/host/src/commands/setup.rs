@@ -78,6 +78,10 @@ impl SetupEnv for System {
     }
 
     fn source_commit(&self, repo: &Path) -> Result<String, HostError> {
+        // A server release names its commit; a checkout asks git.
+        if let Some(release) = crate::selfupdate::read_manifest(repo)? {
+            return Ok(release.short_commit().to_owned());
+        }
         Ok(crate::run::capture("git", &["rev-parse", "--short=12", "HEAD"], Some(repo))?.unwrap_or_default())
     }
 
@@ -86,9 +90,7 @@ impl SetupEnv for System {
     }
 
     fn install_services(&self, layout: &Layout, log_file: &Path, out: &mut dyn FnMut(&str)) -> Result<(), HostError> {
-        match install::ServiceSource::Checkout {
-            install::ServiceSource::Checkout => install::build_from_checkout(layout, log_file, out),
-        }
+        install::install_services(layout, log_file, out)
     }
 
     fn make_certificate(

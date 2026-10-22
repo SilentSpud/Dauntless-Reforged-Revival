@@ -3,17 +3,20 @@
 # Run it as root. Deploy-FromWindows.ps1 runs both steps for you from your Windows PC.
 #
 #   sh setup-vps.sh [--name "<server name>"] [--host <public IPv4>] [options]
-#       Step 1: installs the packages and MongoDB, makes the server's user, gets the project and
-#       runs npm run setup. Safe to run again (it updates what is there).
+#       Step 1: installs the packages and MongoDB, makes the server's user, downloads the server
+#       release (checked against its SHA256SUMS.txt) and runs reforged-host setup. Safe to run again:
+#       a server installed already is updated with reforged-host update.
 #
 #   sh setup-vps.sh --finish [--game-from <folder>] [--runtime <folder>] [--gamedata <pack>]
 #       Step 2, once the game is on the VPS: moves the uploaded game into place, publishes the
 #       runtime, imports the game data, installs the systemd units, starts the server and makes
 #       a first invite.
+#
+# Everything past the packages and the user is reforged-host's (the server release's bin/).
 set -eu
 
-REPO_URL=https://github.com/FreezaMotoqueiro/Dauntless-Reforged-Revival
-BRANCH=main
+REPO=SilentSpud/Dauntless-Reforged-Revival
+VERSION=
 SERVICE_USER=reforged
 SERVER_NAME="Dauntless Reforged Revival"
 HOST=
@@ -38,8 +41,8 @@ die() { printf '\nError: %s\n' "$*" >&2; exit 1; }
 usage() {
     cat >&2 <<'EOF'
 usage: sh setup-vps.sh [--name "<server name>"] [--host <public IPv4 or DNS name>] [--game-address <IPv4>]
-                       [--interface <eth0>] [--max-hunts 1-10] [--public-port <port>] [--user reforged] [--branch main] [--repo <url>]
-                       [--skip-apt] [--install-only]
+                       [--interface <eth0>] [--max-hunts 1-10] [--public-port <port>] [--user reforged]
+                       [--version <x.y.z>] [--repo <owner/name>] [--skip-apt] [--install-only]
        sh setup-vps.sh --finish [--game-from <folder>] [--runtime <folder>] [--gamedata <pack>] [--no-services]
 EOF
     exit 2
@@ -58,8 +61,10 @@ while [ "$#" -gt 0 ]; do
         --max-hunts) need_value "$@"; MAX_HUNTS=$2; shift 2 ;;
         --public-port) need_value "$@"; PUBLIC_PORT=$2; shift 2 ;;
         --user) need_value "$@"; SERVICE_USER=$2; shift 2 ;;
-        --branch) need_value "$@"; BRANCH=$2; shift 2 ;;
-        --repo) need_value "$@"; REPO_URL=$2; shift 2 ;;
+        --version) need_value "$@"; VERSION=$2; shift 2 ;;
+        --repo) need_value "$@"; REPO=$2; shift 2 ;;
+        # Before the server release this took the branch to clone; the release replaced it.
+        --branch) need_value "$@"; warn "--branch is gone (the server comes from its release now): ignoring it"; shift 2 ;;
         --skip-apt) SKIP_APT=1; shift ;;
         --install-only) INSTALL_ONLY=1; shift ;;
         --finish) FINISH=1; shift ;;
@@ -74,21 +79,29 @@ done
 
 [ "$(id -u)" -eq 0 ] || die "run it as root: sudo sh $0 ..."
 printf '%s' "$SERVICE_USER" | grep -Eq '^[a-z_][a-z0-9_-]{0,31}$' || die "--user must be a plain user name like reforged"
+printf '%s' "$REPO" | grep -Eq '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' || die "--repo must be owner/name, like $REPO"
+[ -z "$VERSION" ] || printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' || die "--version must be a version like 0.3.0"
 [ -z "$MAX_HUNTS" ] || printf '%s' "$MAX_HUNTS" | grep -Eq '^([1-9]|10)$' || die "--max-hunts must be 1 to 10"
 [ -z "$PUBLIC_PORT" ] || printf '%s' "$PUBLIC_PORT" | grep -Eq '^[0-9]{1,5}$' || die "--public-port must be a TCP port number, like 4443"
 [ -z "$IFACE" ] || printf '%s' "$IFACE" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.@-]{0,14}$' || die "--interface must be a network interface name like eth0"
 
 USER_HOME=/home/$SERVICE_USER
 PROJECT=$USER_HOME/Reforged
-KIT=$PROJECT/legacy/ReforgedHost
+HOSTKIT=$PROJECT/bin/reforged-host
 GAMES=$USER_HOME/games
 GAME=$GAMES/Dauntless
 EXE=$GAME/Archon/Binaries/Win64/Dauntless-Win64-Shipping.exe
 CONFIG=$PROJECT/.workspace/config
+DOWNLOAD=$USER_HOME/.reforged-release
 
-# A command as the server's user, in the host kit's folder. The arguments go through as they are.
+# reforged-host as the server's user, in the server's folder. The arguments go through as they are.
 kit() {
-    sudo -H -u "$SERVICE_USER" sh -c 'cd "$1" && shift && exec "$@"' sh "$KIT" "$@"
+    sudo -H -u "$SERVICE_USER" sh -c 'cd "$1" && shift && exec "$@"' sh "$PROJECT" "$HOSTKIT" "$@"
+}
+
+# A command as the server's user, in the server's folder.
+as_user() {
+    sudo -H -u "$SERVICE_USER" sh -c 'cd "$1" && shift && exec "$@"' sh "$PROJECT" "$@"
 }
 
 route_field() {
@@ -101,7 +114,8 @@ install_packages() {
     step "Packages"
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
-    apt-get install -y --no-install-recommends git nodejs npm xvfb xauth nftables sudo curl gnupg ca-certificates iproute2 procps
+    # Node.js runs the backend and the Director until they are ported (the release brings their builds).
+    apt-get install -y --no-install-recommends nodejs xvfb xauth nftables sudo curl gnupg ca-certificates iproute2 procps tar
     apt-get install -y wine
     # The 64-bit Wine has its own package on some releases; nothing is lost when there is none.
     apt-get install -y wine64 >/dev/null 2>&1 || true
@@ -176,18 +190,77 @@ make_user() {
     chown "$SERVICE_USER:" "$GAMES"
 }
 
-get_project() {
-    step "The project"
-    if [ -d "$PROJECT/.git" ]; then
-        if sudo -H -u "$SERVICE_USER" git -C "$PROJECT" pull --ff-only; then say "updated: $PROJECT"; else warn "could not update $PROJECT (changed by hand?): keeping it as it is"; fi
-    else
-        sudo -H -u "$SERVICE_USER" git clone --branch "$BRANCH" "$REPO_URL" "$PROJECT"
+# The newest server release for Linux on GitHub (the newest stable one, or the newest prerelease when
+# there is no stable one yet), as reforged-host update picks it.
+newest_version() {
+    curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$REPO/releases?per_page=100" | node -e '
+        let text = ""; process.stdin.on("data", (d) => (text += d)).on("end", () => {
+            const parse = (v) => { const m = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(v); return m ? { core: m.slice(1, 4).map(Number), pre: m[4] ? m[4].split(".") : [] } : null; };
+            const cmpId = (a, b) => { const na = /^\d+$/.test(a), nb = /^\d+$/.test(b); return na && nb ? Number(a) - Number(b) : na ? -1 : nb ? 1 : a < b ? -1 : a > b ? 1 : 0; };
+            const cmp = (x, y) => { for (let i = 0; i < 3; i++) if (x.core[i] !== y.core[i]) return x.core[i] - y.core[i];
+                if (!x.pre.length || !y.pre.length) return y.pre.length - x.pre.length;
+                for (let i = 0; i < Math.min(x.pre.length, y.pre.length); i++) { const c = cmpId(x.pre[i], y.pre[i]); if (c) return c; }
+                return x.pre.length - y.pre.length; };
+            const found = [];
+            for (const r of JSON.parse(text)) {
+                if (r.draft || !String(r.tag_name).startsWith("server-v")) continue;
+                const version = r.tag_name.slice("server-v".length), v = parse(version);
+                const names = (r.assets || []).map((a) => a.name);
+                if (v && names.includes(`ReforgedRevivalServer-${version}-linux-x64.tar.gz`) && names.includes("SHA256SUMS.txt")) found.push({ version, v });
+            }
+            const pick = (list) => list.sort((a, b) => cmp(b.v, a.v))[0];
+            const best = pick(found.filter((f) => !f.v.pre.length)) || pick(found);
+            if (!best) process.exit(1);
+            process.stdout.write(best.version);
+        });'
+}
+
+# Downloads the release into $DOWNLOAD and checks it against its SHA256SUMS.txt.
+download_release() {
+    step "The server release"
+    if [ -z "$VERSION" ]; then
+        VERSION=$(newest_version) || die "found no server release for Linux at https://github.com/$REPO/releases (pass --version or --repo)"
     fi
-    kit npm install --no-audit --no-fund
+    ARCHIVE=ReforgedRevivalServer-$VERSION-linux-x64.tar.gz
+    base="https://github.com/$REPO/releases/download/server-v$VERSION"
+    rm -rf "$DOWNLOAD" && mkdir -p "$DOWNLOAD"
+    say "servers $VERSION from $base"
+    curl -fL --retry 3 -o "$DOWNLOAD/SHA256SUMS.txt" "$base/SHA256SUMS.txt" || die "could not download SHA256SUMS.txt of servers $VERSION"
+    curl -fL --retry 3 -o "$DOWNLOAD/$ARCHIVE" "$base/$ARCHIVE" || die "could not download $ARCHIVE"
+    grep -q "  $ARCHIVE\$" "$DOWNLOAD/SHA256SUMS.txt" || die "SHA256SUMS.txt does not list $ARCHIVE"
+    (cd "$DOWNLOAD" && grep "  $ARCHIVE\$" SHA256SUMS.txt | sha256sum --check --strict) || die "$ARCHIVE is not the file the release lists: run this again"
+    if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+        gh attestation verify "$DOWNLOAD/$ARCHIVE" --repo "$REPO" || die "the build provenance of $ARCHIVE did not verify"
+        say "build provenance: verified"
+    fi
+    chown -R "$SERVICE_USER:" "$DOWNLOAD"
+}
+
+# Installs the downloaded release: a new server gets the archive's folder; a server installed before
+# (from a release, or a Node-kit git checkout) is updated by reforged-host update from what was just
+# downloaded and checked.
+get_project() {
+    download_release
+    step "Installing servers $VERSION"
+    if [ -f "$PROJECT/release.json" ] && [ -x "$HOSTKIT" ]; then
+        sudo -H -u "$SERVICE_USER" env "REFORGED_SERVER_RELEASE=$DOWNLOAD" sh -c 'cd "$1" && exec "$2" update --no-setup' sh "$PROJECT" "$HOSTKIT"
+    elif [ -d "$PROJECT" ]; then
+        # A Node-kit checkout: this release's reforged-host moves it over (it finds the folder it runs in)
+        say "moving the server in $PROJECT to the release"
+        sudo -H -u "$SERVICE_USER" tar -xzf "$DOWNLOAD/$ARCHIVE" -C "$DOWNLOAD" --strip-components=2 "reforged-revival-server-$VERSION/bin/reforged-host"
+        install -o "$SERVICE_USER" -m 0755 "$DOWNLOAD/reforged-host" "$PROJECT/reforged-host"
+        sudo -H -u "$SERVICE_USER" env "REFORGED_SERVER_RELEASE=$DOWNLOAD" sh -c 'cd "$1" && exec ./reforged-host update --no-setup' sh "$PROJECT"
+        rm -f "$PROJECT/reforged-host"
+    else
+        sudo -H -u "$SERVICE_USER" tar -xzf "$DOWNLOAD/$ARCHIVE" -C "$DOWNLOAD"
+        mv "$DOWNLOAD/reforged-revival-server-$VERSION" "$PROJECT"
+        say "installed: $PROJECT"
+    fi
+    rm -rf "$DOWNLOAD"
 }
 
 run_setup() {
-    step "Server setup (npm run setup)"
+    step "Server setup (reforged-host setup)"
     if [ -z "$HOST" ]; then
         HOST=$(route_field src)
         [ -n "$HOST" ] || die "could not find this VPS's public IPv4: pass --host <IPv4>"
@@ -207,7 +280,7 @@ run_setup() {
     [ -n "$IFACE" ] && set -- "$@" --firewall-interface "$IFACE"
     [ -n "$MAX_HUNTS" ] && set -- "$@" --max-hunts "$MAX_HUNTS"
     [ -n "$PUBLIC_PORT" ] && set -- "$@" --public-port "$PUBLIC_PORT"
-    kit npm run setup -- "$@"
+    kit setup "$@"
     step "Host firewall"
     sh "$CONFIG/firewall.sh"
 }
@@ -239,10 +312,10 @@ place_game() {
 }
 
 finish() {
-    if [ ! -f "$KIT/package.json" ] || [ ! -f "$CONFIG/host.json" ]; then die "the server is not installed yet: run this script without --finish first"; fi
+    if [ ! -x "$HOSTKIT" ] || [ ! -f "$CONFIG/host.json" ]; then die "the server is not installed yet: run this script without --finish first"; fi
     place_game
     step "Setup again, with the game in place"
-    kit npm run setup -- --skip-install
+    kit setup --skip-install
 
     step "Runtime"
     if [ -n "$RUNTIME" ]; then
@@ -251,11 +324,11 @@ finish() {
         rm -rf "$drop" && mkdir -p "$drop"
         cp "$RUNTIME/MysticParadox.dll" "$RUNTIME/winmm.dll" "$drop/"
         chown -R "$SERVICE_USER:" "$drop"
-        kit npm run publish-runtime -- --from "$drop"
+        kit publish-runtime --from "$drop"
         rm -rf "$drop"
     elif [ -f "$PROJECT/.workspace/runtime/runtime.json" ]; then
         # A game sent again comes without the server's copy of the runtime: put the published one back.
-        kit cp "$PROJECT/.workspace/runtime/MysticParadox.dll" "$PROJECT/.workspace/runtime/winmm.dll" "$GAME/Archon/Binaries/Win64/"
+        as_user cp "$PROJECT/.workspace/runtime/MysticParadox.dll" "$PROJECT/.workspace/runtime/winmm.dll" "$GAME/Archon/Binaries/Win64/"
         say "already published, and in place for the game servers (send a new one with --runtime <folder>)"
     else
         warn "no runtime yet: players can join but not play. Build MysticParadox.dll and winmm.dll on Windows and send them (Deploy-FromWindows.ps1 -Runtime <folder>)"
@@ -266,11 +339,11 @@ finish() {
         [ -f "$GAMEDATA" ] || die "--gamedata $GAMEDATA: no such file"
         drop=$USER_HOME/.reforged-gamedata-upload.json.gz
         cp "$GAMEDATA" "$drop" && chown "$SERVICE_USER:" "$drop"
-        kit npm run gamedata -- --import "$drop"
+        kit gamedata --import "$drop"
         rm -f "$drop"
     fi
     # Whatever the preset and the pack left missing (the two stores without a pack): the examples, so it starts.
-    kit npm run gamedata -- --examples
+    kit gamedata --examples
 
     if [ "$NO_SERVICES" -eq 1 ] || ! command -v systemctl >/dev/null 2>&1; then
         step "Not starting it (--no-services, or no systemd here)"
@@ -290,12 +363,12 @@ finish() {
     done
     if [ "$up" -eq 1 ]; then
         step "Your first invite"
-        kit npm run --silent invite -- --for "owner" || warn "could not make an invite: sudo -iu $SERVICE_USER, then cd Reforged/legacy/ReforgedHost && npm run invite"
+        kit invite --for "owner" || warn "could not make an invite: sudo -iu $SERVICE_USER, then ~/Reforged/bin/reforged-host invite"
     else
         warn "the backend did not answer yet: journalctl -u reforged -f shows why"
     fi
     step "Check"
-    kit npm run --silent doctor -- --no-hash || true
+    kit doctor --no-hash || true
 }
 
 # ---------------------------------------------------------------- main
@@ -324,7 +397,7 @@ else
     else
         step "Installed. Next: the game"
         say "Send Dauntless 1.14.7 from your Windows PC (Deploy-FromWindows.ps1 does it), or copy the Dauntless"
-        say "folder to $GAME and run:  sh $KIT/linux/setup-vps.sh --finish"
+        say "folder to $GAME and run:  sh $PROJECT/legacy/ReforgedHost/linux/setup-vps.sh --finish"
     fi
 fi
 

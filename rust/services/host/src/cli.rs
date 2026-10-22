@@ -42,9 +42,7 @@ pub enum Command {
     Preset(PresetArgs),
     /// XP and reward multipliers (private test servers only)
     Multipliers(MultipliersArgs),
-    /// Download and patch Mystic Paradox only (what importing the SDK needs)
-    Upstream,
-    /// Check for an update, apply it and run setup again
+    /// Check for a new server release, install it and run setup again
     Update(UpdateArgs),
     /// Back up the server's database
     Backup,
@@ -69,7 +67,6 @@ impl Command {
             Self::PublishRuntime(_) => "publish-runtime",
             Self::Preset(_) => "preset",
             Self::Multipliers(_) => "multipliers",
-            Self::Upstream => "upstream",
             Self::Update(_) => "update",
             Self::Backup => "backup",
             Self::Gameserver { .. } => "gameserver",
@@ -333,7 +330,6 @@ mod tests {
             "publish-runtime",
             "preset",
             "multipliers",
-            "upstream",
             "update",
             "backup",
         ] {
@@ -414,5 +410,7 @@ mod tests {
     fn refuses_what_the_node_kit_never_had() {
         assert!(Cli::try_parse_from(["reforged-host", "frobnicate"]).is_err());
         assert!(Cli::try_parse_from(["reforged-host", "start", "--mode", "public"]).is_err());
+        // Removed with `npm run upstream` (RH5, section 6): Mystic Paradox is in paradox/ since RP4.
+        assert!(Cli::try_parse_from(["reforged-host", "upstream"]).is_err());
     }
 }
