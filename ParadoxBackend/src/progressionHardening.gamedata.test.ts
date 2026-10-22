@@ -81,6 +81,22 @@ test("absolute player progression reports are retained as diagnostics but never 
     assert.equal(Appended, 1);
 });
 
+test("a game server's objective reports are stored with the max-guard; a player's never are", async () => {
+    const Stored: Array<[string, number, number]> = [];
+    const Repository = {
+        appendObjectiveEvent: async () => {},
+        setObjectiveIfGreater: async (_user: string, objectiveId: string, value: number, completedCount: number) => {
+            Stored.push([objectiveId, value, completedCount]);
+            return {} as any;
+        }
+    };
+    const Report = { objectives: [{ objective_id: "Daily_Collectible_Ramsgate", value: 3, completed_count: 1 }] };
+    await CaptureProgressionObjectiveEvent("user-1", Report, Repository);
+    assert.deepEqual(Stored, [], "a player's own report stays diagnostics-only");
+    await CaptureProgressionObjectiveEvent("user-1", Report, Repository, true);
+    assert.deepEqual(Stored, [["Daily_Collectible_Ramsgate", 3, 1]]);
+});
+
 test("journey merge preserves concurrent unlocks and stale stored values", () => {
     const Stored = { A: { node_status: 1 }, Conflict: { node_status: 1 } };
     const Incoming = { B: { node_status: 1 }, Conflict: { node_status: 0 } };

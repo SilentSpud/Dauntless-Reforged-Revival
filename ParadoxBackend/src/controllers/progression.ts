@@ -243,10 +243,18 @@ export async function GetPersistedProgressionForUser(userId: string, knownTrackI
 // delta would. Same conclusion for progress_tracks (MasteryTrack_PlayerLevel/Weapon_Sword
 // reporting a stable rank number across events). Those values remain diagnostics only: a normal
 // player report is not an authoritative progression grant and must never mutate canonical state.
+// [Dauntless Reforged Revival] `authoritative` is set for a report from an authenticated game server
+// (gsKey), never for a player's own bearer. Its objectives are then stored with the repository's
+// monotonic max-guard (setObjectiveIfGreater): each report is an absolute running total (see above),
+// so a stale or repeated report can never lower one. Without it, the 1.14.7 game server's reports of
+// daily collectibles, mastery and achievement objectives were only logged, and GET
+// /progression/objectives kept answering with nothing. progress_tracks stay diagnostics-only: track XP
+// arrives through the grant route.
 export async function CaptureProgressionObjectiveEvent(
     userId: string,
     rawBody: unknown,
-    diagnosticsRepository: Pick<ProgressionTrackRepository, "appendObjectiveEvent"> = GetRepositories().progressionTracks
+    diagnosticsRepository: Pick<ProgressionTrackRepository, "appendObjectiveEvent"> & Partial<Pick<ProgressionTrackRepository, "setObjectiveIfGreater">> = GetRepositories().progressionTracks,
+    authoritative = false
 ){
     const BodyJson = JSON.stringify(rawBody ?? {});
 
@@ -295,7 +303,15 @@ export async function CaptureProgressionObjectiveEvent(
         logger.warn(`[ProgressionObjective] user=${userId} UNRECOGNIZED top-level key(s) [${UnrecognizedKeys.join(", ")}] in a progression report - possible unhandled reward/grant payload, not applied. Raw: ${BodyJson.slice(0, 2000)}`);
     }
 
-    logger.info(`[ProgressionObjective] user=${userId} mode=diagnostics-only tracksReceived=${TracksReceived} objectivesReceived=${ObjectivesReceived} authoritativeMutation=0 rawBytes=${BodyJson.length}`);
+    let Applied = 0;
+    if(authoritative && diagnosticsRepository.setObjectiveIfGreater){
+        for(const Objective of Body.objectives ?? []){
+            await diagnosticsRepository.setObjectiveIfGreater(userId, Objective.objective_id, Number(Objective.value), Number(Objective.completed_count ?? 0));
+            Applied++;
+        }
+    }
+
+    logger.info(`[ProgressionObjective] user=${userId} mode=${authoritative ? "gameserver" : "diagnostics-only"} tracksReceived=${TracksReceived} objectivesReceived=${ObjectivesReceived} authoritativeMutation=${Applied} rawBytes=${BodyJson.length}`);
 }
 
 export function IsAuthorizedProgressionReporter(authData: any, targetUserId: string): boolean {
