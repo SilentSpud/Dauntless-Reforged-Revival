@@ -5,11 +5,7 @@
 //! tabs and newlines.
 #![no_main]
 
-#[allow(dead_code)]
-#[path = "../../services/content/src/input.rs"]
-mod input;
-
-use input::parse_news;
+use content::input::parse_news;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

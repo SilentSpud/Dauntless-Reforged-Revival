@@ -32,7 +32,7 @@ Code: `rust/services/content/src/` (`input.rs` holds every parser of outside inp
 the runtime store, `auth.rs` the key check, `config.rs`, `news.rs`, `branding.rs`, `limits.rs`, `client.rs`,
 `server.rs`).
 
-Fuzz targets in `rust/fuzz` (each compiles `src/input.rs` by path):
+Fuzz targets in `rust/fuzz` (each drives `content::input`):
 
 - `content_request`: the request path, the account key and `if-none-match` headers, repeated lines included. Checks
   that a path accepted as a runtime file names exactly one of the two, and that an accepted key is one printable

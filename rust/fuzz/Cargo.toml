@@ -22,6 +22,7 @@ libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
 arbitrary = { version = "1", features = ["derive"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 http = "1"
+content = { path = "../services/content" }
 gateway = { path = "../services/gateway" }
 protocol = { path = "../crates/protocol" }
 proxy = { path = "../crates/proxy" }

@@ -1,8 +1,7 @@
 //! Everything that reads input from outside this server, as functions with no state: the request
 //! path and headers a player's launcher sends (through the gateway), the host's `runtime.json`, and
-//! the news document (from the host's file or from GitHub). It depends on `protocol`, `serde_json`,
-//! `service_kit`, `chrono` and `http` only, so the fuzz crate compiles this file by path
-//! (`rust/fuzz/fuzz_targets/content_*.rs`; docs/security/content.md).
+//! the news document (from the host's file or from GitHub). The fuzz targets
+//! (`rust/fuzz/fuzz_targets/content_*.rs`; docs/security/content.md) drive these functions.
 
 use http::HeaderMap;
 use protocol::manifest::{

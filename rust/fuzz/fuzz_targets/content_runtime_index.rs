@@ -5,11 +5,7 @@
 //! its body reads back to the same manifest and parses again to itself.
 #![no_main]
 
-#[allow(dead_code)]
-#[path = "../../services/content/src/input.rs"]
-mod input;
-
-use input::parse_runtime_json;
+use content::input::parse_runtime_json;
 use libfuzzer_sys::fuzz_target;
 use protocol::manifest::{MAX_RUNTIME_FILE_BYTES, RUNTIME_BUILD_NAME, RUNTIME_FILE_NAMES, RuntimeManifest};
 

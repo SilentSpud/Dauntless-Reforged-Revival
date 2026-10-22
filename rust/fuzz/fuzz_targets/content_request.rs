@@ -6,13 +6,8 @@
 //! the backend request.
 #![no_main]
 
-// The content server's parsers, compiled by path: they depend on nothing this crate lacks
-#[allow(dead_code)]
-#[path = "../../services/content/src/input.rs"]
-mod input;
-
+use content::input::{KEY_HEADER, Route, header_text, if_none_match_hits, is_plausible_key, is_runtime_file_name};
 use http::{HeaderMap, HeaderValue};
-use input::{KEY_HEADER, Route, header_text, if_none_match_hits, is_plausible_key, is_runtime_file_name};
 use libfuzzer_sys::arbitrary::{self, Arbitrary};
 use libfuzzer_sys::fuzz_target;
 
@@ -68,6 +63,9 @@ fuzz_target!(|request: Request<'_>| {
         assert!(hit);
     }
     if hit && !request.etag.is_empty() {
-        assert!(inm.as_deref().is_some_and(|h| h.contains(request.etag) || service_kit::js::trim(h) == "*"));
+        assert!(
+            inm.as_deref()
+                .is_some_and(|h| h.contains(request.etag) || service_kit::js::trim(h) == "*")
+        );
     }
 });
