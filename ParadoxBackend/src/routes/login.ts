@@ -14,6 +14,7 @@ import { logger } from "../logger";
 import { HasParadoxBackendAuth } from "../middleware/HasParadoxBackendAuth";
 import { GetRepositories } from "../persistence";
 import { GetUsernameForUserId } from "../controllers/login";
+import { RefillSessionSupplies } from "../sessionSupplies";
 
 export const loginRouter = Router();
 
@@ -64,6 +65,9 @@ loginRouter.post("/login", HasParadoxBackendAuth, async (req: any, res) => {
     }
 
     logger.info(`${req.body.email} is logging in!`);
+
+    // [Reforged] Supplies the host refills at every session (REFORGED_SESSION_SUPPLIES_FILE).
+    await RefillSessionSupplies(req.AuthData.userId);
 
     res.json({
         "error_code": "TicketRateOk",
