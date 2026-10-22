@@ -63,7 +63,7 @@ tricks, a second `/__origin` inside) is a `400`.
 
 The checks match regardless of letter case, trailing or repeated slashes and percent-encoding (at
 least as lenient as Express's routing). The tests read every `/reforged/api` route from the
-backend patch (`upstream/patches/0002-backend-reforged-launcher-api.patch`) and try each one
+backend patch (0002 in [docs/paradox-patches.md](../../docs/paradox-patches.md), now in `paradox/backend`) and try each one
 through the gateway, so a route added there later is blocked unless it is added to
 `PUBLIC_REFORGED_API` in `src/policy.ts`.
 

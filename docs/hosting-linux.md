@@ -227,7 +227,7 @@ The first game servers take longer than on Windows (Wine loads the game): the Di
 - **Supplies refilled at every login:** list per account, in `~/Reforged/.workspace/config/session-supplies.json`,
   the stacked items (tonics, pylons, grenades...) that go back to a fixed quantity each time that player
   logs in: `{"accounts": {"<user id>": {"QI_GRENADE_ICE": 1000}}}`. It is read at every login, so no restart
-  is needed; see [upstream patch 0023](../upstream/README.md#0023-supplies-refilled-at-every-game-login).
+  is needed; see [patch 0023](paradox-patches.md#0023-supplies-refilled-at-every-game-login).
 - **The allowlist table:** `sudo nft list table inet reforged_revival` shows who can reach the
   game ports right now.
 
@@ -235,7 +235,7 @@ The first game servers take longer than on Windows (Wine loads the game): the Di
 
 Almost all of the server's CPU and RAM goes to the game servers: Ramsgate, the Training Grounds and one
 per hunt, each a whole Dauntless process under Wine. Before patches 0019 to 0021 (see
-[upstream/README.md](../upstream/README.md)) every one of them, empty or not, walked all ~208,000 game
+[paradox-patches.md](paradox-patches.md)) every one of them, empty or not, walked all ~208,000 game
 objects on every frame, built a function name and ran about 90 text searches for every reflected call (tens
 of thousands a second with players), asked the disk for flag files several times a frame (a whole folder
 scan under Wine), and ran its frames as fast as the CPU allowed. A 4 vCPU VPS sat near 40% with nobody

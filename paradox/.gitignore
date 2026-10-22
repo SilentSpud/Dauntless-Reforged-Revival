@@ -1,0 +1,72 @@
+# --- Secrets & config (NEVER commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.pfx
+.secrets/
+ParadoxCertificates/
+
+# The runtime and its SDK moved to native/ (native/.gitignore).
+
+# --- Locally generated game data (extract from your OWN installation) ---
+# Progression, hunt tables, store, Slayer's Path, etc. are Phoenix Labs game data and are
+# NOT distributed. Generate them with CatalogExporter + the generate:* scripts.
+# See docs/GENERATING_GAME_DATA.md. Example fixtures (*.example.json) ARE committed.
+backend/game-data/*.json
+director/game-data/*.json
+!backend/game-data/*.example.json
+!director/game-data/*.example.json
+backend/game-data/raw/
+director/game-data/raw/
+# CatalogExporter output (native/catalog-exporter; game data extracted from your own install)
+Items_Analysis/
+
+# --- Node ---
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# --- Databases & logs ---
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# --- Rust build artifacts ---
+target/
+
+# --- Native / MSVC build artifacts ---
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+*.obj
+*.exe
+*.dll
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.idb
+*.pch
+*.tlog
+*.lastbuildstate
+.vs/
+*.user
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Stale backups
+*.bak
+
+# --- Generated self-host configuration ---
+.selfhost/
+# Store captures the host kit downloads (store-captures.json)
+DauntlessEndpointDocumentation/

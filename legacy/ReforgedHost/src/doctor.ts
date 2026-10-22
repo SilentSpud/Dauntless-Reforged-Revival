@@ -12,7 +12,7 @@ import { ensureReplicaSet } from "./mongo";
 import { GAME_EXE_RELATIVE, GAME_VERSION_TEXT, PINNED_EXE_SHA256, PORTS, RUNTIME_FILE_NAMES, type Paths } from "./paths";
 import { sha256File } from "./publish";
 import { capture } from "./run";
-import { readPin, upstreamState } from "./upstream";
+import { missingParadox } from "./paradox";
 import { waitForHttp } from "./services";
 import { canBindPort, gameRuntime, linuxOptions, systemdInstalled, UNIT_ALLOWLIST, UNIT_SERVER } from "./linux";
 import { findOnPath, winePrefixReady } from "./wine";
@@ -137,7 +137,7 @@ export function performanceChecks(config: HostConfig, publishedDll: string | nul
             ? { area: "performance", level: "ok", text: "the published runtime has the game servers' CPU patches (0019, 0020)" }
             : { area: "performance", level: "warn", text: `the published runtime was built without patch ${missing.join(" and ")}: every game server uses far more CPU than it needs`, fix: process.platform === "linux"
                 ? "on the Windows PC: npm run update, build the runtime again (Host tools page) and npm run publish-runtime; then send it here (Deploy-FromWindows.ps1 ... -SkipGame, or copy .workspace\\runtime and npm run publish-runtime -- --from <folder>) and restart the server (players accept the new runtime once)"
-                : "npm run update, build the runtime again (Host tools page, or ParadoxRuntime\\_build.bat), npm run publish-runtime, restart the server (players accept the new runtime once)" });
+                : "npm run update, build the runtime again (Host tools page, or native\\paradox-runtime\\_build.bat), npm run publish-runtime, restart the server (players accept the new runtime once)" });
     }
     return out;
 }
@@ -186,23 +186,11 @@ export async function runDoctor(p: Paths, opts: { hashExe?: boolean } = {}): Pro
     const gitVersion = capture("git", ["--version"]);
     add(gitVersion ? { area: "tools", level: "ok", text: gitVersion } : { area: "tools", level: "fail", text: "git is not installed", fix: process.platform === "linux" ? "sudo apt install git" : "install Git for Windows (https://git-scm.com)" });
 
-    // ---- upstream
-    let pinCommit = "?";
-    try {
-        const pin = readPin(p.upstreamPin);
-        pinCommit = pin.commit.slice(0, 12);
-        const state = upstreamState(p.upstream, p.marker, pin, p.patchesDir);
-        const text: Record<typeof state, Check> = {
-            ready: { area: "upstream", level: "ok", text: `Mystic Paradox ${pinCommit} with the Reforged patches` },
-            missing: { area: "upstream", level: "fail", text: "Mystic Paradox is not downloaded yet", fix: "npm run setup" },
-            not_git: { area: "upstream", level: "fail", text: `${p.upstream} is not a git checkout`, fix: "move it away (keep its SDK and game-data files) and run npm run setup" },
-            unpatched: { area: "upstream", level: "fail", text: "the Reforged patches are not applied", fix: "npm run setup" },
-            outdated: { area: "upstream", level: "warn", text: `the upstream source is not the pinned ${pinCommit} with the current patches`, fix: "npm run setup (it keeps the SDK, game data and exports)" },
-        };
-        add(text[state]);
-    } catch (e) {
-        add({ area: "upstream", level: "fail", text: e instanceof Error ? e.message : String(e) });
-    }
+    // ---- Mystic Paradox (paradox/ and native/)
+    const missing = missingParadox(p);
+    add(missing.length === 0
+        ? { area: "paradox", level: "ok", text: "Mystic Paradox in paradox/ and native/" }
+        : { area: "paradox", level: "fail", text: `this checkout has no ${missing.join(", ")}`, fix: "clone the project again with git (docs/hosting.md) and move .workspace into the new clone" });
     const built: [string, string][] = [
         ["backend", path.join(p.backendDir, "build", "server.js")],
         ["Director", path.join(p.directorDir, "dist", "server.js")],
@@ -255,9 +243,9 @@ export async function runDoctor(p: Paths, opts: { hashExe?: boolean } = {}): Pro
     const functions = countFunctionFiles(p.sdkDir);
     add(fs.existsSync(p.sdkHeader) && functions > 0
         ? { area: "sdk", level: "ok", text: `Dumper-7 SDK imported (${functions} *_functions.cpp files)` }
-        : { area: "sdk", level: process.platform === "linux" ? "info" : "fail", text: "no SDK in ParadoxRuntime yet", fix: "dump it with Dumper-7 from your own 1.14.7 game (launcher > Settings > Host tools, or docs/sdk-and-game-data.md)" });
-    add(fs.existsSync(p.runtimeDll) ? { area: "runtime", level: "ok", text: "MysticParadox.dll built" } : { area: "runtime", level: process.platform === "linux" ? "info" : "fail", text: "MysticParadox.dll is not built here", fix: process.platform === "linux" ? "it is built on a Windows PC: npm run publish-runtime -- --from <folder> publishes it (docs/hosting-linux.md)" : "build ParadoxRuntime (Host tools page, or ParadoxRuntime\\_build.bat)" });
-    add(fs.existsSync(p.loaderDll) ? { area: "runtime", level: "ok", text: "winmm.dll built" } : { area: "runtime", level: process.platform === "linux" ? "info" : "fail", text: "winmm.dll is not built here", fix: process.platform === "linux" ? "it is built on a Windows PC: npm run publish-runtime -- --from <folder> publishes it" : "cargo build --release in tools\\RuntimeLoader (Host tools page)" });
+        : { area: "sdk", level: process.platform === "linux" ? "info" : "fail", text: "no SDK in native/paradox-runtime yet", fix: "dump it with Dumper-7 from your own 1.14.7 game (launcher > Settings > Host tools, or docs/sdk-and-game-data.md)" });
+    add(fs.existsSync(p.runtimeDll) ? { area: "runtime", level: "ok", text: "MysticParadox.dll built" } : { area: "runtime", level: process.platform === "linux" ? "info" : "fail", text: "MysticParadox.dll is not built here", fix: process.platform === "linux" ? "it is built on a Windows PC: npm run publish-runtime -- --from <folder> publishes it (docs/hosting-linux.md)" : "build native\\paradox-runtime (Host tools page, or native\\paradox-runtime\\_build.bat)" });
+    add(fs.existsSync(p.loaderDll) ? { area: "runtime", level: "ok", text: "winmm.dll built" } : { area: "runtime", level: process.platform === "linux" ? "info" : "fail", text: "winmm.dll is not built here", fix: process.platform === "linux" ? "it is built on a Windows PC: npm run publish-runtime -- --from <folder> publishes it" : "cargo build --release in native\\runtime-loader (Host tools page)" });
     const published = RUNTIME_FILE_NAMES.every((n) => fs.existsSync(path.join(p.runtimePublish, n))) && fs.existsSync(path.join(p.runtimePublish, "runtime.json"));
     add(published ? { area: "runtime", level: "ok", text: "runtime published for players" } : { area: "runtime", level: "fail", text: "no runtime published for players", fix: "npm run publish-runtime" });
     if (published && config?.gameDir) {

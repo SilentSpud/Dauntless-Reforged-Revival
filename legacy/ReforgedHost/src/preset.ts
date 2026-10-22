@@ -83,7 +83,7 @@ export function createPreset(p: Paths, opts: { name: string; executable: string 
             `Read from an installed Dauntless ${PACK_GAME} client for interoperability: identifiers and tuning values (item catalogue, store, progression and hunt tables), no game assets.`,
             "Sources: CatalogExporter's export from the running game, converted by Mystic Paradox's game-data generators and the host kit (npm run gamedata).",
             executableSha256 ? `Game executable SHA-256 ${executableSha256}.` : "Game executable SHA-256 not recorded (no game folder in host.json).",
-            "Lady Luck's Store and the platinum store are not in it: npm run gamedata builds them on each server from the live store captures (upstream/store-captures.json).",
+            "Lady Luck's Store and the platinum store are not in it: npm run gamedata builds them on each server from the live store captures (paradox/backend/store-captures.json).",
             "A host's own generated game data takes precedence over this preset. Regenerate it with npm run preset -- --create; do not edit the files by hand.",
         ],
         format: PRESET_FORMAT,
@@ -92,7 +92,7 @@ export function createPreset(p: Paths, opts: { name: string; executable: string 
         game: PACK_GAME,
         executableSha256,
         created: now.toISOString(),
-        sources: ["CatalogExporter (tools/CatalogExporter in Mystic Paradox)", "Mystic Paradox game-data generators", "Dauntless Reforged Revival host kit"],
+        sources: ["CatalogExporter (native/catalog-exporter, from Mystic Paradox)", "Mystic Paradox game-data generators", "Dauntless Reforged Revival host kit"],
         files,
     };
     const keep = new Set([PRESET_MANIFEST, "README.md", ...files.map((f) => f.path)]);

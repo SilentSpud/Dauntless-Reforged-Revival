@@ -1,0 +1,27 @@
+# Secrets written by a host's build
+paradox-runtime/deployment_config.generated.h
+
+# Generated SDK (dump it yourself with Dumper-7). The complete Dumper-7 CppSDK output is
+# game-derived and is not distributed; see docs/sdk-and-game-data.md.
+paradox-runtime/SDK/
+paradox-runtime/SDK.hpp
+paradox-runtime/Assertions.inl
+paradox-runtime/NameCollisions.inl
+paradox-runtime/PropertyFixup.hpp
+paradox-runtime/UnrealContainers.hpp
+paradox-runtime/UtfN.hpp
+
+# Build output
+target/
+x64/
+[Dd]ebug/
+[Rr]elease/
+*.dll
+*.exe
+*.lib
+*.obj
+*.pdb
+*.ilk
+*.exp
+.vs/
+*.user

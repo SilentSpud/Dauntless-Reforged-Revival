@@ -22,7 +22,7 @@ function project() {
     const dev = tempDir("dev");
     git(dev, "clone", "--quiet", remote, ".");
     git(dev, "checkout", "--quiet", "-b", "main");
-    commit(dev, { ".gitignore": ".workspace/\n", "README.md": "one\n", "upstream/mystic-paradox.json": JSON.stringify({ commit: "a".repeat(40), patches: [] }) }, "one");
+    commit(dev, { ".gitignore": ".workspace/\n", "README.md": "one\n", "native/paradox-runtime/dllmain.cpp": "one\n" }, "one");
     git(dev, "push", "--quiet", "origin", "main");
     const host = tempDir("host");
     git(host, "clone", "--quiet", remote, ".");
@@ -91,12 +91,12 @@ describe("updating the project from GitHub", () => {
     });
 
     it("tells when the game runtime has to be built again", async () => {
-        assert.equal(runtimeAffected(["upstream/patches/0006-runtime-free-leftover-worlds-before-loadmap.patch"], "a", "a"), true);
-        assert.equal(runtimeAffected(["upstream/patches/0007-backend-test-xp-and-reward-multipliers.patch", "docs/hosting.md"], "a", "a"), false);
-        assert.equal(runtimeAffected(["upstream/mystic-paradox.json"], "a", "b"), true);
+        assert.equal(runtimeAffected(["native/paradox-runtime/dllmain.cpp"]), true);
+        assert.equal(runtimeAffected(["native/runtime-loader/src/lib.rs"]), true);
+        assert.equal(runtimeAffected(["paradox/backend/src/server.ts", "native/catalog-exporter/dllmain.cpp", "docs/hosting.md"]), false);
 
         const { dev, host } = project();
-        commit(dev, { "upstream/patches/0009-runtime-x.patch": "x\n" }, "runtime");
+        commit(dev, { "native/paradox-runtime/dllmain.cpp": "two\n" }, "runtime");
         git(dev, "push", "--quiet", "origin", "main");
         assert.equal((await applyUpdate(host)).runtimeChanged, true);
     });

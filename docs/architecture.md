@@ -8,11 +8,11 @@ see [hosting.md](hosting.md); for the per-component details, each folder's READM
 | Part | Runs on | From |
 |---|---|---|
 | Launcher (`legacy/ReforgedLauncher/`) | each player's PC | Dauntless Revived's launcher, modified |
-| Game runtime (`MysticParadox.dll`, `winmm.dll`) | next to each game executable | Mystic Paradox's ParadoxRuntime and RuntimeLoader, patched; built by each host |
+| Game runtime (`MysticParadox.dll`, `winmm.dll`) | next to each game executable | Mystic Paradox's runtime and loader, forked into `native/`; built by each host |
 | Gateway (`legacy/ReforgedGateway/`) | the server | Dauntless Revived's gateway, modified |
 | Allowlist helper (`legacy/ReforgedGateway/src/allowlist/`) | the server, as administrator (public mode) | Dauntless Revived |
-| Backend (`ParadoxBackend`) | the server, 127.0.0.1:61000 | Mystic Paradox, patched |
-| Director (`ParadoxDirector`) | the server, 127.0.0.1:61001 | Mystic Paradox, patched |
+| Backend (`paradox/backend`) | the server, 127.0.0.1:61000 | Mystic Paradox, forked |
+| Director (`paradox/director`) | the server, 127.0.0.1:61001 | Mystic Paradox, forked |
 | Game servers (the game exe with `-server`) | the server, UDP 8770-8777 | started by the Director |
 | Content server (`legacy/ReforgedContent/`) | the server, 127.0.0.1:61002 | based on Dauntless Revived's |
 | MongoDB | the server, 127.0.0.1:27017, replica set `rs0` | |

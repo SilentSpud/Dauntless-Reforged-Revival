@@ -1,10 +1,11 @@
 # ReforgedHost: the host kit
 
 Everything a host runs from a terminal, in the `legacy/ReforgedHost/` folder. It plays the part of
-Dauntless Revived's server kit for Dauntless 1.14.7: it sets up
-[Mystic Paradox](https://github.com/pranav158/Mystic-Paradox) at the pinned commit with the
-Reforged patches, writes the whole server configuration (secrets included), runs every service,
-and makes invites. No dependencies of its own: Node.js 20.19+ and Git.
+Dauntless Revived's server kit for Dauntless 1.14.7: it builds the backend and Director of
+[Mystic Paradox](https://github.com/pranav158/Mystic-Paradox), forked into this repository at
+[`../../paradox/`](../../paradox) (the runtime is in [`../../native/`](../../native)), writes the whole server
+configuration (secrets included), runs every service, and makes invites. Nothing is downloaded from Mystic
+Paradox's repository. No dependencies of its own: Node.js 20.19+ and Git.
 
 Read [docs/hosting.md](../../docs/hosting.md) first; it walks through a whole setup in order. The
 SDK, the runtime build and the game data are in [docs/sdk-and-game-data.md](../../docs/sdk-and-game-data.md).
@@ -22,8 +23,7 @@ Run them in this folder (`cd legacy/ReforgedHost` from the repository root, then
 | `npm run publish-runtime` | Publishes the built `MysticParadox.dll` and `winmm.dll` for players, and installs them next to the server's game executable. `-- --from <folder>` takes both from that folder instead (a Linux server's runtime, built on Windows) |
 | `npm run gamedata` | Generates the game data from your CatalogExporter export (the progression config from the progression export; `-- --example-sources` uses the examples for the files no export produced; `-- --progression` rebuilds only the progression config; `-- --export [file]` saves it all into one game data pack and `-- --import <file>` puts a pack back; `-- --examples` copies every example, for a start-up test only) |
 | `npm run preset` | The project's server preset in `../../preset/`: `-- --create [--generate] [--name "<name>"]` extracts it from your game data (with its provenance), `-- --apply [--force]` applies it now; `setup` applies it on its own where game data is missing or still the example |
-| `npm run multipliers` | Private test servers only: `-- --xp 1-100 --rewards 1-100` multiplies the XP and the hunt loot the game servers grant, `-- --off` turns it off, no arguments shows what is set; restart the server after a change (see `../../upstream/README.md`, patch 0007) |
-| `npm run upstream` | Only downloads Mystic Paradox at the pinned commit and applies the patches (setup's first step): what importing the SDK and building the runtime need |
+| `npm run multipliers` | Private test servers only: `-- --xp 1-100 --rewards 1-100` multiplies the XP and the hunt loot the game servers grant, `-- --off` turns it off, no arguments shows what is set; restart the server after a change (see `../../docs/paradox-patches.md`, patch 0007) |
 | `npm run update` | Compares this project folder with GitHub, fast-forwards it when there is an update (never over your own changes to its files; `.workspace` is not touched) and runs `npm run setup` again; `-- --check` only compares; it says when the game runtime has to be built and published again |
 | `npm run doctor` | Checks everything and says what to do next (`-- --no-hash` skips hashing the game executable) |
 
@@ -32,8 +32,8 @@ Other `setup` options: `--registration INVITECODE|OPEN|NONE` (default invite cod
 `--no-manage-mongo` (your own MongoDB, which must be a replica set), `--mongod <path>`,
 `--max-hunts 1-10` (default 3; each hunt is a whole game process; above 6 the game ports reach below 8770, one
 per hunt: 8766-8777 at 10), `--public-port <port>` (public: the
-gateway's port when 443 is taken, by a hosting panel for example; it goes into every invite), `--skip-install`,
-`--force-upstream`. Running `setup` again with other options changes only those.
+gateway's port when 443 is taken, by a hosting panel for example; it goes into every invite), `--skip-install`.
+Running `setup` again with other options changes only those.
 
 CPU and RAM (`host.json` `performance`, written into `director.env`; see `docs/hosting-linux.md#cpu-and-ram`):
 `--server-fps 0|10-240` (default 30: each game server's frame cap, `REFORGED_SERVER_MAX_FPS`, runtime patch
@@ -74,12 +74,12 @@ Setup also writes, in `.workspace/config/`:
 
 ## What setup does
 
-1. **Mystic Paradox** at the commit in [`../../upstream/mystic-paradox.json`](../../upstream/mystic-paradox.json),
-   fetched with Git into `.workspace/Mystic-Paradox/`, with the patches in
-   [`../../upstream/patches/`](../../upstream/patches) applied (`git apply --index`). Running it again
-   after the pin changes resets the tracked files and applies the patches again; your SDK, game data,
-   exports and builds (all files upstream ignores) stay where they are.
-2. `npm ci` and `npm run build` in ParadoxBackend, ParadoxDirector, ReforgedGateway and ReforgedContent.
+1. **Mystic Paradox** is already in the checkout: `paradox/backend`, `paradox/director` and `native/`.
+   Your SDK, game data, exports and builds go next to the code that uses them, in files git ignores
+   (`native/paradox-runtime/SDK*`, `paradox/backend/game-data/*.json`, `paradox/Items_Analysis/`, ...).
+   A host set up before Mystic Paradox was merged in had them in `.workspace/Mystic-Paradox/`: setup copies
+   them over once, where nothing is in the new place yet, and leaves that folder for you to delete.
+2. `npm ci` and `npm run build` in paradox/backend, paradox/director, ReforgedGateway and ReforgedContent.
 3. **Configuration** in `.workspace/config/`:
    - `host.json`: what you chose.
    - `secrets.env`: made once and never changed (the backend's token signing key, the API-key HMAC
@@ -116,9 +116,9 @@ Setup also writes, in `.workspace/config/`:
 ## Tests
 
 ```
-npm test    # env files, host.json, secrets, the env files of both modes, the pinned upstream with
-            # a real local Git repository, invites (parsed with the launcher's own parser), runtime
-            # publishing (read back with the content server's own parser), game data, the supervisor
+npm test    # env files, host.json, secrets, the env files of both modes, Mystic Paradox in the
+            # checkout and the move from the old .workspace/Mystic-Paradox, invites (parsed with
+            # the launcher's own parser), runtime publishing (read back with the content server's own parser), game data, the supervisor
 ```
 
 ## License

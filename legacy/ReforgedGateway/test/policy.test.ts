@@ -6,7 +6,7 @@ import { IsPublicRoute, ReforgedApiRoutes } from "./helpers";
 describe("the /reforged/api routes", () => {
     const Routes = ReforgedApiRoutes();
 
-    it("the backend patch still has the routes this gateway knows about", () => {
+    it("the backend still has the routes this gateway knows about", () => {
         assert.ok(Routes.length >= 8, `found only ${Routes.length} routes`);
         for(const Name of ["Register", "GetUserInfo", "ServerStatus", "RegistrationStatus", "CreateInvite", "InviteCodes", "SetAccountStatus"]){
             assert.ok(Routes.some((Route) => Route.path === `/reforged/api/${Name}`), Name);

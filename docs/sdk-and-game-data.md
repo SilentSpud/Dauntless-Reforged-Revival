@@ -11,8 +11,10 @@ git-ignored `.workspace\` folder.
 | The **game data**: item catalog, stores, Slayer's Path, hunt tables | CatalogExporter, injected into your running game, and Mystic Paradox's generators | the backend and the Director |
 
 The steps below are those of Mystic Paradox's own guides
-([GENERATING_SDK.md](https://github.com/pranav158/Mystic-Paradox/blob/main/docs/GENERATING_SDK.md),
-[GENERATING_GAME_DATA.md](https://github.com/pranav158/Mystic-Paradox/blob/main/docs/GENERATING_GAME_DATA.md)),
+([GENERATING_SDK.md](../paradox/docs/GENERATING_SDK.md),
+[GENERATING_GAME_DATA.md](../paradox/docs/GENERATING_GAME_DATA.md); their paths are Mystic Paradox's:
+`ParadoxRuntime` and `tools\` are `native\` here, `ParadoxBackend` and `ParadoxDirector` are `paradox\backend`
+and `paradox\director`),
 with the Reforged tools doing the file handling. The launcher's **Host tools** page
 (Settings > Launcher > Advanced > Host tools, then choose your Dauntless Reforged Revival folder
 as the workspace) shows each step's state and has a button for most of them. Run
@@ -29,21 +31,21 @@ launcher refuses to dump a game it found to be another build.
    sets the runtime loader aside (so the game starts unmodified), starts Dauntless, waits for its
    window and loads Dumper-7 into it. Wait in the main menu until `C:\Dumper-7\<game>\CppSDK\`
    appears and is complete (a minute or two), then close the game; the loader is put back.
-3. **Import SDK** copies the newest dump into `.workspace\Mystic-Paradox\ParadoxRuntime\`:
+3. **Import SDK** copies the newest dump into `native\paradox-runtime\`:
    `SDK.hpp`, `SDK\` (with the `*_functions.cpp` files), `Assertions.inl`, `NameCollisions.inl`,
    `PropertyFixup.hpp`, `UnrealContainers.hpp`, `UtfN.hpp`.
 
 By hand: inject Dumper-7 into your running 1.14.7 game with any injector, and copy the whole
-`CppSDK` folder's contents into `ParadoxRuntime\`. A header-only or partial copy is not enough.
+`CppSDK` folder's contents into `native\paradox-runtime\`. A header-only or partial copy is not enough.
 
 ## 2. The runtime
 
-Host tools page, **Build** tab, or by hand from `.workspace\Mystic-Paradox`:
+Host tools page, **Build** tab, or by hand from `native\`:
 
 ```powershell
-cd ParadoxRuntime; .\_build.bat                     # -> ParadoxRuntime\x64\Release\MysticParadox.dll
-cd ..\tools\RuntimeLoader; cargo build --release   # -> tools\RuntimeLoader\target\release\winmm.dll
-cd ..\CatalogExporter; .\_build.bat                 # -> tools\CatalogExporter\x64\Release\CatalogExporter.dll
+cd paradox-runtime; .\_build.bat               # -> native\paradox-runtime\x64\Release\MysticParadox.dll
+cd ..\runtime-loader; cargo build --release    # -> native\runtime-loader\target\release\winmm.dll
+cd ..\catalog-exporter; .\_build.bat           # -> native\catalog-exporter\x64\Release\CatalogExporter.dll
 ```
 
 - The projects ask for the v145 toolset (Visual Studio 2026). The Host tools page passes v143 to
@@ -69,8 +71,8 @@ launcher's **Publish** button does the first half.
 
 ## 3. The game data
 
-The backend reads seven files from `ParadoxBackend\game-data\` and the Director seven from
-`ParadoxDirector\game-data\`. Without them the services do not start.
+The backend reads seven files from `paradox\backend\game-data\` and the Director seven from
+`paradox\director\game-data\`. Without them the services do not start.
 
 ### For a first start-up test: the examples
 
@@ -97,7 +99,7 @@ players that the server runs on example data.
    - the store: in Ramsgate, Journal > Challenges > Reward Cache.
    The exporter writes `Items_Analysis\` next to the game; check its `export_manifest_1_14_7.json`
    and `catalog_export_status.txt`. Flags are read once per injection: inject again for a missing part.
-4. **Generate game data** (Game data tab) copies `Items_Analysis\` into `.workspace\Mystic-Paradox\`,
+4. **Generate game data** (Game data tab) copies `Items_Analysis\` into `paradox\`,
    where the generators read it, and runs step 5 for you.
 5. Generate:
 
@@ -125,7 +127,7 @@ source from the progression tables of your own game, which CatalogExporter expor
 active Hunt Pass (`season43`). The game's Hunt Pass rows hold no tiers, so the pass gets 50 ranks of
 100 XP and no rewards. Each weapon's prestige track (`PrestigeTrack_Weapon_*`), which the export has no
 rank table for, gets the ranks of that weapon's experience track and no rewards. A captured response in
-`ParadoxBackend\game-data\raw\progression_config.source.json` (a progression-config response with
+`paradox\backend\game-data\raw\progression_config.source.json` (a progression-config response with
 `payload.paths`) is always used instead.
 
 To rebuild only this file after a new progression export, without touching the other game data:
@@ -141,8 +143,8 @@ game client, so no export can produce them. Mystic Paradox builds them from capt
 service, published by EisigesEis in
 [DauntlessEndpointDocumentation](https://github.com/EisigesEis/DauntlessEndpointDocumentation).
 `npm run gamedata` downloads the five files it needs, at the commit and with the SHA-256 hashes in
-[`upstream/store-captures.json`](../upstream/store-captures.json), into
-`.workspace\Mystic-Paradox\DauntlessEndpointDocumentation\` (it needs git and the internet once). Then:
+[`paradox/backend/store-captures.json`](../paradox/backend/store-captures.json), into
+`paradox\DauntlessEndpointDocumentation\` (it needs git and the internet once). Then:
 
 - Lady Luck's Store is the live rotation, kept to the items your catalogue has (38 of its 43 offers
   in 1.14.7: the five gold cell cores are not in the game), with their live prices in Steel and
@@ -152,7 +154,7 @@ service, published by EisigesEis in
 
 If the download fails, the step says so and the other steps still run: Lady Luck then keeps the
 example (no offers) and the platinum store has only reconstructed offers. A captured Lady Luck response
-of your own, in `ParadoxBackend\game-data\raw\ladyluck_store.source.json` (an array of store
+of your own, in `paradox\backend\game-data\raw\ladyluck_store.source.json` (an array of store
 entries), is always used instead of the live rotation. `npm run gamedata -- --example-sources` uses
 the examples for the files whose source is missing, so the services can start.
 

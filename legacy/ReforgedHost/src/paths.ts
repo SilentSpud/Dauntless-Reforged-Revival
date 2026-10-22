@@ -1,6 +1,6 @@
-// Where everything lives. The repository holds the code; .workspace/ (git-ignored) holds what is
-// the host's own: the pinned upstream source with the patches applied, the SDK generated from
-// their game, game data, builds, configuration with secrets, certificates, the database and logs.
+// Where everything lives. The repository holds the code, Mystic Paradox's included (paradox/, native/); what
+// is the host's own is git-ignored: the SDK generated from their game, game data, exports and builds next to
+// the code that uses them, and in .workspace/ the configuration with secrets, certificates, the database and logs.
 
 import path from "node:path";
 
@@ -41,13 +41,12 @@ export interface Paths {
     // The project's server preset (preset.ts), committed with the project.
     preset: string;
     hostKit: string;
-    upstreamPin: string;
-    patchesDir: string;
     gatewayDir: string;
     contentDir: string;
     workspace: string;
-    upstream: string;
-    marker: string;
+    paradox: string;
+    // Where setup took the host's own files from before Mystic Paradox was part of the repository.
+    oldUpstream: string;
     backendDir: string;
     directorDir: string;
     runtimeSource: string;
@@ -56,6 +55,7 @@ export interface Paths {
     runtimeDll: string;
     loaderDir: string;
     loaderDll: string;
+    exporterDir: string;
     exporterDll: string;
     backendGameData: string;
     directorGameData: string;
@@ -82,11 +82,14 @@ export interface Paths {
     systemd: string;
 }
 
-// root: the Dauntless Reforged Revival checkout (the folder with legacy/ReforgedHost/ and upstream/).
+// root: the Dauntless Reforged Revival checkout (the folder with legacy/ReforgedHost/ and paradox/).
 export function paths(root: string): Paths {
     const workspace = path.join(root, ".workspace");
-    const upstream = path.join(workspace, "Mystic-Paradox");
-    const runtimeSource = path.join(upstream, "ParadoxRuntime");
+    const paradox = path.join(root, "paradox");
+    const native = path.join(root, "native");
+    const runtimeSource = path.join(native, "paradox-runtime");
+    const loaderDir = path.join(native, "runtime-loader");
+    const exporterDir = path.join(native, "catalog-exporter");
     const config = path.join(workspace, "config");
     const tls = path.join(workspace, "tls");
     const logs = path.join(workspace, "logs");
@@ -94,28 +97,28 @@ export function paths(root: string): Paths {
         repo: root,
         preset: path.join(root, "preset"),
         hostKit: path.join(root, "legacy", "ReforgedHost"),
-        upstreamPin: path.join(root, "upstream", "mystic-paradox.json"),
-        patchesDir: path.join(root, "upstream"),
         gatewayDir: path.join(root, "legacy", "ReforgedGateway"),
         contentDir: path.join(root, "legacy", "ReforgedContent"),
         workspace,
-        upstream,
-        marker: path.join(upstream, ".reforged-patches.json"),
-        backendDir: path.join(upstream, "ParadoxBackend"),
-        directorDir: path.join(upstream, "ParadoxDirector"),
+        paradox,
+        oldUpstream: path.join(workspace, "Mystic-Paradox"),
+        backendDir: path.join(paradox, "backend"),
+        directorDir: path.join(paradox, "director"),
         runtimeSource,
         sdkHeader: path.join(runtimeSource, "SDK.hpp"),
         sdkDir: path.join(runtimeSource, "SDK"),
         runtimeDll: path.join(runtimeSource, "x64", "Release", "MysticParadox.dll"),
-        loaderDir: path.join(upstream, "tools", "RuntimeLoader"),
-        loaderDll: path.join(upstream, "tools", "RuntimeLoader", "target", "release", "winmm.dll"),
-        exporterDll: path.join(upstream, "tools", "CatalogExporter", "x64", "Release", "CatalogExporter.dll"),
-        backendGameData: path.join(upstream, "ParadoxBackend", "game-data"),
-        directorGameData: path.join(upstream, "ParadoxDirector", "game-data"),
-        rawGameData: path.join(upstream, "ParadoxBackend", "game-data", "raw"),
-        exports: path.join(upstream, "Items_Analysis"),
-        storeCaptures: path.join(upstream, "DauntlessEndpointDocumentation"),
-        capturesPin: path.join(root, "upstream", "store-captures.json"),
+        loaderDir,
+        loaderDll: path.join(loaderDir, "target", "release", "winmm.dll"),
+        exporterDir,
+        exporterDll: path.join(exporterDir, "x64", "Release", "CatalogExporter.dll"),
+        backendGameData: path.join(paradox, "backend", "game-data"),
+        directorGameData: path.join(paradox, "director", "game-data"),
+        rawGameData: path.join(paradox, "backend", "game-data", "raw"),
+        // Mystic Paradox's generators read these from its root (paradox/).
+        exports: path.join(paradox, "Items_Analysis"),
+        storeCaptures: path.join(paradox, "DauntlessEndpointDocumentation"),
+        capturesPin: path.join(paradox, "backend", "store-captures.json"),
         runtimePublish: path.join(workspace, "runtime"),
         config,
         hostJson: path.join(config, "host.json"),
@@ -140,10 +143,10 @@ export function findRepoRoot(start: string = __dirname): string {
     const fs = require("node:fs") as typeof import("node:fs");
     let dir = start;
     for (let i = 0; i < 8; i++) {
-        if (fs.existsSync(path.join(dir, "upstream", "mystic-paradox.json")) && fs.existsSync(path.join(dir, "legacy", "ReforgedHost"))) return dir;
+        if (fs.existsSync(path.join(dir, "paradox", "backend", "package.json")) && fs.existsSync(path.join(dir, "legacy", "ReforgedHost"))) return dir;
         const up = path.dirname(dir);
         if (up === dir) break;
         dir = up;
     }
-    throw new Error("Could not find the Dauntless Reforged Revival folder (with upstream/ and legacy/ReforgedHost/) above " + start);
+    throw new Error("Could not find the Dauntless Reforged Revival folder (with paradox/ and legacy/ReforgedHost/) above " + start);
 }

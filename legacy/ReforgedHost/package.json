@@ -1,7 +1,7 @@
 {
   "name": "dauntless-reforged-revival-host",
   "version": "0.1.0",
-  "description": "Host kit for Dauntless Reforged Revival: sets up Mystic Paradox with the Reforged patches, writes the server configuration, runs the services and makes invites",
+  "description": "Host kit for Dauntless Reforged Revival: builds Mystic Paradox from paradox/ and native/, writes the server configuration, runs the services and makes invites",
   "license": "AGPL-3.0-only",
   "author": "Dauntless Reforged Revival contributors",
   "private": true,
@@ -28,8 +28,6 @@
     "preset": "node dist/cli.js preset",
     "premultipliers": "npm run build --silent",
     "multipliers": "node dist/cli.js multipliers",
-    "preupstream": "npm run build --silent",
-    "upstream": "node dist/cli.js upstream",
     "preupdate": "npm run build --silent",
     "update": "node dist/cli.js update",
     "test": "node -e \"require('fs').rmSync('build',{recursive:true,force:true})\" && tsc -p tsconfig.test.json && node --test --test-concurrency=1 \"build/ReforgedHost/test/*.test.js\""

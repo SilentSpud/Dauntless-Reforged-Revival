@@ -93,6 +93,7 @@ import {
   EXPORT_FLAGS,
   copyTree,
   detectHostKit,
+  downloadsParadox,
   findDumps,
   findToolchain,
   hostKitDir,
@@ -2174,11 +2175,13 @@ export class Controller {
     return this.fail("host_failed", message ?? kind);
   }
 
-  // Mystic Paradox, downloaded and patched in .workspace (ReforgedHost's npm run upstream, setup's first
-  // step): the SDK, the loader and the game data go into it, so those steps do not wait for the server's setup.
+  // Mystic Paradox, in the checkout (paradox/, native/), or in a checkout from before it was merged in,
+  // downloaded and patched in .workspace (ReforgedHost's npm run upstream, setup's first step): the SDK, the
+  // loader and the game data go into it, so those steps do not wait for the server's setup.
   private async ensureUpstream(ws: string): Promise<void> {
     const w = workspacePaths(ws);
     if (existsSync(path.join(w.runtimeSource, "dllmain.cpp"))) return;
+    if (!downloadsParadox(ws)) throw new HostKitError("workspace");
     this.setJob({ kind: "upstream", state: "running", message: null, logFile: path.join(ws, ".workspace", "logs", "launcher-upstream.log") });
     const r = await this.server.command(ws, ["upstream"], "upstream");
     if (r.code !== 0) throw new Error(r.failure ?? "upstream");
@@ -2382,5 +2385,5 @@ function updateFailure(json: Record<string, unknown> | null, failure: string | n
   return code ? `update_${code}` : failure ?? "update";
 }
 
-// The Host page's steps that work in the downloaded Mystic Paradox (ensureUpstream).
+// The Host page's steps that work in Mystic Paradox's source (ensureUpstream).
 const NEEDS_UPSTREAM: ReadonlySet<HostAction> = new Set<HostAction>(["import_sdk", "build_loader", "synthetic_data", "generate_gamedata"]);

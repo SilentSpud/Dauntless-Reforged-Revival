@@ -20,7 +20,7 @@ The preset here is "Freeza", read from the Dauntless 1.14.7 client whose executa
 
 Lady Luck's Store and the platinum store are never in a preset: they are built from captures of the
 live store service that no license lets this project copy (see
-[`upstream/store-captures.json`](../upstream/store-captures.json)), so `npm run gamedata` builds them
+[`paradox/backend/store-captures.json`](../paradox/backend/store-captures.json)), so `npm run gamedata` builds them
 on each server, which needs the CatalogExporter export there. `npm run preset -- --create` leaves them
 out, and a preset that lists them is refused.
 
