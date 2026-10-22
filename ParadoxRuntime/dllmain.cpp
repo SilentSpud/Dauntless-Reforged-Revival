@@ -12319,6 +12319,59 @@ static const std::string& CachedFunctionFullName(UFunction* Function) {
     return CachedFunctionNameEntry(Function).Name;
 }
 
+// [Reforged] Supplies without a stack cap. A few tonics (Granny's Heartbreaker, Granny's Antidote and three test
+// tonics) carry MaxQuantity 30 in the game's own catalog, so a server that gives more than 30 sees the stack
+// dropped from the client's inventory. This sets MaxQuantity to 0 (no cap) on every catalog item tagged
+// "supplies" whose cap is above 1, in the live UArchonCatalog of both the client and the game server, from the
+// game thread (the ProcessEvent hooks), at most every 5 seconds. Flares and other one-per-account items (cap 1)
+// are not touched. KEEP_SUPPLY_STACK_CAPS.flag beside the game executable keeps the game's caps.
+static void MpUncapSupplyStacks() {
+    static ULONGLONG s_next = 0;
+    static UArchonCatalog* s_catalog = nullptr;
+    static int s_disabled = -1;
+    const ULONGLONG Now = GetTickCount64();
+    if (Now < s_next) return;
+    s_next = Now + 5000;
+    if (s_disabled < 0) {
+        s_disabled = MpExeRelativeFlagPresent(L"KEEP_SUPPLY_STACK_CAPS.flag") ? 1 : 0;
+        if (s_disabled) MpLog("[SupplyCap] KEEP_SUPPLY_STACK_CAPS.flag present: the game's stack caps are kept");
+    }
+    if (s_disabled || !UObject::GObjects) return;
+
+    if (!s_catalog || !IsRegisteredLiveObject(s_catalog)) {
+        s_catalog = nullptr;
+        UClass* Cls = UArchonCatalog::StaticClass();
+        if (!Cls) return;
+        const int Count = UObject::GObjects->Num();
+        for (int i = 0; i < Count; ++i) {
+            UObject* Obj = UObject::GObjects->GetByIndex(i);
+            if (!Obj || Obj->IsDefaultObject() || !Obj->IsA(Cls)) continue;
+            s_catalog = static_cast<UArchonCatalog*>(Obj);
+            break;
+        }
+        if (!s_catalog) return;
+    }
+
+    if (!s_catalog->Catalog.IsValid()) return;
+    int Uncapped = 0;
+    std::string Names;
+    for (auto& Pair : s_catalog->Catalog) {
+        FArchonCatalogItem& Item = Pair.Value();
+        if (Item.MaxQuantity <= 1) continue;
+        bool Supplies = false;
+        for (int t = 0; t < Item.Tags.Num(); ++t) {
+            if (Item.Tags[t].ToString() == "supplies") { Supplies = true; break; }
+        }
+        if (!Supplies) continue;
+        if (Uncapped < 8) Names += (Names.empty() ? "" : ",") + Pair.Key().ToString() + "(" + std::to_string(Item.MaxQuantity) + ")";
+        Item.MaxQuantity = 0;
+        ++Uncapped;
+    }
+    if (Uncapped > 0) {
+        MpLog("[SupplyCap] removed the stack cap of " + std::to_string(Uncapped) + " supply item(s): " + Names);
+    }
+}
+
 void ProcessEventClientHook(UObject* Object, UFunction* Function, void* Parms) {
     g_clientProcessEventCount.fetch_add(1, std::memory_order_relaxed);
     if (g_clientGameThreadId.load(std::memory_order_relaxed) == 0) {
@@ -12352,6 +12405,8 @@ void ProcessEventClientHook(UObject* Object, UFunction* Function, void* Parms) {
         }
         return;   // absorb — do not call OrigProcessEventClient
     }
+
+    MpUncapSupplyStacks();
 
     /*
     if (GetAsyncKeyState(VK_F9)) {
@@ -14887,6 +14942,8 @@ void ProcessEventHook(UObject* Object, UFunction* Function, void* Parms) {
         }
         return;   // DO NOT call OrigProcessEvent — breaks any game-side recursion.
     }
+
+    MpUncapSupplyStacks();
 
     static UFunction* ServerTryActivateAbilityWithEventData = nullptr;
     static UFunction* ServerTryActivateAbility = nullptr;
