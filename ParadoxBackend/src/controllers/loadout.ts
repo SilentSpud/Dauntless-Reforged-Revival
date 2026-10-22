@@ -10,7 +10,7 @@
  */
 
 import { GetRepositories } from "../persistence";
-import { EnsureStarterBootstrapRecords } from "./starterManifest";
+import { EnsureStarterBootstrapRecords, WithDefaultChatWheels } from "./starterManifest";
 import { ValidateLoadoutWriteData } from "../validation";
 import { logger } from "../logger";
 import {
@@ -52,7 +52,8 @@ export async function GetLoadoutStateForUserIdAndCharacterId(UserId: string, Cha
     const VisibleTotalSlots = ResolveVisibleTotalLoadoutSlots(StoredLoadouts.length, LoadoutDbRow.unlockedTotalSlots);
     return {
         loadouts: StoredLoadouts.slice(0, VisibleTotalSlots),
-        persistent: JSON.parse(LoadoutDbRow.persistent),
+        // [Reforged 0017] Characters saved with empty quick-chat/emoji wheels get the defaults.
+        persistent: WithDefaultChatWheels(JSON.parse(LoadoutDbRow.persistent)),
         activeIndex: ResolveActiveLoadoutIndex(LoadoutDbRow.activeIndex, VisibleTotalSlots)
     };
 }

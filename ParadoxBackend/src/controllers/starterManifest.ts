@@ -81,6 +81,51 @@ const STARTER_WEAPON_CATALOG_ID = "WP_EB_BEGINNER";
 const STARTER_WEAPON_PART_CATALOG_ID = "PART_EB_SPECIAL_DEFAULT";
 export const STARTER_BANNER_CATALOG_ID = "BN_BEGINNER_00";
 
+// [Reforged 0017] Emojis from INITIAL_INVENTORY_BUNDLE. EJ_SYSTEM_TYPING is the typing indicator, not a
+// wheel entry, so it is owned but never placed on the wheel.
+export const STARTER_EMOJI_CATALOG_IDS = [
+    "EJ_SYSTEM_TYPING",
+    "EJ_PLAYER_BOSUN_JOY",
+    "EJ_PLAYER_KAT_PRAY",
+    "EJ_PLAYER_MOYRA_MUSCLE",
+    "EJ_PLAYER_GREGARIO_QUESTION",
+    "EJ_PLAYER_MIDDLEMAN_HMM",
+    "EJ_PLAYER_PRIYANI_WINK",
+    "EJ_PLAYER_ZAI_ANGRY",
+    "EJ_PLAYER_ZAI_SWEAT",
+] as const;
+
+// [Reforged 0017] Both wheels have 9 slots (persistent.quick_chats / persistent.emojis). An empty
+// slot is shown as empty and does nothing, so a character whose slots are all "" cannot quick chat
+// or quick emoji at all. The first four emojis are the game's own default loadout (the ones
+// ValidateLoadout falls back to); quick chats are rows of
+// /Game/Gameplay/Backend/Catalogs/QuickChat/quickchat_text_table. Emojis are stacked items, so
+// their catalog id is also their ownership reference (like flare and emotes).
+export const CHAT_WHEEL_SLOTS = 9;
+export const DEFAULT_QUICK_CHATS = [
+    "qc_hello", "qc_thankyou", "qc_goodjob", "qc_help", "qc_follow_me",
+    "qc_onmyway", "qc_yes", "qc_no", "qc_sorry",
+] as const;
+export const DEFAULT_QUICK_EMOJIS = [
+    "EJ_PLAYER_BOSUN_JOY", "EJ_PLAYER_KAT_PRAY", "EJ_PLAYER_MOYRA_MUSCLE", "EJ_PLAYER_GREGARIO_QUESTION",
+    "EJ_PLAYER_MIDDLEMAN_HMM", "EJ_PLAYER_PRIYANI_WINK", "EJ_PLAYER_ZAI_ANGRY", "EJ_PLAYER_ZAI_SWEAT", "",
+] as const;
+
+function IsEmptyWheel(value: unknown): boolean {
+    return !Array.isArray(value) || value.every((entry) => typeof entry !== "string" || entry.length === 0);
+}
+
+// [Reforged 0017] Fills a wheel that has nothing on it with the defaults, on the way out to the game.
+// A wheel with at least one entry is the player's own choice and is returned untouched; once the
+// game saves the persistent loadout again the defaults are stored like any other choice.
+export function WithDefaultChatWheels(persistent: any): any {
+    if (!persistent || typeof persistent !== "object" || Array.isArray(persistent)) return persistent;
+    const Result = { ...persistent };
+    if (IsEmptyWheel(Result.quick_chats)) Result.quick_chats = [...DEFAULT_QUICK_CHATS];
+    if (IsEmptyWheel(Result.emojis)) Result.emojis = [...DEFAULT_QUICK_EMOJIS];
+    return Result;
+}
+
 // The 14 stacked ownership entries every new account owns, quantity 1 each - the flare, the 6
 // captured emotes (intro + end-of-hunt + 4 player emotes), and the 7 banner-customization/dye
 // pieces. Currency (CURRENCY_*) starter grants live in the WALLET (STARTER_WALLET in wallet.ts)
@@ -115,6 +160,10 @@ export const STARTER_STACKED_CATALOG_IDS = [
     "BNC_VFX_BEGINNER_00",
     "DYE_GREEN04_DURABLE",
     "DYE_BROWN07_DURABLE",
+    // [Reforged 0017] The emojis the game's own INITIAL_INVENTORY_BUNDLE gives every new character
+    // (catalog export, Dauntless 1.14.7). Without them the quick-emoji wheel has nothing to show and
+    // the Identity menu has nothing to assign.
+    ...STARTER_EMOJI_CATALOG_IDS,
 ] as const;
 
 // Same shape as loadout.ts's DEFAULT_INSTANCE_DATA (the proven captured per-item cosmetic/cell
@@ -148,7 +197,9 @@ function BuildInstanceData(): string {
 // v4 adds TOKEN_DAILY_CHALLENGE_DRAFT to the stacked items. The bump is what makes existing accounts pick
 // it up: EnsureStarterBootstrapRecords re-runs on inventory GET and compares this version, so a player
 // seeded under v3 is repaired rather than left without the token.
-export const BOOTSTRAP_VERSION = "starter-1.12-v4";
+// v5 adds the starter emojis (Reforged 0017); ReconcileMissingStarterStackedItems gives them to
+// existing accounts on their next inventory GET.
+export const BOOTSTRAP_VERSION = "starter-1.12-v5";
 
 export interface StarterManifest {
     instanceIdsByCatalogId: Record<string, string>;
@@ -194,8 +245,8 @@ function BuildStarterPersistent(instanceIdsByCatalogId: Record<string, string>):
         }),
         flare: "QI_BASIC_FLARE_DURABLE", title: "", head_accessory: "", back_accessory: "", pet: "",
         glider: "GD_FRAME_STARTER_BASE", update_version: 0,
-        quick_chats: ["", "", "", "", "", "", "", "", ""],
-        emojis: ["", "", "", "", "", "", "", "", ""],
+        quick_chats: [...DEFAULT_QUICK_CHATS],
+        emojis: [...DEFAULT_QUICK_EMOJIS],
         quick_curiosities_items: Array.from({ length: 8 }, (_, item_index) => ({ item_index, item_id: "", instance_id: "" })),
         quickwheel: [],
     };
