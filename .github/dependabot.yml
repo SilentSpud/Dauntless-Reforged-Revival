@@ -1,0 +1,111 @@
+# Dependency update pull requests, kept few (MIGRATION_PLAN.md RR4, DR's policy from X6):
+#  - GitHub Actions: weekly, every update in one pull request (the actions stay pinned by commit).
+#  - npm and cargo: monthly for each package folder (for cargo, the rust/ workspace); minor and patch updates of a
+#    folder come as one pull request. Major updates are never grouped: each one (Electron's included) is its own
+#    pull request, so it can be tested on its own.
+# A release has to be at least a week old before it is proposed. The paradox/ entries do nothing until RP3 brings
+# those folders; each legacy/ entry is removed with its folder (RS5, RH7, RA16).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: cargo
+    directory: /rust
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    groups:
+      rust-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /paradox/backend
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    groups:
+      paradox-backend-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /paradox/director
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    groups:
+      paradox-director-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # The launcher and its page, until the page moves to rust/launcher/ui (RR5)
+  - package-ecosystem: npm
+    directory: /legacy/ReforgedLauncher
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    groups:
+      launcher-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /legacy/ReforgedGateway
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    groups:
+      gateway-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /legacy/ReforgedContent
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    groups:
+      content-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /legacy/ReforgedHost
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    groups:
+      host-minor-and-patch:
+        update-types:
+          - minor
+          - patch
