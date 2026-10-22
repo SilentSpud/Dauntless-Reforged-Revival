@@ -616,6 +616,24 @@ export function GetPersistentHubStatus(){
     };
 }
 
+// [Dauntless Reforged Revival] The running game servers for the launcher's server panel (through the
+// backend's /reforged/api/ServerStatus, which shows them to registered players only). Ready and live
+// processes only; no process ids, addresses or launch ids leave this function.
+export function ListInstancesForStatus(){
+    return Gameservers
+        .filter((Server) => Server.state === "ready" && IsProcessAlive(Server.processId))
+        .map((Server) => ({
+            id: `${Server.isRamsgate ? "city" : Server.isTrainingDojo ? "dojo" : "hunt"}-${Server.port}`,
+            kind: Server.isRamsgate ? "city" : Server.isTrainingDojo ? "dojo" : "hunt",
+            map: Server.map,
+            behemoth: Server.behemoth ?? null,
+            players: Server.expectedPlayers?.length ?? 0,
+            maxPlayers: Server.isRamsgate || Server.isTrainingDojo ? 0 : PUBLIC_HUNT_MAX_PLAYERS,
+            playerIds: (Server.expectedPlayers ?? []).map((Player) => Player.playerUid),
+            startedAt: (Server.readyTime ?? Server.startTime).toISOString()
+        }));
+}
+
 // [2026-10-10 1.14.7] Both getters check ready AND alive (the Training getter used to hand out a dead dojo's
 // address for up to 60 s). A dead hub is reported to its supervisor, which restarts it; a missing hub asks
 // the supervisor for a start (it honours the backoff and joins a start already in flight). Either way the

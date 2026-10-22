@@ -16,6 +16,9 @@ import { logger } from "./logger";
 import { EnsureServerRuntimeUpdated } from "./runtimeUpdater";
 
 const PORT = process.env.PORT;
+// [Dauntless Reforged Revival] The deploy server has no authentication, so it binds 127.0.0.1 unless
+// BIND_HOST says otherwise (as Dauntless Revived's deploy server does). Only the backend calls it.
+const BIND_HOST = process.env.BIND_HOST?.trim() || "127.0.0.1";
 
 async function Main(): Promise<void> {
   // [2026-10-08] The MYSTPAX_ environment prefix was renamed to MYSTICPARADOX_. Spawned gameservers
@@ -31,7 +34,7 @@ async function Main(): Promise<void> {
     logger.warn({ error }, "Server runtime update failed; continuing with the installed DLL");
   }
 
-  app.listen(PORT, () => {
+  app.listen(Number(PORT), BIND_HOST, () => {
     void Startup().then(
       () => SetPersistentHubsReady(true),
       (error) => logger.error({ error }, "Persistent gameserver startup failed"),
@@ -40,7 +43,7 @@ async function Main(): Promise<void> {
     // unhandled rejection into process death (Node >=15), which is how a flapping training hub used to
     // take down matchmaking for the healthy Ramsgate hub.
     setInterval(() => { void RunWatchdog().catch((error) => logger.error({ error }, "Gameserver watchdog pass failed")); }, 60 * 1000);
-    logger.info(`Mystic Paradox DeployServer on port ${PORT}`);
+    logger.info(`Mystic Paradox DeployServer on ${BIND_HOST}:${PORT}`);
     logger.info(`Clear Skies, Slayer.`);
   });
 }
