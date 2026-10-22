@@ -3,18 +3,22 @@
 // host's own tools. The game data and the SDK are generated from the host's own 1.14.7 install;
 // none of it is ever downloaded or shared (Phoenix Labs' material).
 //
-// The workspace layout is the one ReforgedHost's setup command creates:
+// The workspace layout (Mystic Paradox is part of the checkout; the host's own files in it are git-ignored):
 //
 //   <workspace>\legacy\ReforgedHost\              the host command-line kit
-//   <workspace>\.workspace\Mystic-Paradox\        the pinned upstream source with the Reforged patches
-//       ParadoxRuntime\SDK.hpp, SDK\              the Dumper-7 CppSDK, copied in by "Import SDK"
-//       ParadoxRuntime\x64\Release\MysticParadox.dll
-//       tools\RuntimeLoader\target\release\winmm.dll
-//       tools\CatalogExporter\x64\Release\CatalogExporter.dll
-//       ParadoxBackend\game-data\, ParadoxDirector\game-data\
-//       Items_Analysis\                           CatalogExporter's output, copied in from the game folder
+//   <workspace>\native\paradox-runtime\           the game runtime's source
+//       SDK.hpp, SDK\                             the Dumper-7 CppSDK, copied in by "Import SDK"
+//       x64\Release\MysticParadox.dll
+//   <workspace>\native\runtime-loader\target\release\winmm.dll
+//   <workspace>\native\catalog-exporter\x64\Release\CatalogExporter.dll
+//   <workspace>\paradox\backend\game-data\, paradox\director\game-data\
+//   <workspace>\paradox\Items_Analysis\           CatalogExporter's output, copied in from the game folder
 //   <workspace>\.workspace\runtime\               what the content server hands to players
 //   <workspace>\.workspace\logs\                  the logs of the builds started here
+//
+// A checkout from before Mystic Paradox was merged in has upstream/mystic-paradox.json instead, and the
+// host kit downloads Mystic Paradox into .workspace\Mystic-Paradox (ParadoxRuntime\, tools\RuntimeLoader\,
+// tools\CatalogExporter\, ParadoxBackend\, ParadoxDirector\, Items_Analysis\), patched, until its first update.
 
 import { execFile, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -71,8 +75,10 @@ export const DUMPER_OUTPUT_ROOT = "C:\\Dumper-7";
 export interface WorkspacePaths {
   root: string;
   hostKit: string;
+  // Where Mystic Paradox is: paradox/, or .workspace/Mystic-Paradox in a checkout from before it was merged in.
   upstream: string;
-  patchMarker: string;
+  // Only a downloaded Mystic Paradox has one (written once the patches are applied); null when it is in the checkout.
+  patchMarker: string | null;
   runtimeSource: string;
   sdkHeader: string;
   sdkDir: string;
@@ -97,7 +103,39 @@ export function hostKitDir(root: string, p: typeof path.win32 | typeof path.posi
   return !existsSync(p.join(moved, "package.json")) && existsSync(p.join(old, "package.json")) ? old : moved;
 }
 
+// A checkout from before Mystic Paradox was merged into paradox/ and native/: the host kit downloads it.
+export function downloadsParadox(root: string, p: typeof path.win32 | typeof path.posix = path): boolean {
+  return !existsSync(p.join(root, "paradox", "backend", "package.json")) && existsSync(p.join(root, "upstream", "mystic-paradox.json"));
+}
+
 export function workspacePaths(root: string, p: typeof path.win32 | typeof path.posix = path): WorkspacePaths {
+  if (downloadsParadox(root, p)) return downloadedPaths(root, p);
+  const paradox = p.join(root, "paradox");
+  const native = p.join(root, "native");
+  const runtimeSource = p.join(native, "paradox-runtime");
+  return {
+    root,
+    hostKit: p.join(hostKitDir(root, p), "package.json"),
+    upstream: paradox,
+    patchMarker: null,
+    runtimeSource,
+    sdkHeader: p.join(runtimeSource, "SDK.hpp"),
+    sdkDir: p.join(runtimeSource, "SDK"),
+    runtimeSolution: p.join(runtimeSource, "MysticParadox.sln"),
+    runtimeDll: p.join(runtimeSource, "x64", "Release", "MysticParadox.dll"),
+    loaderDir: p.join(native, "runtime-loader"),
+    loaderDll: p.join(native, "runtime-loader", "target", "release", "winmm.dll"),
+    exporterProject: p.join(native, "catalog-exporter", "CatalogExporter.vcxproj"),
+    exporterDll: p.join(native, "catalog-exporter", "x64", "Release", "CatalogExporter.dll"),
+    backendGameData: p.join(paradox, "backend", "game-data"),
+    directorGameData: p.join(paradox, "director", "game-data"),
+    exports: p.join(paradox, "Items_Analysis"),
+    publish: p.join(root, ".workspace", "runtime"),
+    logs: p.join(root, ".workspace", "logs"),
+  };
+}
+
+function downloadedPaths(root: string, p: typeof path.win32 | typeof path.posix): WorkspacePaths {
   const upstream = p.join(root, ".workspace", "Mystic-Paradox");
   const runtimeSource = p.join(upstream, "ParadoxRuntime");
   return {
@@ -286,7 +324,7 @@ export async function detectHostKit(root: string | null, opts: { env: NodeJS.Pro
   const w = workspacePaths(root);
   base.workspaceOk = await isFile(w.hostKit);
   base.upstream.present = await isFile(path.join(w.runtimeSource, "dllmain.cpp"));
-  base.upstream.patched = base.upstream.present && (await isFile(w.patchMarker));
+  base.upstream.patched = base.upstream.present && (w.patchMarker === null || (await isFile(w.patchMarker)));
   base.sdk.present = await isFile(w.sdkHeader);
   base.sdk.functionFiles = await countFunctionFiles(w.sdkDir);
   base.builds.runtime = await isFile(w.runtimeDll);

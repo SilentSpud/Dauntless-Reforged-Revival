@@ -3,11 +3,11 @@
 Dauntless Reforged Revival is licensed as a whole under the GNU Affero General Public License,
 version 3 only (`AGPL-3.0-only`); see [LICENSE.txt](LICENSE.txt).
 
-This repository contains Mystic Paradox material in one place: the patches in
-[`upstream/patches/`](upstream/patches), which modify Mystic Paradox source files (and carry parts
-of them as context). The host kit downloads the rest of Mystic Paradox from its own repository at
-the commit pinned in [`upstream/mystic-paradox.json`](upstream/mystic-paradox.json); it is not
-copied here.
+This repository contains Mystic Paradox material in two places: [`paradox/`](paradox) (its backend,
+Director, documentation and top-level files, with Mystic Paradox's own copy of these terms in
+[`paradox/ADDITIONAL_TERMS.md`](paradox/ADDITIONAL_TERMS.md)) and [`native/`](native) (its game runtime,
+the runtime's loader and the CatalogExporter). Both were forked from Mystic Paradox with their history,
+together with the Dauntless Reforged Revival changes made to them (see [NOTICE.md](NOTICE.md)).
 
 Mystic Paradox applies additional terms under AGPLv3 section 7 to the material identified as
 "Copyright (C) 2026 Pranav Karande, Mystic Paradox Project". They are reproduced below word for word (only their headings moved one level down),

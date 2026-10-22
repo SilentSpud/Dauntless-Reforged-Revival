@@ -79,16 +79,16 @@ describe("performance: director.env", () => {
     it("writes only values the runtime and the Director accept", () => {
         // The Director's check for GAMESERVER_LOG_CMDS (patch 0021).
         assert.match(QUIET_GAME_LOG_CMDS, /^[A-Za-z0-9_, ]{1,512}$/);
-        const runtime = fs.readFileSync(path.join(repo, "upstream", "patches", "0020-runtime-server-frame-cap.patch"), "utf8");
+        // Patch 0020, in the runtime's source.
+        const runtime = fs.readFileSync(path.join(repo, "native", "paradox-runtime", "dllmain.cpp"), "utf8");
         assert.ok(runtime.includes('"REFORGED_SERVER_MAX_FPS", 30, 10, 240'));
         assert.ok(runtime.includes('"REFORGED_SERVER_IDLE_FPS", 0, 1, 240'));
-        const director = fs.readFileSync(path.join(repo, "upstream", "patches", "0021-director-training-on-demand-and-log-levels.patch"), "utf8");
-        assert.ok(director.includes("process.env.TRAINING_ON_DEMAND"));
-        assert.ok(director.includes("process.env.GAMESERVER_LOG_CMDS"));
-        const idle = fs.readFileSync(path.join(repo, "upstream", "patches", "0033-director-training-stops-when-idle.patch"), "utf8");
-        for (const name of ["process.env.TRAINING_IDLE_STOP_MINUTES", "process.env.GAMESERVER_RUNTIME_LOG_DIR", "mysticparadox_dll_port${TRAINING_DOJO_PORT}.log"]) assert.ok(idle.includes(name), name);
-        const memory = fs.readFileSync(path.join(repo, "upstream", "patches", "0022-director-hunt-memory-guard.patch"), "utf8");
-        for (const name of ["env.GAMESERVER_MEMORY_GUARD", '"GAMESERVER_MIN_FREE_MB"', '"GAMESERVER_HUNT_MEMORY_MB"']) assert.ok(memory.includes(name), name);
+        // Patches 0021, 0022 and 0033, in the Director's source.
+        const controllers = path.join(repo, "paradox", "director", "src", "controllers");
+        const director = fs.readdirSync(controllers).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).map((f) => fs.readFileSync(path.join(controllers, f), "utf8")).join("\n");
+        for (const name of ["process.env.TRAINING_ON_DEMAND", "process.env.GAMESERVER_LOG_CMDS"]) assert.ok(director.includes(name), name);
+        for (const name of ["process.env.TRAINING_IDLE_STOP_MINUTES", "process.env.GAMESERVER_RUNTIME_LOG_DIR", "mysticparadox_dll_port${TRAINING_DOJO_PORT}.log"]) assert.ok(director.includes(name), name);
+        for (const name of ["env.GAMESERVER_MEMORY_GUARD", '"GAMESERVER_MIN_FREE_MB"', '"GAMESERVER_HUNT_MEMORY_MB"']) assert.ok(director.includes(name), name);
     });
 
     it("refuses frame rates and switches the runtime would not take", () => {

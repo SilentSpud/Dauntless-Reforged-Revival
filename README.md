@@ -59,7 +59,9 @@ The launcher speaks **English** and **Brazilian Portuguese**.
 | [`legacy/ReforgedGateway/`](legacy/ReforgedGateway) | The server's front door and the firewall allowlist helper (from Dauntless Revived's gateway) |
 | [`legacy/ReforgedContent/`](legacy/ReforgedContent) | Serves the runtime, the news and the art pack (from Dauntless Revived's content server) |
 | [`legacy/ReforgedHost/`](legacy/ReforgedHost) | The host kit: `npm run setup`, `start`, `invite`, `doctor`, `gamedata`, `publish-runtime` |
-| [`upstream/`](upstream) | The pinned Mystic Paradox commit and the Reforged patches to it |
+| [`paradox/`](paradox) | Mystic Paradox's backend and Director, forked with their history ([what changed](docs/paradox-patches.md)) |
+| [`native/`](native) | Mystic Paradox's game runtime (`MysticParadox.dll`), its loader (`winmm.dll`) and the CatalogExporter, built by each host |
+| [`rust/`](rust) | The Rust workspace the Node projects are being ported to ([MIGRATION_PLAN.md](MIGRATION_PLAN.md)) |
 | [`brand/`](brand) | The logo and the icons |
 | [`docs/`](docs) | Guides for players and hosts (Windows and Linux), the SDK and game data, and the architecture |
 
@@ -81,6 +83,8 @@ cd legacy/ReforgedLauncher && npm ci && npm test && npm run make      # the laun
 cd legacy/ReforgedGateway  && npm ci && npm test
 cd legacy/ReforgedContent  && npm ci && npm test
 cd legacy/ReforgedHost     && npm ci && npm test
+cd paradox/backend         && npm ci && npm test
+cd paradox/director        && npm ci && npm test
 ```
 
 Publishing a GitHub release builds the launcher installer and attaches it to the release; see
@@ -90,12 +94,14 @@ Publishing a GitHub release builds the launcher installer and attaches it to the
 
 Dauntless Reforged Revival stands on the work of
 [Dauntless Revived](https://github.com/mixutin/dauntless-revived) (mixutin and contributors),
-[Mystic Paradox](https://github.com/pranav158/Mystic-Paradox) (Pranav Karande) and
+[Mystic Paradox](https://github.com/pranav158/Mystic-Paradox) (Pranav Karande), whose code is forked into
+[`paradox/`](paradox) and [`native/`](native), and
 [Undaunted](https://github.com/SyST3MDeV/Undaunted) (gwog and contributors). The launcher's Credits
 page names everyone.
 
 Free software under the GNU AGPL-3.0 (AGPL-3.0-only): [LICENSE.txt](LICENSE.txt). Additional terms
-apply to the Mystic Paradox material: [ADDITIONAL_TERMS.md](ADDITIONAL_TERMS.md). Mystic Paradox's
+apply to the Mystic Paradox material: [ADDITIONAL_TERMS.md](ADDITIONAL_TERMS.md) and Mystic Paradox's own
+[paradox/ADDITIONAL_TERMS.md](paradox/ADDITIONAL_TERMS.md). Mystic Paradox's
 Dauntless 1.12.0 port and related modifications were developed by Pranav Karande. See NOTICE.md for
 contribution and provenance information: [NOTICE.md](NOTICE.md).
 

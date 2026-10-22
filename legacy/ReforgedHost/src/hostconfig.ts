@@ -39,7 +39,7 @@ export interface HostConfig {
     // Public servers: the gateway's TCP port when 443 is taken (a hosting panel on the same VPS).
     // Absent: 443. The port goes into every invite.
     publicPort?: number;
-    // How much CPU and RAM the game servers may use (upstream/README.md, patches 0020 and 0021).
+    // How much CPU and RAM the game servers may use (docs/paradox-patches.md, patches 0020 and 0021).
     // Absent: DEFAULT_PERFORMANCE.
     performance?: PerformanceOptions;
 }

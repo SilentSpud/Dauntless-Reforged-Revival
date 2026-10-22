@@ -45,13 +45,29 @@ test("CatalogExporter flags: the catalog, Slayer's Path, hunts, store and progre
   assert.ok(EXPORT_FLAGS.includes("EXPORT_SKINS_RESOLVE_STRINGTABLE=0"));
 });
 
-test("workspace paths follow the layout ReforgedHost's setup creates", () => {
+test("workspace paths follow the checkout: Mystic Paradox in paradox/ and native/", () => {
   const w = workspacePaths("C:\\rr", path.win32);
-  assert.equal(w.upstream, "C:\\rr\\.workspace\\Mystic-Paradox");
-  assert.equal(w.runtimeDll, "C:\\rr\\.workspace\\Mystic-Paradox\\ParadoxRuntime\\x64\\Release\\MysticParadox.dll");
-  assert.equal(w.loaderDll, "C:\\rr\\.workspace\\Mystic-Paradox\\tools\\RuntimeLoader\\target\\release\\winmm.dll");
+  assert.equal(w.upstream, "C:\\rr\\paradox");
+  assert.equal(w.patchMarker, null);
+  assert.equal(w.runtimeDll, "C:\\rr\\native\\paradox-runtime\\x64\\Release\\MysticParadox.dll");
+  assert.equal(w.loaderDll, "C:\\rr\\native\\runtime-loader\\target\\release\\winmm.dll");
+  assert.equal(w.exporterDll, "C:\\rr\\native\\catalog-exporter\\x64\\Release\\CatalogExporter.dll");
+  assert.equal(w.backendGameData, "C:\\rr\\paradox\\backend\\game-data");
+  assert.equal(w.exports, "C:\\rr\\paradox\\Items_Analysis");
   assert.equal(w.publish, "C:\\rr\\.workspace\\runtime");
   assert.equal(w.hostKit, "C:\\rr\\legacy\\ReforgedHost\\package.json");
+});
+
+test("a checkout from before Mystic Paradox was merged in keeps the downloaded layout", () => {
+  const root = temp();
+  write(path.join(root, "upstream", "mystic-paradox.json"), "{}");
+  const w = workspacePaths(root);
+  assert.equal(w.upstream, path.join(root, ".workspace", "Mystic-Paradox"));
+  assert.equal(w.runtimeDll, path.join(root, ".workspace", "Mystic-Paradox", "ParadoxRuntime", "x64", "Release", "MysticParadox.dll"));
+  assert.equal(w.loaderDll, path.join(root, ".workspace", "Mystic-Paradox", "tools", "RuntimeLoader", "target", "release", "winmm.dll"));
+  assert.equal(w.patchMarker, path.join(root, ".workspace", "Mystic-Paradox", ".reforged-patches.json"));
+  write(path.join(root, "paradox", "backend", "package.json"), "{}");
+  assert.equal(workspacePaths(root).upstream, path.join(root, "paradox"), "once updated, the checkout's own");
 });
 
 test("the host kit is in legacy/, or where it was in a checkout from before the move", () => {
@@ -117,7 +133,6 @@ test("detectHostKit reads a workspace without a toolchain", async () => {
   const root = temp();
   write(path.join(root, "legacy", "ReforgedHost", "package.json"), "{}");
   const w = workspacePaths(root);
-  write(w.patchMarker, "{}");
   write(path.join(w.runtimeSource, "dllmain.cpp"), "//");
   const kit = await detectHostKit(root, { env: {}, platform: "linux", toolchain: { visualStudio: null, majorVersion: null, msbuild: null, cargo: null }, dumpRoot: path.join(root, "no-dumps") });
   assert.equal(kit.workspaceOk, true);

@@ -31,7 +31,7 @@ function makeCaptures(): { pin: CapturePin; data: string } {
 
 describe("the store captures", () => {
     it("the committed pin names a commit and a hash for every store file the generators read", () => {
-        const pin = readCapturePin(path.resolve(__dirname, "..", "..", "..", "..", "..", "upstream", "store-captures.json"));
+        const pin = readCapturePin(path.resolve(__dirname, "..", "..", "..", "..", "..", "paradox", "backend", "store-captures.json"));
         assert.equal(pin.repository, "https://github.com/EisigesEis/DauntlessEndpointDocumentation");
         assert.deepEqual(Object.keys(pin.files).map((f) => path.posix.basename(f)).sort(), ["awakening_webstore.json", "dyes.json", "hp_level_skip_rank.json", "huntpass_store.json", "ladyluckstore.json"]);
         const file = path.join(tempDir("capture-pin"), "pin.json");
@@ -42,14 +42,12 @@ describe("the store captures", () => {
     it("are fetched at the pinned commit into the folder the generators read, and checked", async () => {
         const { pin, data } = makeCaptures();
         const p = paths(tempDir("captures-host"));
-        fs.mkdirSync(path.join(p.upstream, ".git", "info"), { recursive: true });
         assert.deepEqual(missingCaptures(p, pin), ["Store/Product/Skus/ladyluckstore.json"]);
         assert.equal(await ensureCaptures(p, pin), "fetched");
-        const file = path.join(p.upstream, "DauntlessEndpointDocumentation", "Store", "Product", "Skus", "ladyluckstore.json");
+        const file = path.join(p.paradox, "DauntlessEndpointDocumentation", "Store", "Product", "Skus", "ladyluckstore.json");
         assert.equal(fs.readFileSync(file, "utf8"), data, "byte for byte");
         assert.deepEqual(missingCaptures(p, pin), []);
         assert.equal(await ensureCaptures(p, pin), "already_ready");
-        assert.match(fs.readFileSync(path.join(p.upstream, ".git", "info", "exclude"), "utf8"), /^\/DauntlessEndpointDocumentation\/$/m);
 
         // A file that does not match its pinned hash is never written.
         const q = paths(tempDir("captures-bad"));

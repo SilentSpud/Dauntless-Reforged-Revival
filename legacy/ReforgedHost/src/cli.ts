@@ -10,7 +10,6 @@
 //   npm run publish-runtime [-- --from <folder with MysticParadox.dll and winmm.dll>]
 //   npm run preset [-- --create [--generate] [--name "<name>"] | --apply [--force]]
 //   npm run multipliers [-- --xp 5 --rewards 5 | --off]   (private test servers only)
-//   npm run upstream   (only downloads and patches Mystic Paradox: what importing the SDK needs)
 //   npm run update [-- --check] [--json] [--no-setup]   (fast-forwards this checkout to GitHub, then runs setup again)
 
 import fs from "node:fs";
@@ -50,7 +49,7 @@ import { ensureServerFlags, installServerRuntime, publishRuntime } from "./publi
 import { capture, run } from "./run";
 import { Supervisor, type ServiceSpec } from "./services";
 import { applyUpdate, checkForUpdate, UpdateError, type UpdateCheck } from "./selfupdate";
-import { ensureUpstream, gitAvailable, readPin } from "./upstream";
+import { gitAvailable, migrateOldWorkspace, missingParadox } from "./paradox";
 import {
     canBindPort,
     canChangeFirewall,
@@ -337,7 +336,6 @@ async function npmInstallAndBuild(dir: string, logFile: string, label: string): 
 }
 
 async function setup(p: Paths, args: Args): Promise<void> {
-    if (!gitAvailable()) fail(`git is needed (it downloads Mystic Paradox at the pinned commit): ${gitHelp()}`);
     // A value with spaces that was not quoted arrives in pieces (--game D:\Games\My, then Dauntless).
     if (args._.length > 1) fail(`unexpected "${args._.slice(1).join(" ")}": put a value with spaces in quotes, for example --game "D:\\Games\\Dauntless 1.14.7\\Dauntless"`);
     if (onLinux && isRoot()) fail(NOT_AS_ROOT);
@@ -362,13 +360,14 @@ async function setup(p: Paths, args: Args): Promise<void> {
     if (multipliersOn(config)) say(`Test multipliers ON: XP x${config.multipliers!.xp}, rewards x${config.multipliers!.rewards} (npm run multipliers -- --off turns them off)`);
     say(performanceSummary(config));
 
-    say("\n1. Mystic Paradox at the pinned commit, with the Reforged patches");
-    const pin = readPin(p.upstreamPin);
+    say("\n1. Mystic Paradox (paradox/ and native/ in this project)");
+    const missing = missingParadox(p);
+    if (missing.length) fail(`this checkout has no ${missing.join(", ")}: clone the project again with git (see docs/hosting.md) and move .workspace into the new clone`);
     try {
-        const result = await ensureUpstream({ dir: p.upstream, markerFile: p.marker, pin, patchesRoot: p.patchesDir, logFile, force: args["force-upstream"] === true });
-        say(`- ${result === "already_ready" ? "already in place" : result === "fetched" ? "downloaded and patched" : "updated and patched (your SDK, game data and exports were kept)"}: ${pin.commit.slice(0, 12)} in ${p.upstream}`);
+        const copied = migrateOldWorkspace(p);
+        say(copied.length ? `- your files from the old ${p.oldUpstream} copied in: ${copied.join(", ")} (that folder is no longer used; delete it once the server runs)` : "- in place");
     } catch (e) {
-        fail(e instanceof Error ? e.message : String(e));
+        fail(`could not copy your files from ${p.oldUpstream}: ${e instanceof Error ? e.message : String(e)}`);
     }
 
     // The project's preset (preset/): the game data this server starts from, where none of its own is there yet.
@@ -655,21 +654,6 @@ function multipliers(p: Paths, args: Args): void {
     if (asked) say("Restart the server (Ctrl+C, then npm run start) for the backend to use them. Its log says [TestMultiplier] ON or off.");
 }
 
-// ------------------------------------------------------------------ Mystic Paradox only
-
-// Setup's first step alone: the pinned Mystic Paradox, patched, in .workspace. Importing the SDK (and
-// building the runtime) needs only this, so a host can do those before the server is set up.
-async function upstream(p: Paths): Promise<void> {
-    if (!gitAvailable()) fail(`git is needed (it downloads Mystic Paradox at the pinned commit): ${gitHelp()}`);
-    const pin = readPin(p.upstreamPin);
-    try {
-        const result = await ensureUpstream({ dir: p.upstream, markerFile: p.marker, pin, patchesRoot: p.patchesDir, logFile: path.join(p.logs, "upstream.log") });
-        say(`Mystic Paradox ${result === "already_ready" ? "already in place" : result === "fetched" ? "downloaded and patched" : "updated and patched (your SDK, game data and exports were kept)"}: ${pin.commit.slice(0, 12)} in ${p.upstream}`);
-    } catch (e) {
-        fail(e instanceof Error ? e.message : String(e));
-    }
-}
-
 // ------------------------------------------------------------------ updating the project
 
 const UPDATE_PROBLEMS: Record<UpdateError["code"], string> = {
@@ -913,13 +897,11 @@ async function main(): Promise<void> {
             return multipliers(p, args);
         case "update":
             return update(p, args);
-        case "upstream":
-            return upstream(p);
         default:
             say("Dauntless Reforged Revival host kit. Commands (from the ReforgedHost folder):");
             say("  npm run setup -- --mode private|public [--host <address>] --name \"<server name>\" --game \"<Dauntless 1.14.7 folder>\"");
             say("                   [--game-address <IPv4>] [--registration INVITECODE|OPEN|NONE] [--share <Tailscale share link>]");
-            say("                   [--mongo-uri <uri>] [--no-manage-mongo] [--mongod <path>] [--max-hunts 1-10] [--skip-install] [--force-upstream]");
+            say("                   [--mongo-uri <uri>] [--no-manage-mongo] [--mongod <path>] [--max-hunts 1-10] [--skip-install]");
             say("                   public: [--public-port <port>] (when 443 is taken, by a hosting panel for example)");
             say("                   Linux: [--wine <path>] [--proton <script> | --no-proton] [--no-xvfb | --xvfb] [--firewall-interface <eth0> | --no-firewall-interface]");
             say("                   CPU/RAM: [--server-fps 0|10-240] [--idle-fps 0|1-240] [--training-on-demand | --training-at-boot] [--quiet-game-logs | --verbose-game-logs]");
@@ -931,7 +913,6 @@ async function main(): Promise<void> {
             say("  npm run publish-runtime [-- --from <folder with MysticParadox.dll and winmm.dll>]");
             say("  npm run preset [-- --create [--generate] [--name \"<name>\"] | --apply [--force]]");
             say("  npm run multipliers [-- --xp 1-100 --rewards 1-100 | --off]   (private test servers; also setup's --xp-multiplier/--reward-multiplier)");
-            say("  npm run upstream   (downloads and patches Mystic Paradox only)");
             say("  npm run update [-- --check]   (compares this project with GitHub, updates it and runs setup again)");
             say("See README.md and ../../docs/hosting.md.");
     }

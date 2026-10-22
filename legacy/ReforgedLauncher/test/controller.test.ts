@@ -502,8 +502,10 @@ test("Host tools on: the project folder is downloaded beside the game and chosen
   await other.c.shutdown();
 });
 
-test("Import SDK works before the server is set up: Mystic Paradox is downloaded first", async () => {
+test("Import SDK works before the server is set up: a checkout from before the merge downloads Mystic Paradox first", async () => {
   const ws = hostWorkspace();
+  mkdirSync(path.join(ws, "upstream"), { recursive: true });
+  writeFileSync(path.join(ws, "upstream", "mystic-paradox.json"), "{}");
   const dumps = temp("rr-ctl-dumps-");
   const sdk = path.join(dumps, "4.26.2-647472-Dauntless", "CppSDK");
   mkdirSync(path.join(sdk, "SDK"), { recursive: true });

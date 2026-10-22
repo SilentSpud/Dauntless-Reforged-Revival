@@ -1,6 +1,6 @@
 // The game data the backend and the Director read, generated from the host's own 1.14.7 install
-// with Mystic Paradox's tools (docs/GENERATING_GAME_DATA.md upstream). `npm run gamedata` runs the
-// steps in order from the CatalogExporter export in .workspace/Mystic-Paradox/Items_Analysis/.
+// with Mystic Paradox's tools (paradox/docs/GENERATING_GAME_DATA.md). `npm run gamedata` runs the
+// steps in order from the CatalogExporter export in paradox/Items_Analysis/.
 
 import fs from "node:fs";
 import path from "node:path";

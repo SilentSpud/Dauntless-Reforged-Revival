@@ -1,9 +1,8 @@
 // Updating this project's own checkout (the folder the host cloned from GitHub) to the newest commit of
 // the branch it follows. Only ever a fast-forward: git itself refuses it when it would overwrite the host's
-// own changes to tracked files, and nothing git ignores (.workspace: config, secrets, game data, builds) is
-// touched. Setup runs again afterwards, which re-applies the patches when they changed.
+// own changes to tracked files, and nothing git ignores (.workspace: config, secrets; the SDK, game data and
+// builds in paradox/ and native/) is touched. Setup runs again afterwards, which builds the services again.
 
-import { readPin } from "./upstream";
 import { run } from "./run";
 
 export type UpdateProblem = "not_git" | "no_upstream" | "fetch_failed" | "diverged" | "local_changes" | "merge_failed";
@@ -28,7 +27,7 @@ export interface UpdateResult extends UpdateCheck {
     from: string;
     to: string;
     files: number; // files changed by the update
-    runtimeChanged: boolean; // the game runtime's patches or pinned commit changed: rebuild and publish it
+    runtimeChanged: boolean; // the game runtime's source changed: rebuild and publish it
     hostKitDeps: boolean; // ReforgedHost's dependencies changed: npm install there before it is built again
 }
 
@@ -65,21 +64,10 @@ export async function checkForUpdate(repo: string, opts: { logFile?: string; fet
     };
 }
 
-// The runtime the players load is built from the patched Mystic Paradox: a changed runtime patch, or a new
-// pinned commit, means the host rebuilds MysticParadox.dll and publishes it again.
-export function runtimeAffected(files: string[], pinBefore: string | null, pinAfter: string | null): boolean {
-    if (files.some((f) => /^upstream\/patches\/\d+-runtime-/.test(f))) return true;
-    return pinBefore !== null && pinAfter !== null && pinBefore !== pinAfter;
-}
-
-function pinCommit(json: string | null): string | null {
-    if (json === null) return null;
-    try {
-        const commit = (JSON.parse(json) as { commit?: unknown }).commit;
-        return typeof commit === "string" ? commit : null;
-    } catch {
-        return null;
-    }
+// The runtime the players load is built from native/paradox-runtime and native/runtime-loader: a change there
+// means the host rebuilds MysticParadox.dll and winmm.dll and publishes them again.
+export function runtimeAffected(files: string[]): boolean {
+    return files.some((f) => /^native\/(paradox-runtime|runtime-loader)\//.test(f));
 }
 
 // npm install rewrites a package-lock.json with another npm version: those are put back as committed before
@@ -97,7 +85,6 @@ export async function applyUpdate(repo: string, opts: { logFile?: string } = {})
     if (check.behind === 0) return none;
     if (check.ahead > 0) throw new UpdateError("diverged", `${check.ahead} local commit(s)`);
     const from = (await gitOk(repo, ["rev-parse", "HEAD"]))!;
-    const pinBefore = pinCommit(await gitOk(repo, ["show", `${from}:upstream/mystic-paradox.json`]));
     const restored = await restoreLockfiles(repo, opts.logFile);
     const merge = await git(repo, ["merge", "--ff-only", "--quiet", check.upstream], opts.logFile);
     if (merge.code !== 0) {
@@ -108,12 +95,6 @@ export async function applyUpdate(repo: string, opts: { logFile?: string } = {})
     }
     const to = (await gitOk(repo, ["rev-parse", "HEAD"]))!;
     const changed = ((await gitOk(repo, ["diff", "--name-only", from, to])) ?? "").split(/\r?\n/).filter(Boolean);
-    let pinAfter: string | null = null;
-    try {
-        pinAfter = readPin(`${repo}/upstream/mystic-paradox.json`).commit;
-    } catch {
-        pinAfter = null;
-    }
     return {
         ...check,
         updated: true,
@@ -122,7 +103,7 @@ export async function applyUpdate(repo: string, opts: { logFile?: string } = {})
         head: to.slice(0, 12),
         behind: 0,
         files: changed.length,
-        runtimeChanged: runtimeAffected(changed, pinBefore, pinAfter),
+        runtimeChanged: runtimeAffected(changed),
         hostKitDeps: restored.includes("legacy/ReforgedHost/package-lock.json") || changed.some((f) => f === "legacy/ReforgedHost/package.json" || f === "legacy/ReforgedHost/package-lock.json"),
     };
 }

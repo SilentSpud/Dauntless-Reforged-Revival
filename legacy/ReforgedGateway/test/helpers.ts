@@ -255,7 +255,7 @@ export function PortOpen(Port: number): Promise<boolean> {
 }
 
 // Every route the backend registers under /reforged/api, read from the backend patch
-// (upstream/patches/0002-backend-reforged-launcher-api.patch), so a route added there later is
+// (patch 0002 in docs/paradox-patches.md, now in paradox/backend), so a route added there later is
 // covered without touching this test.
 export function ReforgedApiRoutes(): { method: string; path: string }[] {
     const Source = fs.readFileSync(path.join(ROOT, "..", "..", "upstream", "patches", "0002-backend-reforged-launcher-api.patch"), "utf8");

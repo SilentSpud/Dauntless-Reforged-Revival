@@ -1,20 +1,25 @@
-# Upstream: Mystic Paradox
+# The Reforged patches to Mystic Paradox
 
-Dauntless Reforged Revival does not fork or copy Mystic Paradox. It uses
-[Mystic Paradox](https://github.com/pranav158/Mystic-Paradox) by Pranav Karande at one pinned
-commit and applies a small set of patches on top. `ReforgedHost`'s `npm run setup` downloads that
-commit into `.workspace/Mystic-Paradox/`, applies the patches below and records them in
-`.workspace/Mystic-Paradox/.reforged-patches.json`.
+Dauntless Reforged Revival forks [Mystic Paradox](https://github.com/pranav158/Mystic-Paradox) by Pranav
+Karande. The fork, [SilentSpud/Mystic-Paradox](https://github.com/SilentSpud/Mystic-Paradox), has a `reforged`
+branch that starts at the commit Reforged used to pin and adds the 33 patches below as one commit each; that
+branch is merged into this repository with its history at [`paradox/`](../paradox). Until then the host kit
+downloaded the pinned commit and applied these patches as files under `upstream/`.
 
 | | |
 | --- | --- |
-| Repository | https://github.com/pranav158/Mystic-Paradox |
-| Commit | `00d3be8aa812e334aaa26e5149d2607acb744360` (docs: installing Dauntless 1.14.7 from Epic with Legendary) |
+| Upstream repository | https://github.com/pranav158/Mystic-Paradox |
+| Base commit | `00d3be8aa812e334aaa26e5149d2607acb744360` (docs: installing Dauntless 1.14.7 from Epic with Legendary) |
+| Fork | https://github.com/SilentSpud/Mystic-Paradox, branch `reforged` at `24e60c8dd89c871f273b8f6b8753f2ee334b017f` |
 | Game build | Dauntless `rel-1.14.7-Archon`, changelist 647472, Unreal Engine 4.26.2 |
-| License | AGPL-3.0-only, with the attribution terms in Mystic Paradox's `ADDITIONAL_TERMS.md` |
+| License | AGPL-3.0-only, with the attribution terms in [`paradox/ADDITIONAL_TERMS.md`](../paradox/ADDITIONAL_TERMS.md) |
 
-The pin is in [`mystic-paradox.json`](mystic-paradox.json). The patches are plain `git diff` output
-against that commit (`git apply` them from the repository root).
+Each patch below is the commit of the same name in `git log` (for example
+`git log --grep=^0023- 24e60c8`). The paths in them are Paradox's: `ParadoxBackend` and `ParadoxDirector` are now
+[`paradox/backend`](../paradox/backend) and [`paradox/director`](../paradox/director), `ParadoxRuntime` and
+`tools/RuntimeLoader` are [`native/paradox-runtime`](../native/paradox-runtime) and
+[`native/runtime-loader`](../native/runtime-loader). Later changes are ordinary commits to those folders; how
+runtime patches from Mystic Paradox's own line are taken is in [paradox-runtime-patches.md](paradox-runtime-patches.md).
 
 ## Patches
 
@@ -527,23 +532,13 @@ timeout sends; its exit releases the hub without a restart or a backoff (`[Train
 Grounds stopped`). A request during the stop waits for it, then starts a fresh one. Any other exit (a crash)
 still restarts them as before.
 
-[`store-captures.json`](store-captures.json) pins a second source, read by Mystic Paradox's store
-generators and not copied here either: five captures of the live store service from
+## Store captures
+
+[`paradox/backend/store-captures.json`](../paradox/backend/store-captures.json) pins a second source, read by
+Mystic Paradox's store generators and not copied here: five captures of the live store service from
 [EisigesEis/DauntlessEndpointDocumentation](https://github.com/EisigesEis/DauntlessEndpointDocumentation)
 (Lady Luck's rotation, the platinum webstore and dyes, the Hunt Pass rank skips and passes), with the
 commit and each file's SHA-256. `npm run gamedata` fetches that commit into `.workspace/captures/` and
-writes the files to `.workspace/Mystic-Paradox/DauntlessEndpointDocumentation/`, where
+writes the files to `paradox/DauntlessEndpointDocumentation/` (git-ignored), where
 `scripts/enrich_ladyluck_store.ts` and `scripts/generate_platinum_store.ts` look for them. A file whose
 bytes do not match its pinned hash is refused.
-
-## Updating the pin
-
-1. Pick the new upstream commit and read its changes (the 1.14.7 runtime, the backend routes the
-   game calls, the Director's command line).
-2. Clone it, apply each patch with `git apply --3way`, fix what no longer applies, and write the
-   patches again with `git diff <commit> -- <paths>`.
-3. Change `commit` and `archive` in `mystic-paradox.json`, run `ReforgedHost`'s tests and a full
-   `npm run setup` on a clean workspace, and play a hunt before publishing.
-
-Hosts then run `npm run setup` again; it replaces `.workspace/Mystic-Paradox/` but keeps the SDK,
-the game data and the builds it finds there (see `legacy/ReforgedHost/README.md`).

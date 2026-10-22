@@ -1,13 +1,13 @@
 // The live store captures Mystic Paradox's store generators read: Lady Luck's rotation
 // (scripts/enrich_ladyluck_store.ts) and the platinum store's prices, Hunt Pass rank skips and passes
-// (scripts/generate_platinum_store.ts), both from <upstream>/DauntlessEndpointDocumentation/Store/Product/Skus/.
+// (scripts/generate_platinum_store.ts), both from paradox/DauntlessEndpointDocumentation/Store/Product/Skus/.
 // Without them Lady Luck's Store is the shipped example and the platinum store has no rank skips, no
 // passes and no captured prices.
 //
 // They come from EisigesEis/DauntlessEndpointDocumentation, which carries no license, so they are never
-// copied into this repository: upstream/store-captures.json pins the commit and each file's SHA-256, and
+// copied into this repository: paradox/backend/store-captures.json pins the commit and each file's SHA-256, and
 // `npm run gamedata` fetches that commit on the host's own machine (a shallow fetch into
-// .workspace/captures/) and writes the files where the generators look. A file whose bytes do not match its
+// .workspace/captures/) and writes the files where the generators look (git-ignored). A file whose bytes do not match its
 // pinned hash is refused.
 
 import { execFileSync } from "node:child_process";
@@ -85,16 +85,6 @@ export async function ensureCaptures(p: Paths, pin: CapturePin, logFile?: string
     for (const [name, bytes] of data) {
         fs.mkdirSync(path.dirname(target(p, name)), { recursive: true });
         fs.writeFileSync(target(p, name), bytes);
-    }
-    // Not part of upstream: keep the folder out of its `git status`.
-    const exclude = path.join(p.upstream, ".git", "info", "exclude");
-    if (fs.existsSync(path.join(p.upstream, ".git"))) {
-        const entry = `/${path.basename(p.storeCaptures)}/`;
-        const current = fs.existsSync(exclude) ? fs.readFileSync(exclude, "utf8") : "";
-        if (!current.split(/\r?\n/).includes(entry)) {
-            fs.mkdirSync(path.dirname(exclude), { recursive: true });
-            fs.appendFileSync(exclude, `\n# Dauntless Reforged Revival: the store captures (legacy/ReforgedHost/src/captures.ts)\n${entry}\n`);
-        }
     }
     return "fetched";
 }
