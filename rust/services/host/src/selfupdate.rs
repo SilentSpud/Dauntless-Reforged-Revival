@@ -833,7 +833,7 @@ pub fn runtime_changed(previous: &Manifest, next: &Manifest) -> bool {
 
 /// Files of the release the host changed on this PC: the update would overwrite them. With an
 /// installed release, a file whose content is neither the old release's nor the new one's. On a git
-/// checkout with no release (a Node-kit host), what `git status` lists as changed and the release
+/// checkout with no release (a Node-kit host), what `git diff HEAD` lists as changed and the release
 /// writes differently; a `package-lock.json` npm rewrote does not count, as in the Node kit.
 pub fn local_changes(root: &Path, previous: Option<&Manifest>, next: &Manifest) -> Result<Vec<String>, HostError> {
     let mut changed = Vec::new();
@@ -851,18 +851,15 @@ pub fn local_changes(root: &Path, previous: Option<&Manifest>, next: &Manifest) 
             }
         }
         None if root.join(".git").exists() => {
-            let Some(status) =
-                crate::run::capture("git", &["status", "--porcelain", "--untracked-files=no"], Some(root))?
+            let Some(diff) = crate::run::capture(
+                "git",
+                &["-c", "core.quotePath=false", "diff", "--name-only", "HEAD"],
+                Some(root),
+            )?
             else {
                 return Ok(changed);
             };
-            for line in status.lines() {
-                let Some(path) = line
-                    .get(3..)
-                    .map(|p| p.rsplit(" -> ").next().unwrap_or(p).trim_matches('"'))
-                else {
-                    continue;
-                };
+            for path in diff.lines().map(str::trim).filter(|p| !p.is_empty()) {
                 if path.ends_with("package-lock.json") {
                     continue;
                 }

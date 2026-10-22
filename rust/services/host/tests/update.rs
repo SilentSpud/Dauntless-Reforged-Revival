@@ -414,6 +414,51 @@ fn moves_a_node_kit_checkout_over_then_updates_it() {
 }
 
 #[test]
+fn a_node_kit_checkout_with_a_changed_tracked_file_is_refused() {
+    let git = |root: &Path, args: &[&str]| {
+        let ok = std::process::Command::new("git")
+            .args(["-c", "user.name=t", "-c", "user.email=t@t", "-c", "core.autocrlf=false"])
+            .args(args)
+            .current_dir(root)
+            .output()
+            .unwrap()
+            .status
+            .success();
+        assert!(ok, "git {args:?}");
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("Reforged");
+    for (path, text) in [
+        ("docs/old.md", "as committed"),
+        ("paradox/backend/package-lock.json", "{}"),
+    ] {
+        let file = path.split('/').fold(root.clone(), |p, s| p.join(s));
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(file, text).unwrap();
+    }
+    git(&root, &["init", "-q"]);
+    git(&root, &["add", "-A"]);
+    git(&root, &["commit", "-q", "-m", "node kit"]);
+    let mut files = V1.to_vec();
+    files.push(("paradox/backend/package-lock.json", "{\"lockfileVersion\": 3}"));
+    let archive = make_release(&dir.path().join("releases"), "1.0.0", "linux-x64", &files);
+    let staged = selfupdate::extract(&archive, &dir.path().join("staging")).unwrap();
+
+    // npm rewrote the lock file: that does not count. The host edited docs/old.md: refused.
+    std::fs::write(root.join("paradox/backend/package-lock.json"), "{\"npm\": 11}").unwrap();
+    std::fs::write(root.join("docs/old.md"), "edited by the host").unwrap();
+    let Err(UpdateError::Problem(Problem::LocalChanges(changed))) = selfupdate::install(&staged, &root, None) else {
+        panic!("a changed tracked file stops the move")
+    };
+    assert_eq!(changed, ["docs/old.md"]);
+
+    // Put back: it moves over
+    git(&root, &["checkout", "-q", "--", "docs/old.md"]);
+    selfupdate::install(&staged, &root, None).unwrap();
+    assert_eq!(read(&root, "docs/old.md"), "goes in 2");
+}
+
+#[test]
 fn setup_puts_back_a_damaged_release_and_leaves_a_whole_one() {
     let dir = tempfile::tempdir().unwrap();
     let releases = dir.path().join("releases");
