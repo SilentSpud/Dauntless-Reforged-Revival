@@ -242,7 +242,6 @@ impl LauncherError {
 /// `{ ok: true } | { ok: false, error }`, as the page reads it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionResult {
-    #[allow(dead_code, reason = "the controller's stubs only refuse until RA13")]
     Ok,
     Err(LauncherError),
 }
@@ -278,7 +277,6 @@ impl Serialize for ActionResult {
 /// address).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InviteCheck {
-    #[allow(dead_code, reason = "the controller's stubs only refuse until RA13")]
     Ok {
         certificate_changed: bool,
         previous_fingerprint: Option<String>,
@@ -316,10 +314,7 @@ impl Serialize for InviteCheck {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RegisterOutcome {
-    #[allow(dead_code, reason = "the controller's stubs only refuse until RA13")]
-    Ok {
-        username: String,
-    },
+    Ok { username: String },
     Err(LauncherError),
 }
 
@@ -389,6 +384,8 @@ pub struct SavedServerInfo {
     pub name: String,
     pub current: bool,
     pub username: Option<String>,
+    /// A Dauntless Revived (1.4.4) server: listed with its key kept, never joined (RD5, RD22)
+    pub unsupported: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

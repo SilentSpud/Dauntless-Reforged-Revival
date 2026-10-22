@@ -8,12 +8,20 @@ use protocol::invite::{Invite, ServerMode};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use crate::bridge::types::{GameLanguage, GraphicsPreset, Language};
+use crate::bridge::types::{GameLanguage, GraphicsPreset, Language, RuntimeProfile};
 use crate::net::http::Endpoint;
 use crate::platform::keystore::{KeySlot, server_id};
+use crate::platform::settings::{REFORGED, REVIVED};
+
+fn reforged() -> String {
+    REFORGED.to_owned()
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StoredServer {
+    /// `reforged`, or `revived` for a saved Dauntless 1.4.4 server, which is listed but never played (RD5)
+    #[serde(default = "reforged")]
+    pub game: String,
     pub mode: ServerMode,
     pub host: String,
     pub port: u16,
@@ -27,6 +35,7 @@ pub struct StoredServer {
 impl StoredServer {
     pub fn from_invite(invite: &Invite, code: Option<String>) -> Self {
         Self {
+            game: reforged(),
             mode: invite.mode,
             host: invite.host.clone(),
             port: invite.port,
@@ -35,6 +44,11 @@ impl StoredServer {
             fp: invite.fp.clone(),
             code,
         }
+    }
+
+    /// A Dauntless Revived server: shown disabled, never joined (RD22)
+    pub fn revived(&self) -> bool {
+        self.game == REVIVED
     }
 
     pub fn public(&self) -> bool {
@@ -69,15 +83,24 @@ impl StoredServer {
 pub struct Stored {
     pub server: Option<StoredServer>,
     pub saved_servers: Vec<StoredServer>,
-    pub install_dir: Option<String>,
-    pub verified_dir: Option<String>,
+    /// The player's Dauntless folder (the one that holds `Archon`)
+    pub game_root: Option<String>,
     pub graphics: GraphicsPreset,
     pub windowed: bool,
     pub streamer_mode: bool,
     pub language: Language,
     pub game_language: GameLanguage,
+    pub runtime_profile: RuntimeProfile,
+    pub host_tools: bool,
     pub usernames: HashMap<String, String>,
     pub backup_offered: HashMap<String, bool>,
+    /// The runtime sets the player accepted, per server id (`runtime_set_id`)
+    pub trusted_runtimes: HashMap<String, Vec<String>>,
+    pub local_runtime_dir: Option<String>,
+    #[allow(dead_code, reason = "the Host page (RA12) reads them")]
+    pub host_workspace: Option<String>,
+    #[allow(dead_code, reason = "the Host page (RA12) reads them")]
+    pub dumper_dll: Option<String>,
 }
 
 impl Stored {
@@ -92,15 +115,20 @@ impl Default for Stored {
         Self {
             server: None,
             saved_servers: Vec::new(),
-            install_dir: None,
-            verified_dir: None,
+            game_root: None,
             graphics: GraphicsPreset::DEFAULT,
             windowed: false,
             streamer_mode: false,
             language: Language::En,
             game_language: GameLanguage::Auto,
+            runtime_profile: RuntimeProfile::Production,
+            host_tools: false,
             usernames: HashMap::new(),
             backup_offered: HashMap::new(),
+            trusted_runtimes: HashMap::new(),
+            local_runtime_dir: None,
+            host_workspace: None,
+            dumper_dll: None,
         }
     }
 }
@@ -172,6 +200,7 @@ mod tests {
 
         let mut map = default_settings(Language::En);
         let server = StoredServer {
+            game: REFORGED.into(),
             mode: ServerMode::Private,
             host: "100.64.0.1".into(),
             port: 61000,

@@ -62,6 +62,15 @@ pub struct TauriPlatform {
     pub home: PathBuf,
 }
 
+impl TauriPlatform {
+    /// The launcher's language, for the dialogs' titles (the controller is managed once it is made).
+    fn language(&self) -> Language {
+        self.app
+            .try_state::<super::ControllerHandle>()
+            .map_or(Language::En, |controller| controller.language())
+    }
+}
+
 fn strings(list: Vec<&'static str>) -> Vec<String> {
     list.into_iter().map(str::to_owned).collect()
 }
@@ -86,12 +95,14 @@ impl Platform for TauriPlatform {
 
     fn choose_dll(&self) -> Boxed<Option<PathBuf>> {
         let app = self.app.clone();
-        Box::pin(async move { dialogs::choose_open_file(&app, None, dialogs::DLL_FILES).await })
+        let language = self.language();
+        Box::pin(async move { dialogs::choose_dll(&app, language, None).await })
     }
 
     fn choose_pack(&self) -> Boxed<Option<PathBuf>> {
         let app = self.app.clone();
-        Box::pin(async move { dialogs::choose_open_file(&app, None, dialogs::GAMEDATA_PACKS).await })
+        let language = self.language();
+        Box::pin(async move { dialogs::choose_pack(&app, language).await })
     }
 
     fn open_url(&self, url: &str, host_source: Option<&str>) {

@@ -160,6 +160,8 @@ export interface SavedServerInfo {
   name: string;
   current: boolean;
   username: string | null;
+  // The Tauri launcher (2.0): a Dauntless Revived (1.4.4) server, listed with its key kept, never joined (RD22)
+  unsupported?: boolean;
 }
 
 export type GameSource = "epic" | "legendary" | "heroic" | "chosen" | "revived";

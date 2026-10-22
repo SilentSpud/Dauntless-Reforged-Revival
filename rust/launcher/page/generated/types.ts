@@ -73,7 +73,11 @@ export type SavedServerInfo = {
 /**
  * The account key slot id (not secret)
  */
-id: string, mode: ServerMode, host: string, port: number, name: string, current: boolean, username: string | null, };
+id: string, mode: ServerMode, host: string, port: number, name: string, current: boolean, username: string | null, 
+/**
+ * A Dauntless Revived (1.4.4) server: listed with its key kept, never joined (RD5, RD22)
+ */
+unsupported: boolean, };
 export type GameSource = "epic" | "legendary" | "heroic" | "chosen";
 export type DetectedGame = { root: string, source: GameSource, 
 /**

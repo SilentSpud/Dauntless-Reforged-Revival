@@ -416,6 +416,7 @@ async function switchTo(id: string): Promise<void> {
 }
 
 function savedServerSub(sv: Snapshot["savedServers"][number]): HTMLElement {
+  if (sv.unsupported) return h("span", {}, t("server_revived_disabled"));
   const address = blurred(`${sv.host}:${sv.port}`);
   const edition = sv.game === "revived" ? `${t("edition_revived")} · ` : "";
   return sv.username ? h("span", {}, `${edition}${t("saved_account", { name: sv.username })} · `, address) : h("span", {}, edition, address);
@@ -433,7 +434,7 @@ function savedServersCard(snap: Snapshot): HTMLElement | null {
       h(
         "div",
         { class: "settings-actions" },
-        button(t("saved_join"), () => void switchTo(sv.id), { cls: "btn-primary", fk: `saved-${sv.id}`, disabled: locked }),
+        button(t("saved_join"), () => void switchTo(sv.id), { cls: "btn-primary", fk: `saved-${sv.id}`, disabled: locked || sv.unsupported === true }),
         linkButton(t("saved_remove"), () => showModal({ kind: "remove_server", id: sv.id, name: sv.name }), { icon: "close", fk: `saved-rm-${sv.id}`, disabled: locked }),
       ),
     ),
@@ -1943,7 +1944,7 @@ function renderSettings(): void {
               settingsRow(
                 sv.name,
                 savedServerSub(sv),
-                button(t("saved_switch_to"), () => void switchTo(sv.id), { cls: "btn-primary", fk: `set-saved-${sv.id}`, disabled: busy }),
+                button(t("saved_switch_to"), () => void switchTo(sv.id), { cls: "btn-primary", fk: `set-saved-${sv.id}`, disabled: busy || sv.unsupported === true }),
                 button(t("saved_remove"), () => showModal({ kind: "remove_server", id: sv.id, name: sv.name }), { icon: "close", fk: `set-saved-rm-${sv.id}`, disabled: busy }),
               ),
             ),
@@ -2166,7 +2167,7 @@ function renderRail(): void {
       { class: "server-menu", role: "menu", "aria-label": t("saved_switch"), hidden: !state.serverMenu },
       h("li", { class: "server-menu-head", role: "presentation" }, t("saved_switch")),
       ...others.map((sv) => {
-        const item = h("button", { type: "button", class: "server-menu-item", role: "menuitem", "data-fk": `switch-${sv.id}` }, h("span", { class: "server-menu-name" }, sv.name), h("span", { class: "server-menu-sub" }, savedServerSub(sv)));
+        const item = h("button", { type: "button", class: "server-menu-item", role: "menuitem", "data-fk": `switch-${sv.id}`, disabled: sv.unsupported === true }, h("span", { class: "server-menu-name" }, sv.name), h("span", { class: "server-menu-sub" }, savedServerSub(sv)));
         item.addEventListener("click", () => {
           state.serverMenu = false;
           renderRail();
