@@ -13,13 +13,25 @@ name = "reforged-host"
 path = "src/main.rs"
 
 [dependencies]
+# The backend's token keys, RSA 4096 (D10: aws-lc-rs; already in the tree through rustls and rcgen).
+aws-lc-rs = "1.18"
+base64.workspace = true
+chrono.workspace = true
 clap.workspace = true
+# The invite links (section 6).
+protocol.workspace = true
+# Reading the certificate a port serves (doctor).
+rustls.workspace = true
 # host.json in JavaScript's key order and number text (service-kit turns on preserve_order).
 serde_json.workspace = true
 service-kit.workspace = true
+sha2.workspace = true
 thiserror.workspace = true
+url.workspace = true
 
 [dev-dependencies]
+# Test certificates, as the gateway makes them.
+rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem", "crypto"] }
 tempfile.workspace = true
 
 [lints]
