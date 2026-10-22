@@ -28,7 +28,7 @@ fn script_holds(ips: &[String], ports: &str, settings: &NftSettings) {
     let Ok(script) = nft_script(&rule, settings) else {
         return;
     };
-    let element_line = |line: &&str| line.starts_with("		elements = { ");
+    let element_line = |line: &&str| line.starts_with("\t\telements = { ");
     let elements = script.lines().filter(element_line).count();
     let v4 = ips.iter().any(|ip| !ip.contains(':'));
     let v6 = ips.iter().any(|ip| ip.contains(':'));
