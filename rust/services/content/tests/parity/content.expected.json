@@ -1,0 +1,638 @@
+{
+  "about": "The content server: routes, methods, file paths, account keys, ranges, conditions, files gone or changed, branding and news (MIGRATION_PLAN.md S1).",
+  "results": [
+    {
+      "request": "GET /",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/manifest",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "768",
+        "etag": "\"0af49b814bde318f34e4ffea2416feb7b33f1845c575c9b911e7d67100d23153\"",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"build\":\"dauntless_rel-1.4.4_Shipping_2020-10-28_20-11-15_239827\",\"totalBytes\":5058,\"files\":[{\"path\":\"Data/changes.bin\",\"size\":15,\"sha256\":\"bbe43ff5f900a0d8539c4a3a2f340316ca3edd3ce510253b8ab6e52aeda4c820\"},{\"path\":\"Data/empty.log\",\"size\":0,\"sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},{\"path\":\"Data/gone.bin\",\"size\":15,\"sha256\":\"1a86792d08efce6274e707b05da95dd373bdecdb4290039739ded11ce81e9abc\"},{\"path\":\"Data/resized.bin\",\"size\":15,\"sha256\":\"a104c88c41a3995e2d19b23cea7339584b2db33afe842586f0e592b1b09bde1e\"},{\"path\":\"Data/small.bin\",\"size\":5000,\"sha256\":\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"},{\"path\":\"Version.txt\",\"size\":13,\"sha256\":\"e7eb5abec5bcdb3be3c12f9a7477e709fd99d4b1c6713ca85b4fb94eb90f2efe\"}]}"
+    },
+    {
+      "request": "HEAD /content/v1/manifest",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "768",
+        "etag": "\"0af49b814bde318f34e4ffea2416feb7b33f1845c575c9b911e7d67100d23153\"",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/manifest?x=1",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "768",
+        "etag": "\"0af49b814bde318f34e4ffea2416feb7b33f1845c575c9b911e7d67100d23153\"",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"build\":\"dauntless_rel-1.4.4_Shipping_2020-10-28_20-11-15_239827\",\"totalBytes\":5058,\"files\":[{\"path\":\"Data/changes.bin\",\"size\":15,\"sha256\":\"bbe43ff5f900a0d8539c4a3a2f340316ca3edd3ce510253b8ab6e52aeda4c820\"},{\"path\":\"Data/empty.log\",\"size\":0,\"sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},{\"path\":\"Data/gone.bin\",\"size\":15,\"sha256\":\"1a86792d08efce6274e707b05da95dd373bdecdb4290039739ded11ce81e9abc\"},{\"path\":\"Data/resized.bin\",\"size\":15,\"sha256\":\"a104c88c41a3995e2d19b23cea7339584b2db33afe842586f0e592b1b09bde1e\"},{\"path\":\"Data/small.bin\",\"size\":5000,\"sha256\":\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"},{\"path\":\"Version.txt\",\"size\":13,\"sha256\":\"e7eb5abec5bcdb3be3c12f9a7477e709fd99d4b1c6713ca85b4fb94eb90f2efe\"}]}"
+    },
+    {
+      "request": "GET /content/v1/manifest",
+      "status": 304,
+      "headers": {
+        "etag": "\"0af49b814bde318f34e4ffea2416feb7b33f1845c575c9b911e7d67100d23153\"",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "POST /content/v1/manifest",
+      "status": 405,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "30",
+        "cache-control": "no-cache",
+        "allow": "GET, HEAD",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"method_not_allowed\"}"
+    },
+    {
+      "request": "DELETE /content/v1/other",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/files",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/branding",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "164",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"backgrounds\":[{\"url\":\"/content/v1/branding/harbour.jpg\",\"credit\":\"Photo by a friend\"},{\"url\":\"/content/v1/branding/second.png\",\"credit\":null}],\"accent\":\"#c8a24a\"}"
+    },
+    {
+      "request": "GET /content/v1/news",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "157",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"items\":[{\"date\":\"2026-09-21T18:00:00.000Z\",\"title\":\"Friends night\",\"body\":\"\"},{\"date\":\"2026-09-20T00:00:00.000Z\",\"title\":\"Older\",\"body\":\"line 1\\nline 2\"}]}"
+    },
+    {
+      "request": "HEAD /content/v1/news",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "157",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/files/../../Windows/win.ini",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "20",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"bad_path\"}"
+    },
+    {
+      "request": "GET /content/v1/files/..%2f..%2fx",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "20",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"bad_path\"}"
+    },
+    {
+      "request": "GET /content/v1/files/%252e%252e/x",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "20",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"bad_path\"}"
+    },
+    {
+      "request": "GET /content/v1/files/C:/Windows/win.ini",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "20",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"bad_path\"}"
+    },
+    {
+      "request": "GET /content/v1/files/%E0%A4%A",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "20",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"bad_path\"}"
+    },
+    {
+      "request": "GET /content/v1/files/",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "20",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"bad_path\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Data/../Version.txt",
+      "status": 400,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "20",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"bad_path\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Data/not-in-manifest.bin",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/files/nothing.bin",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Version.txt",
+      "status": 401,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "24",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Version.txt",
+      "status": 401,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "24",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Version.txt",
+      "status": 401,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "24",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Version.txt",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "28",
+        "cache-control": "no-cache",
+        "retry-after": "5",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"auth_unavailable\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Version.txt",
+      "status": 200,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "13",
+        "etag": "\"e7eb5abec5bcdb3be3c12f9a7477e709fd99d4b1c6713ca85b4fb94eb90f2efe\"",
+        "accept-ranges": "bytes",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "test-build \r\n"
+    },
+    {
+      "request": "HEAD /content/v1/files/Version.txt",
+      "status": 200,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "13",
+        "etag": "\"e7eb5abec5bcdb3be3c12f9a7477e709fd99d4b1c6713ca85b4fb94eb90f2efe\"",
+        "accept-ranges": "bytes",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/files/Data/small.bin",
+      "status": 200,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "5000",
+        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
+        "accept-ranges": "bytes",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "<5000 bytes sha256 34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb>"
+    },
+    {
+      "request": "GET /content/v1/files/Data/empty.log",
+      "status": 200,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "0",
+        "etag": "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"",
+        "accept-ranges": "bytes",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/files/Data/small.bin",
+      "status": 206,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "10",
+        "content-range": "bytes 0-9/5000",
+        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
+        "accept-ranges": "bytes",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "<10 bytes sha256 aadd73eb67f4e48bdb358638d0c42f341afcf9f60d717418d863a6f69238e01f>"
+    },
+    {
+      "request": "GET /content/v1/files/Data/small.bin",
+      "status": 206,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "10",
+        "content-range": "bytes 4990-4999/5000",
+        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
+        "accept-ranges": "bytes",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "<10 bytes sha256 1ad4167732795162bc1634895e0a6b6beb649b14e805ca5e3891ab2f888fa3f4>"
+    },
+    {
+      "request": "GET /content/v1/files/Data/small.bin",
+      "status": 206,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "5",
+        "content-range": "bytes 4995-4999/5000",
+        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
+        "accept-ranges": "bytes",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "<5 bytes sha256 bf7fcebc973b4422ef12f8520dc5aeb8fe3753feb63845b8a5a52059b5cdf68e>"
+    },
+    {
+      "request": "GET /content/v1/files/Data/small.bin",
+      "status": 206,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "1",
+        "content-range": "bytes 4999-4999/5000",
+        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
+        "accept-ranges": "bytes",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "<1 bytes sha256 27952171c7fcdf0ddc765ab4f4e1c537cb29e5e533d57b3456257ee785c81711>"
+    },
+    {
+      "request": "GET /content/v1/files/Data/small.bin",
+      "status": 416,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "33",
+        "content-range": "bytes */5000",
+        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
+        "accept-ranges": "bytes",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"range_not_satisfiable\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Data/small.bin",
+      "status": 416,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "33",
+        "content-range": "bytes */5000",
+        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
+        "accept-ranges": "bytes",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"range_not_satisfiable\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Data/small.bin",
+      "status": 416,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "33",
+        "content-range": "bytes */5000",
+        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
+        "accept-ranges": "bytes",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"range_not_satisfiable\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Data/small.bin",
+      "status": 200,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "5000",
+        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
+        "accept-ranges": "bytes",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "<5000 bytes sha256 34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb>"
+    },
+    {
+      "request": "GET /content/v1/files/Data/empty.log",
+      "status": 416,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "33",
+        "content-range": "bytes */0",
+        "etag": "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"",
+        "accept-ranges": "bytes",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"range_not_satisfiable\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Data/small.bin",
+      "status": 304,
+      "headers": {
+        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
+        "accept-ranges": "bytes",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "HEAD /content/v1/files/Data/small.bin",
+      "status": 206,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "2",
+        "content-range": "bytes 1-2/5000",
+        "etag": "\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"",
+        "accept-ranges": "bytes",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/files/Data/gone.bin",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "28",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"file_unavailable\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Data/resized.bin",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "28",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"file_unavailable\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Data/changes.bin",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "28",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"file_unavailable\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Data/changes.bin",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "28",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"file_unavailable\"}"
+    },
+    {
+      "request": "GET /content/v1/branding/harbour.jpg",
+      "status": 200,
+      "headers": {
+        "content-type": "image/jpeg",
+        "content-length": "8",
+        "etag": "W/\"8-18bcfe56800\"",
+        "cache-control": "public, max-age=300",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "<8 bytes sha256 8b6e4a0b5965159b6343d01a018d6bc9e2df1ab84bd24f1b8c40d72ea0e24889>"
+    },
+    {
+      "request": "HEAD /content/v1/branding/harbour.jpg",
+      "status": 200,
+      "headers": {
+        "content-type": "image/jpeg",
+        "content-length": "8",
+        "etag": "W/\"8-18bcfe56800\"",
+        "cache-control": "public, max-age=300",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/branding/harbour.jpg",
+      "status": 304,
+      "headers": {
+        "etag": "W/\"8-18bcfe56800\"",
+        "cache-control": "public, max-age=300",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/branding/second.png",
+      "status": 200,
+      "headers": {
+        "content-type": "image/png",
+        "content-length": "9",
+        "etag": "W/\"9-18bcfe56800\"",
+        "cache-control": "public, max-age=300",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "<9 bytes sha256 843ac23b1736b4487ec81cf7c07ddd9bb46ae5b7818c2c3843d99d62fa75f3c9>"
+    },
+    {
+      "request": "GET /content/v1/branding/fake.png",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/branding/missing.jpg",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/branding/..%2fsecret.jpg",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    },
+    {
+      "request": "GET /content/v1/branding/notes.txt",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    }
+  ]
+}

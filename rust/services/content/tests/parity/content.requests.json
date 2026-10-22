@@ -1,0 +1,443 @@
+{
+  "about": "The content server: routes, methods, file paths, account keys, ranges, conditions, files gone or changed, branding and news (MIGRATION_PLAN.md S1).",
+  "env": {},
+  "files": {
+    "Version.txt": {
+      "text": "test-build \r\n"
+    },
+    "Data/empty.log": {
+      "text": ""
+    },
+    "Data/small.bin": {
+      "pattern": 5000
+    },
+    "Data/changes.bin": {
+      "text": "will be touched"
+    },
+    "Data/gone.bin": {
+      "text": "will be deleted"
+    },
+    "Data/resized.bin": {
+      "text": "will be resized"
+    }
+  },
+  "gone": [
+    "Data/gone.bin"
+  ],
+  "resized": {
+    "Data/resized.bin": {
+      "text": "now a different size"
+    }
+  },
+  "extra": {
+    "Data/not-in-manifest.bin": {
+      "text": "secret"
+    }
+  },
+  "branding": {
+    "files": {
+      "harbour.jpg": {
+        "hex": "ffd8ff0001020304"
+      },
+      "second.png": {
+        "hex": "89504e470d0a1a0a00"
+      },
+      "fake.png": {
+        "hex": "ffd8ff00"
+      },
+      "notes.txt": {
+        "text": "x"
+      }
+    },
+    "json": {
+      "accent": "#C8A24A",
+      "backgrounds": [
+        {
+          "file": "harbour.jpg",
+          "credit": " Photo\tby  a friend "
+        },
+        "second.png",
+        "fake.png",
+        "missing.jpg",
+        5
+      ]
+    }
+  },
+  "news": {
+    "items": [
+      {
+        "date": "2026-09-20",
+        "title": "Older",
+        "body": "line 1\r\nline 2"
+      },
+      {
+        "date": "2026-09-21T18:00:00Z",
+        "title": "Friends night"
+      },
+      {
+        "date": "never",
+        "title": "x"
+      }
+    ]
+  },
+  "keys": {
+    "UUK_content_good_key_0123456789ab": {
+      "status": 200,
+      "body": {
+        "UserId": "UID-A",
+        "Username": "alpha",
+        "IsAdmin": false
+      }
+    },
+    "UUK_content_other_key_0123456789": {
+      "status": 200,
+      "body": {
+        "UserId": "UID-B",
+        "Username": "beta",
+        "IsAdmin": false
+      }
+    },
+    "UUK_content_down_key_00000000000": {
+      "status": 500,
+      "body": {}
+    }
+  },
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/manifest",
+      "headers": {}
+    },
+    {
+      "method": "HEAD",
+      "path": "/content/v1/manifest",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/manifest?x=1",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/manifest",
+      "headers": {
+        "if-none-match": "*"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/content/v1/manifest",
+      "headers": {}
+    },
+    {
+      "method": "DELETE",
+      "path": "/content/v1/other",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/branding",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/news",
+      "headers": {}
+    },
+    {
+      "method": "HEAD",
+      "path": "/content/v1/news",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/../../Windows/win.ini",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/..%2f..%2fx",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/%252e%252e/x",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/C:/Windows/win.ini",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/%E0%A4%A",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/../Version.txt",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/not-in-manifest.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/nothing.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Version.txt",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Version.txt",
+      "headers": {
+        "x-undaunted-user-api-key": "has space"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Version.txt",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_wrong_key_000000000000000000"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Version.txt",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_down_key_00000000000"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Version.txt",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "HEAD",
+      "path": "/content/v1/files/Version.txt",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/small.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_other_key_0123456789"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/empty.log",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/small.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
+        "range": "bytes=0-9"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/small.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
+        "range": "bytes=4990-"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/small.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
+        "range": "bytes=-5"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/small.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
+        "range": "bytes=4999-6000"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/small.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
+        "range": "bytes=5000-"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/small.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
+        "range": "bytes=0-1,4-5"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/small.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
+        "range": "items=0-1"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/small.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
+        "range": "bytes=0-9",
+        "if-range": "\"stale\""
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/empty.log",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
+        "range": "bytes=0-"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/small.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
+        "if-none-match": "*"
+      }
+    },
+    {
+      "method": "HEAD",
+      "path": "/content/v1/files/Data/small.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab",
+        "range": "bytes=1-2"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/gone.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/resized.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "touch": "Data/changes.bin"
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/changes.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/files/Data/changes.bin",
+      "headers": {
+        "x-undaunted-user-api-key": "UUK_content_good_key_0123456789ab"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/branding/harbour.jpg",
+      "headers": {}
+    },
+    {
+      "method": "HEAD",
+      "path": "/content/v1/branding/harbour.jpg",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/branding/harbour.jpg",
+      "headers": {
+        "if-none-match": "W/\"x\", \"8-18bcfe56800\""
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/branding/second.png",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/branding/fake.png",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/branding/missing.jpg",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/branding/..%2fsecret.jpg",
+      "headers": {}
+    },
+    {
+      "method": "GET",
+      "path": "/content/v1/branding/notes.txt",
+      "headers": {}
+    }
+  ]
+}

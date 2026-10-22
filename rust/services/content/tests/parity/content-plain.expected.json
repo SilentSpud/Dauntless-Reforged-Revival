@@ -1,0 +1,70 @@
+{
+  "about": "The content server with CONTENT_DOWNLOAD_BASE_URL, no branding or news, and a metagame answering oddly (MIGRATION_PLAN.md S1).",
+  "results": [
+    {
+      "request": "GET /content/v1/manifest",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "820",
+        "etag": "\"ab1d4f29210004cd895071dcfc77ec8eab66621640d32762856121663600610a\"",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"build\":\"dauntless_rel-1.4.4_Shipping_2020-10-28_20-11-15_239827\",\"totalBytes\":5058,\"files\":[{\"path\":\"Data/changes.bin\",\"size\":15,\"sha256\":\"bbe43ff5f900a0d8539c4a3a2f340316ca3edd3ce510253b8ab6e52aeda4c820\"},{\"path\":\"Data/empty.log\",\"size\":0,\"sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},{\"path\":\"Data/gone.bin\",\"size\":15,\"sha256\":\"1a86792d08efce6274e707b05da95dd373bdecdb4290039739ded11ce81e9abc\"},{\"path\":\"Data/resized.bin\",\"size\":15,\"sha256\":\"a104c88c41a3995e2d19b23cea7339584b2db33afe842586f0e592b1b09bde1e\"},{\"path\":\"Data/small.bin\",\"size\":5000,\"sha256\":\"34398b85297bf7d9dfb59b8d511d8bbb44ab23e891570e4395e7871475fc8afb\"},{\"path\":\"Version.txt\",\"size\":13,\"sha256\":\"e7eb5abec5bcdb3be3c12f9a7477e709fd99d4b1c6713ca85b4fb94eb90f2efe\"}],\"downloadBaseUrl\":\"https://downloads.example/game/\"}"
+    },
+    {
+      "request": "GET /content/v1/files/Version.txt",
+      "status": 503,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "28",
+        "cache-control": "no-cache",
+        "retry-after": "5",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"auth_unavailable\"}"
+    },
+    {
+      "request": "GET /content/v1/branding",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "32",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"backgrounds\":[],\"accent\":null}"
+    },
+    {
+      "request": "GET /content/v1/news",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "12",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"items\":[]}"
+    },
+    {
+      "request": "GET /content/v1/branding/harbour.jpg",
+      "status": 404,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "21",
+        "cache-control": "no-cache",
+        "access-control-allow-origin": "*",
+        "cross-origin-resource-policy": "cross-origin",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"error\":\"not_found\"}"
+    }
+  ]
+}
