@@ -3,7 +3,8 @@
 # Dauntless Reforged Revival migration plan: one Rust codebase, Mystic Paradox included
 
 Status: draft, written 2026-10-22; the decisions in section 3 were made the same day and revised after a review the
-same evening (RD5, RD15 changed; RD16 and RD17 added). No work rows have started.
+same evening (RD5, RD15 changed; RD16 and RD17 added); section 5 was rewritten as parallel waves and RD18 added
+afterwards. No work rows have started.
 
 Completed rows will be ~~struck through~~ in the tables below, as in DR's plan, and a "What's left" table will be
 added above section 1 once the first row closes. The decisions, the reuse table and section 6 are reference, not
@@ -93,12 +94,13 @@ Made 2026-10-22; RD5 and RD15 changed and RD16, RD17 added after the review the 
 | RD9 | DLL injector | **Rust on the `windows` crate** (`OpenProcess`, `VirtualAllocEx`, `CreateRemoteThread(LoadLibraryW)`), only into the game process the launcher started, only a DLL the host picked | No PowerShell or C# step; its own security checklist (RX3) |
 | RD10 | Security | **DR's full pass** (D26, X9): a checklist per trust-boundary component in `SECURITY_REVIEW.md`, `cargo-fuzz` targets for every parser of untrusted input run briefly on every PR, a 24-hour fuzz run and a signed checklist before each component's cutover | Replaces a second reviewer where a mistake costs most |
 | RD11 | Repository layout | **DR's monorepo** (section 4.1): `rust/` (one cargo workspace), `native/` (C++ runtime), `paradox/` (the Node backend and Director), `legacy/` for the Node projects being replaced until each is deleted; `preset/`, `brand/`, `docs/` stay | Moves use `git mv` so history follows |
-| RD12 | Order | **Two tracks in parallel**, the front door with the host kit and the launcher, synced on the `protocol` crate (RS1) and on shared checks on the canary; the backend track starts only after the gate (RD17) | Each track's cutover still waits for its own checks |
+| RD12 | Order | **Two tracks in parallel**, the front door with the host kit and the launcher, synced on the `protocol` crate (RS1) and on shared checks on the canary; the backend track starts only after the gate (RD17). Within a track the rows run in parallel waves (RD18, section 5) | Each track's cutover still waits for its own checks |
 | RD13 | Test environment | **A canary run by the maintainer**, like DR's D23: a small server on the Linux kit with a copy of a real database and invited testers. The shared checks, the traffic capture (RB2), the shadow replay (RB12) and every first cutover run there; then the hosts | The Linux path is tested first |
 | RD14 | Languages | en and pt-BR, as today, split one file per language as DR did (L13), so a third language is data only | — |
 | RD15 | Database | **Postgres, directly** (changed after the review; was "MongoDB first, then Postgres"). The Rust backend has one data layer, Diesel on `store` with `schema.rs` from the migrations, so queries are checked at compile time; no MongoDB implementation is written. Each Paradox repository gets tables designed from its documents: real columns, keys and foreign keys for what the code queries or joins on (accounts, keys, characters, inventory items, loadouts, bounties, invites); `jsonb` only for opaque game blobs the backend passes through unread. A host's data moves once with `backend db migrate` (RB4) at the backend cutover (RB14); `backend db export-mongo` (RB13) writes it back for a rollback to Node during the rollback window. The shadow replay (RB12) compares Node on MongoDB with Rust on a migrated copy of the same snapshot; `backend db verify` tells migration diffs from code diffs. Postgres 17 or newer; the host kit installs and manages a local one (a service on loopback, a role and database for the backend), or takes `--postgres-url` for the host's own | One backend cutover instead of two, and no throwaway data layer. The replay has one more moving part (the migration), covered by `db verify`. Hosts lose the MongoDB replica-set setup and gain `pg_dump` backups; a Postgres service is heavier on a friend's PC than nothing, which is the price of a real database. After the rollback window, MongoDB is uninstalled and a host can no longer return to Node |
 | RD16 | Upstream (Freeza) | **Fork with a cut-off date.** Until the cut-off, Freeza's changes (patches, launcher, gateway, content, host kit) are merged into this repository as today, into `paradox/` as commits once RP2 has landed. After the cut-off only two kinds of upstream change are taken: patches to the game runtime (`ParadoxRuntime`, `RuntimeLoader`), applied to `native/` by hand, since the runtime speaks HTTP to whichever backend answers; and game-data or preset changes. Backend, Director, launcher, gateway, content and host kit changes after the cut-off are not ported. The cut-off is `[to be set: date]`, at the latest the day RB2 (the traffic capture) starts, because the capture fixes what the Rust backend has to match | RX2's catch-up lists end at the cut-off. Hosts on Freeza's line and hosts on this one diverge from then on; the launcher stays able to join both only as long as the `/reforged/api` routes stay the same, which this plan does not promise |
 | RD17 | Gate before the backend | **The Rust front door ships first.** No RB row starts, the route inventory included, until the Rust gateway, allowlist, content server and `reforged-host` are live on every host (RS5 and RH7 closed). The launcher track is not gated | The cheapest, mostly-reused part proves the canary, the release pipeline and the host kit's `update` path before the expensive part depends on them. DR wrote ~110k lines and shipped none; this gate is the answer to that |
+| RD18 | How the rows are done | **One row, one agent, in parallel waves** (section 5). Each row is a brief for an independent agent working in its own worktree and branch and merged by PR. Rows that fix an interface (the seams: RR1, RS1, RA1–RA2, RH1, RB3, RB5) land first and register every planned module, command, route group and trait as a stub; the rows that fill them then run side by side and touch only their own files. Shared files have one owner (section 5.1). About eight rows in flight at once; past that the integration pass between waves, where a person reads every merge, is the bottleneck, not the agents | The order in section 5 is by dependency, not by track. A wave starts when the rows it needs are merged, not when the previous wave is finished. The canary runs, cutovers, spikes that need a machine with the game, signing and publishing, and the cut-off date stay with the maintainer |
 
 ## 4. Work
 
@@ -215,34 +217,122 @@ Phases follow DR's Part A. The DR rows in brackets hold the method; the Reforged
 
 | # | What |
 | --- | --- |
-| RX1 | Per-file delta lists: for each Reforged Node file, `diff` against DR's Node file at `e1c5fec`, written into the RS/RA/RH row that ports it, so nothing Reforged changed is lost in the Rust copy |
-| RX2 | Catch-up lists from the copy commit to the cut-off (RD16): Reforged's own and Freeza's Node commits to the launcher, gateway, content, host kit, and the forked backend and Director, ported before each one's cutover. After the cut-off the lists stop; only runtime patches keep coming (RD16) |
-| RX3 | Security pass (RD10): gateway policy and TLS, allowlist helper and its IPC, relay, pinned TLS, keystore and legacy reader, invite parsing, runtime download, the injector, the host kit's handling of secrets, the backend's auth and tokens, its JSON and body parsing and XMPP, the documents `db migrate` and `export-mongo` read, and the Director's game-server launch; fuzz targets for every parser |
+| RX1 | Per-file delta lists: for each Reforged Node file, `diff` against DR's Node file at `e1c5fec`, written as `docs/port/delta-<family>.md` (gateway, allowlist and content; launcher net and platform; launcher controller, bridge and page) and linked from the RS/RA row that ports it, so nothing Reforged changed is lost in the Rust copy. Read-only, so it runs first, one agent per file |
+| RX2 | Catch-up lists from the copy commit to the cut-off (RD16): Reforged's own and Freeza's Node commits to the launcher, gateway, content, host kit, and the forked backend and Director, written as `docs/port/catchup-<family>.md` and ported before each one's cutover by the agent that owns the family. After the cut-off the lists stop; only runtime patches keep coming (RD16) |
+| RX3 | Security pass (RD10), done per row rather than at the end: every row that writes a trust-boundary component delivers its fuzz target and a `docs/security/<component>.md` checklist with its code; `SECURITY_REVIEW.md` is the index, kept by the integration pass. Components: gateway policy and TLS, allowlist helper and its IPC, relay, pinned TLS, keystore and legacy reader, invite parsing, runtime download, the injector, the host kit's handling of secrets, the backend's auth and tokens, its JSON and body parsing and XMPP, the documents `db migrate` and `export-mongo` read, and the Director's game-server launch. The 24-hour fuzz run and the signed checklist before each cutover stay with the maintainer |
 
-## 5. Order
+## 5. Order: parallel waves
 
-Two tracks in parallel (RD12), then the backend behind the gate (RD17). The Paradox fork and the repository rows come
-first: every track builds on them.
+The rows are written to be done by independent agents at the same time (RD18). Two things limit how many: the seams,
+since a row that fixes an interface has to land before the rows that fill it, and review, since a person reads
+every merge. A wave below is the set of rows whose needs are met at the same time; a row starts as soon as the rows
+in its "Needs" column are merged, whether or not the rest of its wave has finished. The front door and the launcher
+still run as two tracks (RD12) and the backend still waits for the gate (RD17); the waves only say what can overlap.
 
-| Step | Front door and host kit | Launcher |
+### 5.1 Rules for a row
+
+- One row is one agent in its own worktree and branch, merged by one PR. The brief is the row's text, the DR rows it
+  names, the delta file from RX1 where there is one, section 6, the ownership table below and the branch to base on.
+  An agent that finds it needs a change to a seam or to a file it does not own stops and reports; it does not make the
+  change.
+- Seams first. A skeleton row registers every planned module, command, route group or trait as a stub that compiles
+  and is tested as a stub, so a later row only fills its own files: RR1 lists every planned workspace member; RA2
+  the whole command list; RH1 the full `clap` tree, one module per command; RB3 the whole schema; RB5 one trait per
+  Paradox repository, one router per area with its routes returning 501, the auth extractor's signature and the
+  clock and id generator.
+- A row delivers its tests, its fuzz target and its `docs/security/<component>.md` with its code (RX3). Strings a
+  launcher row needs are appended at the end of both language files; the integration pass resolves the resulting
+  conflicts, which are append-only.
+- The integration pass closes a wave: one agent, or the maintainer, merges in dependency order, runs CI on both OSes
+  and the smoke list (section 6) on the canary when the wave changed something that runs there, strikes the rows
+  here and updates the What's-left table. It is the only thing that edits the shared files below.
+- Not an agent's work: the canary and every cutover, RA10 and RA12a's hands-on parts (a Linux machine with the game,
+  Proton and a host's SDK), signing keys and publishing a release, the cut-off date and telling Freeza (RD16), the
+  24-hour fuzz runs and the signed checklists (RD10).
+
+| File or folder | Owner | Other rows |
 | --- | --- | --- |
-| 1 | RR1–RR4, RP1–RP4, RS1 | RA1–RA3 |
-| 2 | RS2 content, RH1 | RA4–RA7 |
-| 3 | RS3 gateway, RS4 allowlist, RH2–RH3 | RA8–RA9, RA10 spike |
-| 4 | Shared check on the canary: the Tauri debug build against the Rust gateway and content, with the Node backend | (same check) |
-| 5 | RH4–RH6; cutover of gateway, allowlist, content and host kit on the canary, then every host; RS5, RH7 | RA10 port, RA11–RA13, RA12a spike |
-| **Gate** | **The Rust front door and `reforged-host` are live on every host (RD17)** | — |
+| `rust/Cargo.toml`, `rust-toolchain.toml`, `deny.toml`, `.cargo/`, the lint configs | RR1 | Never; a crate is added only by its skeleton row |
+| `.github/` | RR3; RH6 for `server-release.yml`; RA14 for `launcher-release.yml` | Never |
+| `NOTICE.md`, `README.md`, `docs/` index pages, `SECURITY_REVIEW.md`, `MIGRATION_PLAN.md` | Integration pass | Never; a row writes its own page under `docs/` |
+| `crates/protocol` | RS1 | Never after RS1; a needed type goes through the integration pass |
+| `services/host`: `main.rs`, the `clap` tree, `paths`, `envfile`, `hostconfig` | RH1 | Fill the one command module the row owns |
+| `services/backend`: `main.rs`, config, the trait files, router registration, the auth extractor | RB5 | Fill the one area module and its Postgres repository the row owns |
+| `crates/store` migrations and `schema.rs` | RB3 | Never after RB3; a change is a new migration through the integration pass |
+| `launcher/src-tauri`: `main.rs`, the bridge spec, generated types, the isolation hook | RA1–RA2 | Fill the one module the row owns |
+| `paradox/` | RP1–RP4; then fixes only (RD2) and RX2's catch-up | Never |
+| `legacy/` | Deleted by RS5, RH7, RA16 | Never |
 
-| Step | Backend and Director | Launcher |
-| --- | --- | --- |
-| 6 | RB1 inventory, RB2 capture on the canary (cut-off set, RD16), RB3 store spike and schema, RB4 migrate and verify | RA14 2.0.0-beta, RA15 bridge |
-| 7 | RB5–RB11 | RA16, RR5 |
-| 8 | RB12 shadow replay and catch-up, RB13 rollback rehearsal | — |
-| 9 | RB14 cutover: canary, then hosts | — |
-| 10 | RB15 after the last rollback window | — |
+### 5.2 Before the gate
 
-The Electron 1.5.x launcher keeps working against the Rust front door, so the step-5 cutover does not wait for
-2.0.0, and the front door is live long before the backend changes.
+| Wave | Row (one agent each unless said) | Needs | Hands-on |
+| --- | --- | --- | --- |
+| 0 | RX1, three agents: gateway, allowlist and content; launcher net and platform; launcher controller, bridge and page | — | — |
+| 0 | RP1 in the fork | — | — |
+| 0 | RR1 copy of `rust/` | — | — |
+| 0 | RR2 moves to `legacy/` | — | — |
+| 0 | RA10 spike: 1.14.7 under Proton with the runtime loaded | — | Linux machine with the game |
+| 1 | RP2–RP4 | RP1, RR2 | — |
+| 1 | RR3 CI, RR4 Dependabot (the `paradox/` job waits for RP3 to exist, it does not block) | RR1, RR2 | — |
+| 1 | RS1 protocol | RR1, RX1 | — |
+| 1 | RS4 allowlist helper | RR1, RX1 | nft rules on Debian 13 |
+| 1 | RA1–RA2 launcher skeleton and bridge | RR1, RX1 | — |
+| 1 | RH1 host kit skeleton | RR1 | — |
+| 2 | RS2 content | RS1, RX1 | — |
+| 2 | RS3 gateway | RS1, RS4 (same crate), RX1 | — |
+| 2 | RH2 `start` (starts the Node services and MongoDB until the Rust ones exist) | RH1 | — |
+| 2 | RH3 `setup`, `invite`, `doctor`, `multipliers`, MongoDB | RH1 | — |
+| 2 | RH4 `gamedata`, `preset`, `progression`, `publish-runtime`, `gamepack`, `captures` | RH1, RP3 | — |
+| 2 | RA3 languages | RA1 | — |
+| 2 | RA4 + RA5 invite, status, TLS, HTTP, host API | RA2, RS1 | — |
+| 2 | RA6 relay | RA2 | — |
+| 2 | RA7 downloader and verify | RA2, RS1 | — |
+| 2 | RA8 settings, log, keystore and legacy reader | RA2 | A real 1.5.1 profile |
+| 2 | RA9 + RA11 game config, folders, launch, links, window | RA2 | — |
+| 3 | RH6 release workflow, then RH5 `update` and install from it | RS2–RS4, RH2–RH4 | — |
+| 3 | RA12 Host page backend and injector, Windows | RA2, RH2 | A 1.14.7 client |
+| 3 | RA10 port (if the spike passed) | RA9 | Linux machine |
+| 3 | RX2 lists for gateway, content and host kit | RR1 (the copy commit) | — |
+| 3 | Shared check: the Tauri debug build against the Rust gateway and content, with the Node backend | RS2, RS3, RA4–RA9 | Canary |
+| 3 | Front-door cutover: canary, then every host through `update`; RX2's items for gateway, content and host kit ported first | RH5, RH6, RX2, the shared check | Canary, hosts |
+| 3 | RA13 controller | RA3–RA12 | — |
+| 3 | RA12a spike, then port if it passes | RA10 port, RA12 | Linux machine, SDK |
+| 3 | RS5 and RH7, one agent: port the remaining catch-up items, delete the three legacy folders | The cutover | — |
+| **Gate** | **The Rust front door and `reforged-host` are live on every host (RD17)** | RS5, RH7 | — |
+
+Wave 2 is the widest, eleven rows; the servers and host kit rows and the launcher rows can be merged in two separate
+integration passes, since they share no files.
+
+### 5.3 After the gate
+
+| Wave | Row (one agent each unless said) | Needs | Hands-on |
+| --- | --- | --- | --- |
+| 4 | RB1 route inventory, two agents: backend, Director | Gate | — |
+| 4 | RB3 `pq-sys` spike, then the schema; the critical path of this half of the plan | Gate | — |
+| 4 | RB10 Director (no database; `service-kit` only) with `director hunt-tables import` from RB11 | Gate | Game servers to start |
+| 4 | RB11 game-data generators (pure file-to-file; `admin bootstrap` waits for RB5) | Gate | — |
+| 4 | RB2 traffic capture on the canary; the cut-off date set and Freeza told (RD16) | Gate | Canary, testers |
+| 4 | RA14 2.0.0-beta packages and release workflow | RA13 | Signing keys |
+| 4 | RA15 Electron 1.6.0 bridge | RA14's installer hash | — |
+| 5 | RB4 `db migrate` and `db verify` | RB3 | Copies of real databases |
+| 5 | RB5 backend skeleton and seams | RB3 | — |
+| 6 | RB6 auth | RB5, RB4 | — |
+| 6 | RB7 Reforged API, login queue, maintenance status | RB5, RB4 | — |
+| 6 | RB8 in five agents: characters and loadouts; inventory, storage policy and reforge; progression, mastery, escalation and session supplies; bounties, store, Lady Luck and platinum; multipliers, matchmaking and parties, the game servers' posts | RB5, RB4 | — |
+| 6 | RB9 chat | RB5; RB6 for the XMPP auth, plugged in last | — |
+| 6 | RB11 `admin bootstrap` and the data migrations folded into `db migrate`, by RB4's agent | RB4, RB5 | — |
+| 6 | RB13 `db export-mongo` | RB4 | — |
+| 6 | RB12 harness and normalizer, proven first on Node against Node (no diffs expected) | RB2, RB4 | — |
+| 7 | RB12 replay; the diffs handed back one agent per RB8 group, RB6, RB7, RB9, RB10 | RB6–RB11, the harness | — |
+| 7 | RX2 catch-up for the backend and Director, by the same agents, then the final replay | RB12 | — |
+| 7 | RB13 rehearsal | RB13, the replay clean | Canary |
+| 8 | RB14 cutover: canary, a week, then hosts | RB13 rehearsal, the signed checklists (RD10) | Canary, hosts |
+| 8 | RA16 and RR5, one agent, when 3.0.0 is due | RA15 shipped | — |
+| 9 | RB15 | The last host's rollback window closed | — |
+
+Wave 6 is ten rows; RB13 and the RB12 harness can wait for a second integration pass. The Electron 1.5.x launcher
+keeps working against the Rust front door, so the wave-3 cutover does not wait for 2.0.0, and the front door is live
+long before the backend changes.
 
 ## 6. Things that must not change
 
