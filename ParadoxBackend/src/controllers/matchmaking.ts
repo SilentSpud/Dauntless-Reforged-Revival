@@ -53,6 +53,12 @@ let PartyInstanceCreatedAtMap: Map<string, number> = new Map<string, number>(); 
 // socket. Keep transport/session identity and matchmaking-request identity separate.
 const HubGameSessionIds: Map<string, string> = new Map<string, string>();
 
+// [Reforged 0025] True for a hub's game session id (the City-<id> chat room), false for a hunt's.
+export function IsHubGameSessionId(Id: string): boolean {
+    for (const HubId of HubGameSessionIds.values()) if (HubId === Id) return true;
+    return false;
+}
+
 function GetHubGameSessionId(Host: string, Port: number): string {
     const Key = `${Host}:${Port}`;
     let Id = HubGameSessionIds.get(Key);

@@ -13,6 +13,7 @@ import { GetPartyForPlayer } from "../controllers/party";
 import { logger } from "../logger";
 import { RegisteredConnection } from "./SessionRegistry";
 import { escapeXml, sanitizeName } from "./xml";
+import { MayJoinCityRoom } from "./cityRooms";
 
 /**
  * WP8 (task #7) — secure Party MUC. Captured room JID (plan §27):
@@ -191,7 +192,9 @@ export class RoomService {
             return { ok: false, reason: "not a party member" };
         }
         if (roomLocal.startsWith("City-")) {
-            if (!this.devCityMuc) return { ok: false, reason: "city muc disabled" };
+            // [Reforged 0025] The hub this account was sent to by matchmaking decides its City room.
+            if (MayJoinCityRoom(accountId, roomLocal)) return { ok: true, reason: "" };
+            if (!this.devCityMuc) return { ok: false, reason: "not sent to this city" };
             if (!this.cityWarned) {
                 this.cityWarned = true;
                 logger.warn(

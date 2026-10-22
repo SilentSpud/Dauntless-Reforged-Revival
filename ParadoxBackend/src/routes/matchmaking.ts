@@ -13,7 +13,8 @@ import { Router } from "express";
 import crypto from "node:crypto";
 import { HasParadoxBackendAuth } from "../middleware/HasParadoxBackendAuth";
 import { logger } from "../logger";
-import { CheckAndUpdateQueueStatus, FetchLiveHubStatus, GetCandidateStatusPeriodMillis, HandlePlayerMatchmaking } from "../controllers/matchmaking";
+import { CheckAndUpdateQueueStatus, FetchLiveHubStatus, GetCandidateStatusPeriodMillis, HandlePlayerMatchmaking, IsHubGameSessionId } from "../controllers/matchmaking";
+import { RecordHubSessionServed } from "../realtime/cityRooms";
 import { GetPartyForPlayer } from "../controllers/party";
 import { sessionRegistry } from "../realtime/SessionRegistry";
 import { ResolveMatchmakingParty } from "../matchmakingParty";
@@ -251,6 +252,10 @@ matchmakingRouter.get("/candidate/status", HasParadoxBackendAuth, async (req: an
             }
 
             logger.info(`Telling user ${UserId} to travel to ${TravelHost}:${LivePort} candidateId=${MatchmakingResult.CandidateId} local=${IsLocalClient ? 1 : 0} verified=1`);
+            // [Reforged 0025] The client joins City-<gameSessionId> for a hub; remember which one.
+            if (IsHubGameSessionId(MatchmakingResult.GameSessionId)) {
+                RecordHubSessionServed(UserId, MatchmakingResult.GameSessionId);
+            }
 
             res.status(200);
             res.json({
