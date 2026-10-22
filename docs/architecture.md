@@ -96,3 +96,4 @@ see [hosting.md](hosting.md); for the per-component details, each folder's READM
 Headers: `x-reforged-user-api-key` (account key), `x-reforged-admin-key` (admin),
 `x-reforged-gateway` (set by the gateway), `x-mysticparadox-gameserver-apikey` (game servers,
 loopback only).
+
