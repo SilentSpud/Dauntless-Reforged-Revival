@@ -165,9 +165,9 @@ mod tests {
 
     #[test]
     fn reads_every_checked_settings_file() {
-        let defaults = Stored::of(&default_settings(Language::De));
+        let defaults = Stored::of(&default_settings(Language::PtBr));
         assert!(defaults.server.is_none());
-        assert_eq!(defaults.language, Language::De);
+        assert_eq!(defaults.language, Language::PtBr);
         // DR's default (4) until RA8 takes Reforged's (-1, `GraphicsPreset::DEFAULT`)
         assert_eq!(defaults.graphics.value(), 4);
 
