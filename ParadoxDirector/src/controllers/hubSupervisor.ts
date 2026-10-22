@@ -126,6 +126,19 @@ export class HubSupervisor<T> {
         void this.ensure(`exit: ${reason}`);
     }
 
+    // [Dauntless Reforged Revival, patch 0033] An on-demand hub that was stopped on purpose (idle): forgets it
+    // without a restart, a failure or a backoff, so the next ensure() starts it at once. False when `hub` is
+    // not the current one.
+    release(hub: T, reason: string): boolean {
+        if (hub !== this.hub) return false;
+        this.hub = undefined;
+        this.failures = 0;
+        this.nextAttemptAt = 0;
+        this.cancelTimer();
+        this.log("info", `[HubSupervisor] ${this.label} released (${reason}) - started again on the next request`);
+        return true;
+    }
+
     tick(): void {
         if (this.hub !== undefined) {
             if (!this.options.isAlive(this.hub)) {

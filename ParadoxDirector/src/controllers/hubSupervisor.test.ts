@@ -293,3 +293,22 @@ test("the default clock is monotonic (performance.now), not the wall clock", asy
     assert.ok(due >= before + DEFAULT_HUB_BACKOFF_MS[0] && due <= performance.now() + DEFAULT_HUB_BACKOFF_MS[0], `due=${due}`);
     supervisor.dispose();
 });
+
+// [Dauntless Reforged Revival, patch 0033]
+test("a released hub (stopped on purpose) is not restarted, and the next request starts it at once", async () => {
+    const h = Harness(["ok", "ok"]);
+    const hub = (await h.supervisor.ensure("boot"))!;
+    h.advance(10_000);                                   // well before a stable run: an exit here would back off
+    assert.equal(h.supervisor.release(hub, "idle"), true);
+    hub.alive = false;
+    h.supervisor.onExit(hub, "exit code=0");             // the exit event after the stop: ignored
+    await Flush();
+    assert.equal(h.starts, 1, "no restart");
+    assert.equal(h.live().length, 0, "no retry timer");
+    assert.equal(h.supervisor.current, undefined);
+    assert.equal(h.supervisor.failureCount, 0);
+    const next = await h.supervisor.ensure("request");
+    assert.ok(next, "no backoff before the next start");
+    assert.equal(h.starts, 2);
+    assert.equal(h.supervisor.release(hub, "idle"), false, "an old hub is not the current one");
+});
