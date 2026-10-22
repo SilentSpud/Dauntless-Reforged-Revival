@@ -12443,6 +12443,142 @@ static void TraceClientInventoryEvent(UObject* Object, const std::string& Functi
         + " equippedResolved=" + std::to_string(Equipped) + "/5");
 }
 
+// [Dauntless Reforged Revival] Repairs the arsenal emptying out (no armour, "Novo Equipamento", power 0, HUD weapon XP
+// 8,888 / 100,000) after a hunt search or an inventory refresh. Each item in a loadout lives in a UArchonLoadoutItemSlot,
+// and only the CRC of its item id replicates (FItemInstanceIdRepl::ItemInstanceID is RepSkip). The client turns the
+// CRC back into the item id in UArchonLoadoutItemSlot::OnRep_ItemInstanceIdChanged (+0x1BADCE0), which looks it up in
+// the slot's own Inventory (+0x28), and does nothing when that pointer is still null. On 19 Oct (00:13 hunt) the
+// loadout's Inventory reached the client 1.2 s after its slots (ArchonLoadout.OnRep_Inventory last instead of first):
+// the inventory actor was not on the client yet, the slots' OnRep ran with no inventory, and nothing ever looks the
+// ids up again, because the slot's Inventory is not RepNotify and AArchonLoadout::OnRep_Inventory (+0x1BAD7D0) only
+// re-resolves the loadout's own ids (emotes, banner, title...), not the slots'. The arsenal then shows empty slots
+// although the server and the character still have the gear. This finds, about once a second, the local loadout's
+// item slots that have a CRC, no item id and an inventory that has finished loading, runs their own
+// OnRep_ItemInstanceIdChanged again, and marks the loadout changed (OnRep_GenericLoadoutChanged) so the menus redraw.
+// DISABLE_LOADOUT_SLOT_REPAIR.flag next to the game turns it off.
+static constexpr uintptr_t kLoadoutItemSlotOffsets[8] = { 0x348, 0x350, 0x358, 0x360, 0x368, 0x370, 0x378, 0x380 };
+static const char* const kLoadoutItemSlotNames[8] = { "role", "weapon", "subweapon", "helmet", "chest", "legs", "arms", "lantern" };
+
+struct UnresolvedLoadoutItemSlot {
+    void* Slot;
+    int LoadoutSlotIndex;
+    int ItemSlot;
+    uint32_t Crc;
+};
+
+// No C++ objects in here: it runs under SEH. Returns the slots that can be resolved now; *OutWaiting counts the
+// ones whose inventory is missing or still loading.
+static int CollectUnresolvedLoadoutItemSlots(void* PlayerController, UnresolvedLoadoutItemSlot* Out, int Max,
+    int* OutWaiting, void** OutLoadout) {
+    *OutWaiting = 0; *OutLoadout = nullptr;
+    int Count = 0;
+    __try {
+        if (!PlayerController || !IsReadablePointer(PlayerController, 0x9D0)
+            || !IsRegisteredLiveObject(PlayerController)
+            || !reinterpret_cast<UObject*>(PlayerController)->IsA(AArchonPlayerController::StaticClass())) return 0;
+        AArchonLoadout* Loadout = reinterpret_cast<AArchonPlayerController*>(PlayerController)->LOADOUT;
+        if (!Loadout || !IsReadablePointer(Loadout, 0x690) || !IsRegisteredLiveObject(Loadout)) return 0;
+        *OutLoadout = Loadout;
+        const int SlotCount = Loadout->LoadoutSlotDataArray.Num();
+        for (int i = 0; i < SlotCount && i < 8; ++i) {
+            UArchonLoadoutSlotData* SlotData = Loadout->LoadoutSlotDataArray[i];
+            if (!SlotData || !IsReadablePointer(SlotData, 0x390) || !IsRegisteredLiveObject(SlotData)) continue;
+            for (int s = 0; s < 8; ++s) {
+                void* Slot = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(SlotData) + kLoadoutItemSlotOffsets[s]);
+                if (!Slot || !IsReadablePointer(Slot, 0xC0) || !IsRegisteredLiveObject(Slot)) continue;
+                UArchonLoadoutItemSlot* ItemSlot = reinterpret_cast<UArchonLoadoutItemSlot*>(Slot);
+                const uint32_t Crc = ItemSlot->ItemInstanceID.ItemInstanceIdCrc;
+                if (Crc == 0 || ItemSlot->ItemInstanceID.ItemInstanceID.Num() > 0) continue;
+                AArchonInventory* Inventory = ItemSlot->Inventory;
+                if (!Inventory || !IsReadablePointer(Inventory, 0x400) || !IsRegisteredLiveObject(Inventory)
+                    || !reinterpret_cast<bool(*)(UObject*)>(OrigHasFinishedLoading)(Inventory)) {
+                    ++*OutWaiting;
+                    continue;
+                }
+                if (Count < Max) Out[Count++] = { Slot, i, s, Crc };
+            }
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        return 0;
+    }
+    return Count;
+}
+
+static bool LoadoutItemSlotHasItemId(void* Slot) {
+    __try {
+        return IsReadablePointer(Slot, 0xC0)
+            && reinterpret_cast<UArchonLoadoutItemSlot*>(Slot)->ItemInstanceID.ItemInstanceID.Num() > 0;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        return false;
+    }
+}
+
+static void RepairClientLoadoutItemSlots() {
+    static const bool s_disabled = MpExeRelativeFlagPresent(L"DISABLE_LOADOUT_SLOT_REPAIR.flag");
+    if (Globals::AmServer || s_disabled) return;
+    if (GetCurrentThreadId() != g_clientGameThreadId.load(std::memory_order_relaxed)) return;
+    static uint64_t s_nextCheckMs = 0;
+    static bool s_inRepair = false;
+    const uint64_t Now = GetTickCount64();
+    if (s_inRepair || Now < s_nextCheckMs) return;
+    s_nextCheckMs = Now + 1000;
+
+    UnresolvedLoadoutItemSlot Slots[64];
+    int Waiting = 0;
+    void* Loadout = nullptr;
+    const int Count = CollectUnresolvedLoadoutItemSlots(s_LastPossessedPC, Slots, 64, &Waiting, &Loadout);
+
+    // Say once per loadout that slots are waiting for their inventory, so the log shows the gap even if it fixes itself.
+    static void* s_waitingLoggedFor = nullptr;
+    if (Waiting > 0 && Loadout != s_waitingLoggedFor) {
+        s_waitingLoggedFor = Loadout;
+        MpLog("[LoadoutSlotRepair] loadout=" + MpPtr(Loadout) + " " + std::to_string(Waiting)
+            + " item slot(s) have an item CRC but no item id, and their inventory is missing or still loading");
+    }
+    if (Count == 0) return;
+
+    // A slot whose id stays unknown (the item is really gone from the inventory) is tried three times, not forever.
+    static std::unordered_map<const void*, int> s_attempts;
+    static void* s_attemptsLoadout = nullptr;
+    if (Loadout != s_attemptsLoadout || s_attempts.size() > 512) {
+        s_attempts.clear();
+        s_attemptsLoadout = Loadout;
+    }
+
+    s_inRepair = true;
+    int Repaired = 0;
+    for (int i = 0; i < Count; ++i) {
+        int& Attempts = s_attempts[Slots[i].Slot];
+        if (Attempts >= 3) continue;
+        ++Attempts;
+        UObject* SlotObject = reinterpret_cast<UObject*>(Slots[i].Slot);
+        SDK::UFunction* Fn = SlotObject->Class
+            ? SlotObject->Class->GetFunction("ArchonLoadoutItemSlot", "OnRep_ItemInstanceIdChanged") : nullptr;
+        if (!Fn) {
+            MpLog("[LoadoutSlotRepair] ArchonLoadoutItemSlot.OnRep_ItemInstanceIdChanged not found");
+            break;
+        }
+        alignas(8) uint8_t Parms[0x40] = {};   // OldItemInstanceId: an empty FItemInstanceIdRepl
+        SlotObject->ProcessEvent(Fn, Parms);
+        const bool Resolved = LoadoutItemSlotHasItemId(Slots[i].Slot);
+        if (Resolved) ++Repaired;
+        MpLog("[LoadoutSlotRepair] loadout slot " + std::to_string(Slots[i].LoadoutSlotIndex)
+            + " " + kLoadoutItemSlotNames[Slots[i].ItemSlot]
+            + " crc=" + MpHex(Slots[i].Crc)
+            + (Resolved ? " resolved" : " still unknown") + " (attempt " + std::to_string(Attempts) + ")");
+    }
+    if (Repaired > 0 && Loadout) {
+        UObject* LoadoutObject = reinterpret_cast<UObject*>(Loadout);
+        if (SDK::UFunction* Changed = LoadoutObject->Class
+                ? LoadoutObject->Class->GetFunction("ArchonLoadout", "OnRep_GenericLoadoutChanged") : nullptr) {
+            LoadoutObject->ProcessEvent(Changed, nullptr);
+        }
+    }
+    s_inRepair = false;
+}
+
 void ProcessEventClientHook(UObject* Object, UFunction* Function, void* Parms) {
     g_clientProcessEventCount.fetch_add(1, std::memory_order_relaxed);
     if (g_clientGameThreadId.load(std::memory_order_relaxed) == 0) {
@@ -12884,6 +13020,7 @@ void ProcessEventClientHook(UObject* Object, UFunction* Function, void* Parms) {
     reinterpret_cast<void(*)(UObject*, UFunction*, void*)>(OrigProcessEventClient)(Object, Function, Parms);
     TraceArtificerDroneEvent("Client", "EXIT", Object, FunctionName, Parms);
     TraceClientInventoryEvent(Object, FunctionName, "EXIT");
+    RepairClientLoadoutItemSlots();
 
     // After the screen's own handler, so SetSplashImage / HandleGetPatchNotesPayloadSuccess cannot undo it.
     if (FunctionName.find("LoginScreen") != std::string::npos) {
