@@ -6564,6 +6564,120 @@ static bool UseArchonRepGraph() {
     return true;
 }
 
+// [Dauntless Reforged Revival] A hunt client whose character never gets its weapon waits on the loading
+// screen until the server gives up (120 s "Loading timeout"). On 16 Oct that happened on every hunt
+// with the newly crafted hammer (ihammer_rock_00) equipped and on no hunt with the war pike or the
+// repeaters, while the server logs of both kinds of hunt match line for line. AArchonCharacter::Weapon
+// (+0x5F0) is not replicated: the client sets it itself once its copy of the weapon equips. This records,
+// a few times per hunt join, what the client has instead, so the next log shows where the weapon stops:
+//   - the character's equipment pointers (weapon, armour, lantern, omnicell);
+//   - every AArchonWeapon on the client, and any other equipment the character owns, with its owner,
+//     network role, item id, the four AArchonEquipment equip flags (+0x2F4..+0x2F7), and for weapons
+//     the replicated level / slot / parts and whether its power table and meshes were set up;
+//   - the local player's loadout (active slot, slot count).
+// It only reads memory and logs; it changes nothing.
+static void LogLocalWeaponGap(UObject* Pawn, uint64_t SinceRestartMs) {
+    static uintptr_t s_gapPawn = 0;
+    static int s_gapStage = 0;
+    static const uint64_t kStagesMs[] = { 3000, 10000, 30000, 60000, 100000 };
+    const uintptr_t P = reinterpret_cast<uintptr_t>(Pawn);
+    if (!Pawn || !IsReadablePointer(Pawn, 0x748) || !IsRegisteredLiveObject(Pawn)) return;
+    if (P != s_gapPawn) { s_gapPawn = P; s_gapStage = 0; }
+    if (s_gapStage >= static_cast<int>(sizeof(kStagesMs) / sizeof(kStagesMs[0]))) return;
+    if (SinceRestartMs < kStagesMs[s_gapStage]) return;
+    ++s_gapStage;
+
+    auto Name = [](uintptr_t Ptr) { return SafeObjectNameForDiagnostic(reinterpret_cast<void*>(Ptr)); };
+    auto ClassName = [](uintptr_t Obj) {
+        return SafeObjectNameForDiagnostic(reinterpret_cast<void*>(SafeReadPtr(Obj, 0x10)));
+    };
+
+    // AArchonCharacter (1.14.7 SDK): Weapon +0x5F0, Helmet/Chest/Legs/Arms +0x700..+0x718,
+    // Lantern +0x720, Accessories TArray +0x728 (Num +0x730), PlayerRole +0x738.
+    MpLog("[WeaponGap] stage=" + std::to_string(s_gapStage) + " sinceClientRestartMs=" + std::to_string(SinceRestartMs)
+        + " pawn=" + Name(P)
+        + " weapon=" + Name(SafeReadPtr(P, 0x5F0))
+        + " helmet=" + Name(SafeReadPtr(P, 0x700))
+        + " chest=" + Name(SafeReadPtr(P, 0x708))
+        + " legs=" + Name(SafeReadPtr(P, 0x710))
+        + " arms=" + Name(SafeReadPtr(P, 0x718))
+        + " lantern=" + Name(SafeReadPtr(P, 0x720))
+        + " accessories=" + std::to_string(SafeReadI32At(P, 0x730))
+        + " playerRole=" + Name(SafeReadPtr(P, 0x738)));
+
+    if (!SDK::UObject::GObjects) return;
+    const int Count = SDK::UObject::GObjects->Num();
+    int Logged = 0;
+    for (int i = 0; i < Count && Logged < 16; i++) {
+        SDK::UObject* Obj = SDK::UObject::GObjects->GetByIndex(i);
+        if (!Obj || Obj->IsDefaultObject()) continue;
+        const uintptr_t A = reinterpret_cast<uintptr_t>(Obj);
+
+        if (Obj->IsA(SDK::AArchonLoadout::StaticClass())) {
+            if (!IsReadablePointer(Obj, 0xA88)) continue;
+            // AArchonLoadout: PlayerController +0x630, LoadoutSlotDataArray Num +0x678,
+            // ActiveLoadoutSlotIndex +0x680, bReplicated +0xA80.
+            const uintptr_t LoadoutPC = SafeReadPtr(A, 0x630);
+            if (LoadoutPC != 0 && LoadoutPC == reinterpret_cast<uintptr_t>(s_LastPossessedPC)) {
+                MpLog("[WeaponGap]   loadout=" + Obj->GetName()
+                    + " activeSlot=" + std::to_string(SafeReadI32At(A, 0x680))
+                    + " slots=" + std::to_string(SafeReadI32At(A, 0x678))
+                    + " replicated=" + std::to_string(SafeReadU8At(A, 0xA80)));
+                ++Logged;
+            }
+            continue;
+        }
+
+        if (!Obj->IsA(SDK::AArchonEquipment::StaticClass()) || !IsReadablePointer(Obj, 0x300)) continue;
+        const bool IsWeapon = Obj->IsA(SDK::AArchonWeapon::StaticClass());
+        const uintptr_t Owner = SafeReadPtr(A, 0xE0);
+        if (!IsWeapon && Owner != P) continue;
+
+        // AActor: Owner +0xE0, Role +0xF0, RemoteRole +0x5F. AArchonEquipment: LoadoutItemSlotType +0x238,
+        // ItemId FString +0x240, bIsEquipped +0x2F4, bIsEquippedForGameplay +0x2F5, bIsActiveGameplay +0x2F6,
+        // bCalledBPHandleEquipForGameplay +0x2F7.
+        std::string Line = "[WeaponGap]   item=" + Obj->GetName()
+            + " class=" + ClassName(A)
+            + " owner=" + Name(Owner) + (Owner == P ? "(this pawn)" : "")
+            + " role=" + std::to_string(SafeReadU8At(A, 0xF0))
+            + " remoteRole=" + std::to_string(SafeReadU8At(A, 0x5F))
+            + " dying=" + std::to_string(reinterpret_cast<SDK::AActor*>(Obj)->bActorIsBeingDestroyed ? 1 : 0)
+            + " slotType=" + std::to_string(SafeReadU8At(A, 0x238))
+            + " itemId=" + CoreCapFString(reinterpret_cast<void*>(A + 0x240))
+            + " equipped=" + std::to_string(SafeReadU8At(A, 0x2F4))
+            + " equippedForGameplay=" + std::to_string(SafeReadU8At(A, 0x2F5))
+            + " activeGameplay=" + std::to_string(SafeReadU8At(A, 0x2F6))
+            + " bpEquipForGameplay=" + std::to_string(SafeReadU8At(A, 0x2F7));
+        if (IsWeapon && IsReadablePointer(Obj, 0x7E0)) {
+            // AArchonWeapon: WeaponType +0x43C, PlayerSkelMesh +0x4B0, WeaponMesh +0x608,
+            // bWeaponSeperationMeshesSet +0x6B8, WeaponSlotIndex +0x6F8, CurrentLevel +0x6FC,
+            // EquippedWeaponParts TArray +0x708 (Num +0x710; 0x20-byte FEquippedWeaponPartData with the
+            // replicated part-id CRC at +0x10, SlotIndex +0x18, WeaponPartType +0x1C), PowerTable +0x728
+            // (looked up from CurrentLevel), WeaponSpecificAttributeSetClass +0x798.
+            const int Parts = SafeReadI32At(A, 0x710);
+            const uintptr_t PartData = SafeReadPtr(A, 0x708);
+            std::string PartList;
+            for (int j = 0; j < Parts && j < 4 && PartData; j++) {
+                const uintptr_t E = PartData + static_cast<uintptr_t>(j) * 0x20;
+                PartList += (j ? "," : "") + std::to_string(static_cast<uint32_t>(SafeReadI32At(E, 0x10)))
+                    + "@" + std::to_string(SafeReadI32At(E, 0x18))
+                    + "/t" + std::to_string(SafeReadU8At(E, 0x1C));
+            }
+            Line += " weaponType=" + std::to_string(SafeReadU8At(A, 0x43C))
+                + " slotIndex=" + std::to_string(SafeReadI32At(A, 0x6F8))
+                + " level=" + std::to_string(SafeReadU8At(A, 0x6FC))
+                + " parts=" + std::to_string(Parts) + "[" + PartList + "]"
+                + " powerTable=" + Name(SafeReadPtr(A, 0x728))
+                + " weaponMesh=" + Name(SafeReadPtr(A, 0x608))
+                + " separationMeshesSet=" + std::to_string(SafeReadU8At(A, 0x6B8))
+                + " playerSkelMesh=" + Name(SafeReadPtr(A, 0x4B0))
+                + " attributeSetClass=" + Name(SafeReadPtr(A, 0x798));
+        }
+        MpLog(Line);
+        ++Logged;
+    }
+}
+
 // FUN_141A60BC0 is the generic IArchonLoadingInterface dispatcher, not a controller-specific
 // readiness getter. Ghidra verifies that it calls the interface vtable (+0x20) and reflected
 // HasFinishedLoading implementation for every participating object. The SDK contains world/visual
@@ -6609,6 +6723,9 @@ static bool IsLocalArchonControllerReadinessObject(UObject* Object) {
         // That was every crash of 16 Oct (three, all in Snow Jen). Without a weapon, keep the loading screen
         // up until the server equips the character.
         if (!StablePawn || SafeReadPtr(reinterpret_cast<uintptr_t>(StablePawn), 0x5F0) == 0) {
+            if (StablePawn && s_LastPossessedAtMs != 0) {
+                LogLocalWeaponGap(StablePawn, GetTickCount64() - s_LastPossessedAtMs);
+            }
             return false;
         }
 
