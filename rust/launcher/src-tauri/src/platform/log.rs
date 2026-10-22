@@ -9,7 +9,8 @@ use std::sync::{LazyLock, Mutex, MutexGuard};
 
 use regex::Regex;
 
-use crate::core::text::js_length;
+use protocol::account::ACCOUNT_KEY_PREFIX;
+use protocol::text::js_length;
 
 /// JavaScript's `\s` (ECMAScript white space and line terminators), for the patterns below.
 const JS_SPACE: &str =
@@ -19,13 +20,13 @@ static SECRETS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 static SINK: Mutex<Option<PathBuf>> = Mutex::new(None);
 
 static ACCOUNT_KEY: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new("UUK_[A-Za-z0-9_-]+").unwrap_or_else(|_| unreachable_regex()));
+    LazyLock::new(|| Regex::new("RRK_[A-Za-z0-9_-]+").unwrap_or_else(|_| unreachable_regex()));
 static AUTH_ARGUMENT: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(&format!(r#"(?i)(-AUTH_PASSWORD=)[^{JS_SPACE}"']*"#)).unwrap_or_else(|_| unreachable_regex())
 });
 static KEY_HEADER: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(&format!(
-        r#"(?i)(x-undaunted-user-api-key["']?[{JS_SPACE}]*[:=][{JS_SPACE}]*["']?)[^{JS_SPACE}"',}}]+"#
+        r#"(?i)(x-reforged-user-api-key["']?[{JS_SPACE}]*[:=][{JS_SPACE}]*["']?)[^{JS_SPACE}"',}}]+"#
     ))
     .unwrap_or_else(|_| unreachable_regex())
 });
@@ -46,13 +47,13 @@ fn remember(value: &str) {
     }
 }
 
-/// Registers a value that must never reach the log; a server-made key without its `UUK_` too.
+/// Registers a value that must never reach the log; a server-made key without its `RRK_` too.
 pub fn add_secret(value: &str) {
     if js_length(value) >= 6 {
         remember(value);
     }
-    if let Some(rest) = value.strip_prefix("UUK_")
-        && rest.chars().count() >= 16
+    if let Some(rest) = value.strip_prefix(ACCOUNT_KEY_PREFIX)
+        && js_length(rest) >= 16
         && !rest.contains(['\n', '\r', '\u{2028}', '\u{2029}'])
     {
         remember(rest);
@@ -61,7 +62,7 @@ pub fn add_secret(value: &str) {
 
 pub fn remove_secret(value: &str) {
     let mut secrets = secrets();
-    secrets.retain(|known| known != value && value.strip_prefix("UUK_") != Some(known.as_str()));
+    secrets.retain(|known| known != value && value.strip_prefix(ACCOUNT_KEY_PREFIX) != Some(known.as_str()));
 }
 
 pub fn redact(text: &str) -> String {
@@ -69,7 +70,7 @@ pub fn redact(text: &str) -> String {
     for secret in secrets().iter() {
         out = out.replace(secret.as_str(), "<hidden>");
     }
-    let out = ACCOUNT_KEY.replace_all(&out, "UUK_<hidden>");
+    let out = ACCOUNT_KEY.replace_all(&out, "RRK_<hidden>");
     let out = AUTH_ARGUMENT.replace_all(&out, "${1}<hidden>");
     KEY_HEADER.replace_all(&out, "${1}<hidden>").into_owned()
 }
@@ -192,7 +193,7 @@ mod tests {
     fn a_registered_key_never_reaches_the_file() {
         let dir = tempfile::tempdir().unwrap();
         log_to_file(dir.path().to_path_buf());
-        let key = concat!("UUK_", "fedcba9876543210", "fedcba9876543210", "fedcba9876543210");
+        let key = concat!("RRK_", "fedcba9876543210", "fedcba9876543210", "fedcba9876543210");
         add_secret(key);
         info(&format!("launching with -AUTH_PASSWORD={key} and {}", &key[4..]));
         tracing::subscriber::with_default(

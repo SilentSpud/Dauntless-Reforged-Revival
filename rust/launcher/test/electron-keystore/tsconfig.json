@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "commonjs",
+    "moduleResolution": "node10",
+    "ignoreDeprecations": "6.0",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "outDir": "build",
+    "rootDir": "../../../../legacy/ReforgedLauncher/src",
+    "types": ["node"]
+  },
+  "files": [
+    "../../../../legacy/ReforgedLauncher/src/main/keystore.ts",
+    "../../../../legacy/ReforgedLauncher/src/main/settings.ts"
+  ]
+}

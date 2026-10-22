@@ -1,15 +1,15 @@
 {
   "secrets": [
-    "UUK_0123456789abcdef0123456789abcdef0123456789abcdef",
+    "RRK_0123456789abcdef0123456789abcdef0123456789abcdef",
     "hunter2secret",
     "short",
-    "UUK_xxxxxxxxxxxxxxx",
-    "UUK_yyyyyyyyyyyyyyyy"
+    "RRK_xxxxxxxxxxxxxxx",
+    "RRK_yyyyyyyyyyyyyyyy"
   ],
-  "removed": "UUK_0123456789abcdef0123456789abcdef0123456789abcdef",
+  "removed": "RRK_0123456789abcdef0123456789abcdef0123456789abcdef",
   "cases": [
     {
-      "line": "raw UUK_0123456789abcdef0123456789abcdef0123456789abcdef end",
+      "line": "raw RRK_0123456789abcdef0123456789abcdef0123456789abcdef end",
       "redacted": "raw <hidden> end"
     },
     {
@@ -25,7 +25,7 @@
       "redacted": "short is not a secret"
     },
     {
-      "line": "UUK_xxxxxxxxxxxxxxx and yyyyyyyyyyyyyyyy",
+      "line": "RRK_xxxxxxxxxxxxxxx and yyyyyyyyyyyyyyyy",
       "redacted": "<hidden> and <hidden>"
     },
     {
@@ -37,36 +37,44 @@
       "redacted": "-Auth_Password=<hidden>"
     },
     {
-      "line": "headers {\"x-undaunted-user-api-key\":\"secret-value\",\"other\":1}",
-      "redacted": "headers {\"x-undaunted-user-api-key\":\"<hidden>\",\"other\":1}"
+      "line": "headers {\"x-reforged-user-api-key\":\"secret-value\",\"other\":1}",
+      "redacted": "headers {\"x-reforged-user-api-key\":\"<hidden>\",\"other\":1}"
     },
     {
-      "line": "X-Undaunted-User-Api-Key = abc123, next",
-      "redacted": "X-Undaunted-User-Api-Key = <hidden>, next"
+      "line": "X-Reforged-User-Api-Key = abc123, next",
+      "redacted": "X-Reforged-User-Api-Key = <hidden>, next"
     },
     {
-      "line": "x-undaunted-user-api-key:﻿abc",
-      "redacted": "x-undaunted-user-api-key:﻿<hidden>"
+      "line": "x-reforged-user-api-key:﻿abc",
+      "redacted": "x-reforged-user-api-key:﻿<hidden>"
     },
     {
-      "line": "x-undaunted-user-api-key: abc",
-      "redacted": "x-undaunted-user-api-key: <hidden>"
+      "line": "x-reforged-user-api-key: abc",
+      "redacted": "x-reforged-user-api-key: <hidden>"
     },
     {
       "line": "-AUTH_PASSWORD=a　b",
       "redacted": "-AUTH_PASSWORD=<hidden>　b"
     },
     {
-      "line": "UUK_ab-_cd!rest",
-      "redacted": "UUK_<hidden>!rest"
+      "line": "RRK_ab-_cd!rest",
+      "redacted": "RRK_<hidden>!rest"
     },
     {
       "line": "nothing here",
       "redacted": "nothing here"
     },
     {
-      "line": "after removal 0123456789abcdef0123456789abcdef0123456789abcdef UUK_0123456789abcdef0123456789abcdef0123456789abcdef",
-      "redacted": "after removal 0123456789abcdef0123456789abcdef0123456789abcdef UUK_<hidden>"
+      "line": "legacy UUK_0123456789abcdef0123456789abcdef0123456789abcdef stays",
+      "redacted": "legacy UUK_<hidden> stays"
+    },
+    {
+      "line": "x-undaunted-user-api-key: not-ours",
+      "redacted": "x-undaunted-user-api-key: not-ours"
+    },
+    {
+      "line": "after removal 0123456789abcdef0123456789abcdef0123456789abcdef RRK_0123456789abcdef0123456789abcdef0123456789abcdef",
+      "redacted": "after removal 0123456789abcdef0123456789abcdef0123456789abcdef RRK_<hidden>"
     }
   ]
 }
