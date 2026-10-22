@@ -123,6 +123,38 @@ test("a daily draft replaces the previous daily bounty and leaves the season cha
     assert.deepEqual((Record.draftData.daily as any).previous_draft_selections.length, 2);
 });
 
+function Token(id: string, slot: number, drafted: string, progress = 0, claimed = false) {
+    return { bounty_id: id, premium_bounty: true, slot_index: slot, objectives: [{ objective_id: id, progress }], drafted_timestamp: drafted, update_version: 0, claimed };
+}
+
+test("drafting a second bounty token keeps the first one active", () => {
+    const SeasonId = "43_2_1_Challenge_Season_GatherablesAny-season43-1";
+    let Record = Apply(undefined, { bounties: [Season(SeasonId, 5)], draft_data_weekly: DefaultDraftData() });
+    Record = Apply(Record, { bounties: [], draft_data: { ...DefaultDraftData(), current_draft_choices: ["a", "b", "c"], bronze_count: 2 } });
+    Record = Apply(Record, {
+        bounties: [Token("Bounty_Bronze_PhysicalDodges", 0, "2026-10-19T03:00:00.000Z")],
+        draft_data: { ...DefaultDraftData(), previous_draft_selections: ["Bounty_Bronze_PhysicalDodges"], bronze_count: 1 }
+    });
+    Record = Apply(Record, { bounties: [Token("Bounty_Bronze_PhysicalDodges", 0, "2026-10-19T03:00:00.000Z", 4)] });
+    const Second = MergeBountyState(USER, Record, {
+        bounties: [Token("Bounty_Silver_StaggerDamageReduce", 1, "2026-10-19T03:01:00.000Z")],
+        draft_data: { ...DefaultDraftData(), previous_draft_selections: ["Bounty_Bronze_PhysicalDodges", "Bounty_Silver_StaggerDamageReduce"] }
+    }, NOW);
+    assert.equal(Second.summary.removed, 0);
+    assert.equal(Second.summary.mode, "upsert");
+    Record = Second.record;
+    const Base = Record.bounties.filter((Entry) => Entry.group === "base").map((Entry) => Entry.bounty.bounty_id).sort();
+    assert.deepEqual(Base, ["Bounty_Bronze_PhysicalDodges", "Bounty_Silver_StaggerDamageReduce"]);
+    assert.equal(Record.bounties.find((Entry) => Entry.bounty.bounty_id === "Bounty_Bronze_PhysicalDodges")!.bounty.objectives[0].progress, 4);
+    assert.equal(Record.bounties.filter((Entry) => Entry.group === "weekly").length, 1);
+    // What the hunt server loads after the map change carries both tokens.
+    const Served = (BountyStatePayload(Record).bounties as any[]).map((Bounty) => Bounty.bounty_id);
+    assert.ok(Served.includes("Bounty_Bronze_PhysicalDodges") && Served.includes("Bounty_Silver_StaggerDamageReduce"));
+    // Claiming one removes only that one.
+    Record = DeleteBounties(USER, Record, { bounty_ids: ["Bounty_Bronze_PhysicalDodges"] }, NOW).record;
+    assert.deepEqual(Record.bounties.filter((Entry) => Entry.group === "base").map((Entry) => Entry.bounty.bounty_id), ["Bounty_Silver_StaggerDamageReduce"]);
+});
+
 test("a single-bounty save updates progress; a new drafted_timestamp is a new instance", () => {
     const Id = "Challenge_Daily_Bronze_KillBlazeWeapon";
     let Record = Apply(undefined, { bounties: [Daily(Id, "2026-10-09T05:00:00.000Z", 1, true)], draft_data_daily: DefaultDraftData() });
