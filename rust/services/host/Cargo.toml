@@ -12,5 +12,15 @@ publish.workspace = true
 name = "reforged-host"
 path = "src/main.rs"
 
+[dependencies]
+clap.workspace = true
+# host.json in JavaScript's key order and number text (service-kit turns on preserve_order).
+serde_json.workspace = true
+service-kit.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
 [lints]
 workspace = true

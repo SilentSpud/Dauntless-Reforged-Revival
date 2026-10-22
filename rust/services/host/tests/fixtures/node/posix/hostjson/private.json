@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "mode": "private",
+  "host": "100.101.102.103",
+  "gameAddress": "100.101.102.103",
+  "name": "Friday Hunts",
+  "gameDir": "/srv/dauntless/Dauntless",
+  "registration": "INVITECODE",
+  "shareUrl": "https://login.tailscale.com/admin/invite/abc_DEF-123",
+  "mongo": {
+    "uri": "mongodb://127.0.0.1:27017/?replicaSet=rs0",
+    "manage": true,
+    "mongod": "/usr/bin/mongod"
+  },
+  "maxHuntServers": 3,
+  "performance": {
+    "serverFps": 30,
+    "idleFps": 10,
+    "trainingOnDemand": true,
+    "trainingIdleMinutes": 5,
+    "verboseGameLogs": false,
+    "memoryGuard": true,
+    "minFreeMemoryMb": 1024,
+    "huntMemoryMb": 1536
+  }
+}
