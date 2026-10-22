@@ -2044,11 +2044,15 @@ dependencies = [
 name = "host"
 version = "0.0.0"
 dependencies = [
+ "chrono",
  "clap",
+ "libc",
  "serde_json",
  "service-kit",
  "tempfile",
  "thiserror 2.0.21",
+ "tokio",
+ "windows",
 ]
 
 [[package]]
