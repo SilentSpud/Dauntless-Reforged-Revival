@@ -97,6 +97,62 @@ test("a game server's objective reports are stored with the max-guard; a player'
     assert.deepEqual(Stored, [["Daily_Collectible_Ramsgate", 3, 1]]);
 });
 
+test("a game server's mastery track deltas are added once per new objective completion", async () => {
+    const Stored = new Map<string, number>();
+    const Progress = new Map<string, number>();
+    const Repository = {
+        appendObjectiveEvent: async () => {},
+        setObjectiveIfGreater: async (_user: string, objectiveId: string, value: number, completedCount: number) => {
+            const Previous = Stored.get(objectiveId) ?? 0;
+            Stored.set(objectiveId, Math.max(Previous, completedCount));
+            return { previousCompletedCount: Previous } as any;
+        },
+        increment: async (_user: string, progressionId: string, amount: number) => {
+            Progress.set(progressionId, (Progress.get(progressionId) ?? 0) + amount);
+            return { progress: Progress.get(progressionId) } as any;
+        }
+    };
+    // Captured from a 1.14.7 hunt: one report per completed objective, each a delta.
+    const Breaks = {
+        progress_tracks: [{ progression_id: "MasteryTrack_PlayerLevel", progress: 1 }, { progression_id: "MasteryTrack_Weapon_Strikers", progress: 1 }],
+        objectives: [{ objective_id: "MasteryObjective_Weapon_Strikers_Generic_Breaks2", value: 10, completed_count: 1 }]
+    };
+    const Kills = {
+        progress_tracks: [{ progression_id: "MasteryTrack_PlayerLevel", progress: 1 }, { progression_id: "MasteryTrack_Weapon_Strikers", progress: 1 }],
+        objectives: [{ objective_id: "MasteryObjective_Weapon_Strikers_Generic_Kills1", value: 2, completed_count: 1 }]
+    };
+    await CaptureProgressionObjectiveEvent("user-1", Breaks, Repository);
+    assert.equal(Progress.size, 0, "a player's own report grants no mastery XP");
+    await CaptureProgressionObjectiveEvent("user-1", Breaks, Repository, true);
+    await CaptureProgressionObjectiveEvent("user-1", Kills, Repository, true);
+    assert.equal(Progress.get("MasteryTrack_PlayerLevel"), 2);
+    assert.equal(Progress.get("MasteryTrack_Weapon_Strikers"), 2);
+
+    // The same completion reported again (a later hunt) adds nothing; a mixed report adds only the new one.
+    await CaptureProgressionObjectiveEvent("user-1", Kills, Repository, true);
+    await CaptureProgressionObjectiveEvent("user-1", {
+        progress_tracks: [
+            { progression_id: "MasteryTrack_PlayerLevel", progress: 2 },
+            { progression_id: "MasteryTrack_Behemoth", progress: 1 },
+            { progression_id: "MasteryTrack_Weapon_Strikers", progress: 1 }
+        ],
+        objectives: [
+            { objective_id: "MasteryObjective_Behemoth_Host_Kill", value: 1, completed_count: 1 },
+            { objective_id: "MasteryObjective_Weapon_Strikers_Generic_Kills1", value: 2, completed_count: 1 }
+        ]
+    }, Repository, true);
+    assert.equal(Progress.get("MasteryTrack_PlayerLevel"), 3);
+    assert.equal(Progress.get("MasteryTrack_Behemoth"), 1);
+    assert.equal(Progress.get("MasteryTrack_Weapon_Strikers"), 2);
+
+    // Only MasteryTrack_* tracks: the others still arrive through the grant route.
+    await CaptureProgressionObjectiveEvent("user-1", {
+        progress_tracks: [{ progression_id: "ExperienceTrack_PlayerLevel", progress: 500 }],
+        objectives: [{ objective_id: "MasteryObjective_Weapon_Sword_Generic_Kills1", value: 2, completed_count: 1 }]
+    }, Repository, true);
+    assert.equal(Progress.has("ExperienceTrack_PlayerLevel"), false);
+});
+
 test("journey merge preserves concurrent unlocks and stale stored values", () => {
     const Stored = { A: { node_status: 1 }, Conflict: { node_status: 1 } };
     const Incoming = { B: { node_status: 1 }, Conflict: { node_status: 0 } };

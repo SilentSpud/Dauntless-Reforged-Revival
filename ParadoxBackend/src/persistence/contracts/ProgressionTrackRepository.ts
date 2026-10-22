@@ -70,8 +70,11 @@ export interface ProgressionTrackRepository {
      * objectives (MasteryObjective_*, AchievementObjective_*). Same monotonic max-guard rule,
      * applied to both `value` and `completedCount` independently. Returns the row after the
      * (possible) update.
+     * [Dauntless Reforged Revival] `previousCompletedCount` is the stored count this update raised
+     * (0 for a new row), read in the same atomic update, so a caller can tell a new completion from a
+     * repeated report of one already stored.
      */
-    setObjectiveIfGreater(userId: string, objectiveId: string, value: number, completedCount: number): Promise<ProgressionObjectiveRecord>;
+    setObjectiveIfGreater(userId: string, objectiveId: string, value: number, completedCount: number): Promise<ProgressionObjectiveRecord & { previousCompletedCount: number }>;
 
     /**
      * [hardening 2026-07-26] Atomically applies `-amount` to `progress` via Mongo's native $inc,

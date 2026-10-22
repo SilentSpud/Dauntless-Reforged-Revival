@@ -244,35 +244,39 @@ export class MongoProgressionTrackRepository implements ProgressionTrackReposito
             objectiveId: Doc.objectiveId,
             value: Doc.value,
             completedCount: Doc.completedCount,
+            createdAt: Doc.createdAt ?? Doc.updatedAt,
             updatedAt: Doc.updatedAt
         }));
     }
 
-    async setObjectiveIfGreater(userId: string, objectiveId: string, value: number, completedCount: number): Promise<ProgressionObjectiveRecord> {
+    async setObjectiveIfGreater(userId: string, objectiveId: string, value: number, completedCount: number): Promise<ProgressionObjectiveRecord & { previousCompletedCount: number }> {
         const Db = await GetMongoDb();
         const Now = new Date().toISOString();
         const Id = `${userId}::${objectiveId}`;
 
-        const Result = await Db.collection(Collections.ProgressionObjectives).findOneAndUpdate(
+        // [Dauntless Reforged Revival] The document BEFORE the update (null for a new row), so the
+        // caller learns which completions are new from the same atomic $max; the row after it is
+        // the max of the two, computed here.
+        const Before = await Db.collection(Collections.ProgressionObjectives).findOneAndUpdate(
             { _id: Id as any },
             {
                 $max: { value, completedCount },
-                $set: { userId, objectiveId, updatedAt: Now }
+                $set: { userId, objectiveId, updatedAt: Now },
+                $setOnInsert: { createdAt: Now }
             },
-            { upsert: true, returnDocument: "after" }
-        );
+            { upsert: true, returnDocument: "before" }
+        ) as any;
 
-        const Doc = Result as any;
-        if (Doc == undefined) {
-            throw new Error(`ProgressionObjective setObjectiveIfGreater upsert for ${Id} unexpectedly returned no document.`);
-        }
-
+        const PreviousValue = Number(Before?.value ?? 0);
+        const PreviousCompletedCount = Number(Before?.completedCount ?? 0);
         return {
-            userId: Doc.userId,
-            objectiveId: Doc.objectiveId,
-            value: Doc.value,
-            completedCount: Doc.completedCount,
-            updatedAt: Doc.updatedAt
+            userId,
+            objectiveId,
+            value: Before == undefined ? value : Math.max(PreviousValue, value),
+            completedCount: Before == undefined ? completedCount : Math.max(PreviousCompletedCount, completedCount),
+            createdAt: Before?.createdAt ?? Before?.updatedAt ?? Now,
+            updatedAt: Now,
+            previousCompletedCount: PreviousCompletedCount
         };
     }
 }

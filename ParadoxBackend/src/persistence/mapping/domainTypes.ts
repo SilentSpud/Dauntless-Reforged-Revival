@@ -262,6 +262,8 @@ export interface ProgressionObjectiveRecord {
     objectiveId: string;
     value: number;
     completedCount: number;
+    /** [Dauntless Reforged Revival] Rows stored before this field existed report their updatedAt. */
+    createdAt?: string;
     updatedAt: string;
 }
 

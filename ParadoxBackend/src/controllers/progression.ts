@@ -248,12 +248,37 @@ export async function GetPersistedProgressionForUser(userId: string, knownTrackI
 // monotonic max-guard (setObjectiveIfGreater): each report is an absolute running total (see above),
 // so a stale or repeated report can never lower one. Without it, the 1.14.7 game server's reports of
 // daily collectibles, mastery and achievement objectives were only logged, and GET
-// /progression/objectives kept answering with nothing. progress_tracks stay diagnostics-only: track XP
-// arrives through the grant route.
+// /progression/objectives kept answering with nothing.
+// [Dauntless Reforged Revival] Mastery XP. The 1.14.7 game server never sends a grant for a
+// MasteryTrack_*: it reports the mastery points of the objectives completed since its last report in
+// this same call, as progress_tracks DELTAS (captured from real hunts: every report holds +1 on the
+// objective's weapon or behemoth track and +1 on MasteryTrack_PlayerLevel per completed objective,
+// e.g. MasteryObjective_Weapon_Strikers_Generic_Breaks2 -> PlayerLevel=1, Weapon_Strikers=1, and the
+// next completion in the same hunt reports 1 and 1 again, not 2). They were only logged, so mastery
+// never gained XP. They are now added with the grant route's increment, for a game server only, and
+// only for the MasteryTrack_* tracks (the other tracks still arrive through the grant route). A report
+// can repeat completions already stored (a game server that had not seen them): each track gains at
+// most the number of NEW completions (completed_count above the stored one) that can feed it, so a
+// repeated report adds nothing.
+export const MASTERY_TRACK_PREFIX = "MasteryTrack_";
+const MASTERY_PLAYER_LEVEL_TRACK = "MasteryTrack_PlayerLevel";
+const MASTERY_BEHEMOTH_TRACK = "MasteryTrack_Behemoth";
+const MASTERY_OBJECTIVE_PREFIX = "MasteryObjective_";
+const MASTERY_BEHEMOTH_OBJECTIVE_PREFIX = "MasteryObjective_Behemoth_";
+
+// How much of a reported mastery track delta new completions can account for.
+export function MasteryTrackGain(trackId: string, delta: number, newCompletions: { behemoth: number; weapon: number }): number {
+    if (!Number.isSafeInteger(delta) || delta <= 0) return 0;
+    const Available = trackId === MASTERY_PLAYER_LEVEL_TRACK ? newCompletions.behemoth + newCompletions.weapon
+        : trackId === MASTERY_BEHEMOTH_TRACK ? newCompletions.behemoth
+        : newCompletions.weapon;
+    return Math.min(delta, Available);
+}
+
 export async function CaptureProgressionObjectiveEvent(
     userId: string,
     rawBody: unknown,
-    diagnosticsRepository: Pick<ProgressionTrackRepository, "appendObjectiveEvent"> & Partial<Pick<ProgressionTrackRepository, "setObjectiveIfGreater">> = GetRepositories().progressionTracks,
+    diagnosticsRepository: Pick<ProgressionTrackRepository, "appendObjectiveEvent"> & Partial<Pick<ProgressionTrackRepository, "setObjectiveIfGreater" | "increment">> = GetRepositories().progressionTracks,
     authoritative = false
 ){
     const BodyJson = JSON.stringify(rawBody ?? {});
@@ -304,10 +329,39 @@ export async function CaptureProgressionObjectiveEvent(
     }
 
     let Applied = 0;
+    const NewCompletions = { behemoth: 0, weapon: 0 };
     if(authoritative && diagnosticsRepository.setObjectiveIfGreater){
         for(const Objective of Body.objectives ?? []){
-            await diagnosticsRepository.setObjectiveIfGreater(userId, Objective.objective_id, Number(Objective.value), Number(Objective.completed_count ?? 0));
+            const CompletedCount = Number(Objective.completed_count ?? 0);
+            const Stored = await diagnosticsRepository.setObjectiveIfGreater(userId, Objective.objective_id, Number(Objective.value), CompletedCount);
             Applied++;
+            const ObjectiveId: string = Objective.objective_id;
+            if(ObjectiveId.startsWith(MASTERY_OBJECTIVE_PREFIX) && CompletedCount > Number(Stored?.previousCompletedCount ?? 0)){
+                const Count = CompletedCount - Number(Stored?.previousCompletedCount ?? 0);
+                if(ObjectiveId.startsWith(MASTERY_BEHEMOTH_OBJECTIVE_PREFIX)) NewCompletions.behemoth += Count;
+                else NewCompletions.weapon += Count;
+            }
+        }
+    }
+
+    const MasteryGains: string[] = [];
+    if(authoritative && diagnosticsRepository.increment){
+        for(const Track of Body.progress_tracks ?? []){
+            const TrackId: string = Track.progression_id;
+            if(!TrackId.startsWith(MASTERY_TRACK_PREFIX) || !IsApprovedXpProgressionTrack(TrackId)) continue;
+            const Delta = Number(Track.progress);
+            const Gain = MasteryTrackGain(TrackId, Delta, NewCompletions);
+            if(Gain > 0){
+                const After = await diagnosticsRepository.increment(userId, TrackId, Gain);
+                Applied++;
+                MasteryGains.push(`${TrackId}+${Gain}=${After.progress}`);
+            }
+            if(Gain !== Delta){
+                logger.info(`[MasteryXp] user=${userId} track=${TrackId} reported=+${Delta} applied=+${Gain} (new completions: behemoth=${NewCompletions.behemoth} weapon=${NewCompletions.weapon})`);
+            }
+        }
+        if(MasteryGains.length > 0){
+            logger.info(`[MasteryXp] user=${userId} ${MasteryGains.join(" ")}`);
         }
     }
 
@@ -330,10 +384,19 @@ export function IsAuthorizedProgressionReader(authData: any, targetUserId: strin
 export async function GetPersistedObjectivesForUser(userId: string){
     const Rows = await GetRepositories().progressionTracks.getAllObjectivesForUser(userId);
 
+    // [Dauntless Reforged Revival] The live service's row (DauntlessEndpointDocumentation,
+    // Progression/GetObjectiveProgression.md): the count is `progress`, the name a report uses is
+    // `value`. Served with `value` alone, the 1.14.7 game server read every stored objective as not
+    // started and completed the same mastery objectives again in every hunt. `value` stays for the
+    // 1.12 lineage.
     return Rows.map((Row) => ({
+        phx_account_id: userId,
         objective_id: Row.objectiveId,
+        progress: Row.value,
         value: Row.value,
         completed_count: Row.completedCount,
+        created_date: Row.createdAt ?? Row.updatedAt,
+        last_modified_date: Row.updatedAt,
     }));
 }
 
