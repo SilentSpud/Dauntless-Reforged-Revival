@@ -1,0 +1,93 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Dauntless Revived Launcher",
+  "version": "../package.json",
+  "identifier": "io.github.mixutin.dauntlessrevived",
+  "build": {
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist-page",
+    "beforeDevCommand": "npm run page:dev",
+    "beforeBuildCommand": "npm run page:build"
+  },
+  "app": {
+    "windows": [],
+    "withGlobalTauri": false,
+    "security": {
+      "csp": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' dr-art: http://dr-art.localhost data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'",
+      "freezePrototype": true,
+      "pattern": {
+        "use": "isolation",
+        "options": {
+          "dir": "../isolation"
+        }
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis",
+      "appimage",
+      "deb",
+      "rpm"
+    ],
+    "icon": [
+      "../assets/icon.png",
+      "../assets/icon.ico"
+    ],
+    "resources": {
+      "../assets/dxgi.dll": "dxgi.dll",
+      "../assets/UndauntedInternalServer.dll": "UndauntedInternalServer.dll",
+      "../THIRD-PARTY-NOTICES.txt": "THIRD-PARTY-NOTICES.txt",
+      "../../../client-mods/": "client-mods/"
+    },
+    "publisher": "mixutin",
+    "homepage": "https://github.com/mixutin/dauntless-revived",
+    "license": "AGPL-3.0-only",
+    "category": "Game",
+    "shortDescription": "Launcher for the Dauntless Revived community servers",
+    "longDescription": "Join Dauntless Revived community servers, download and verify the pinned Dauntless 1.4.4 client, and play on Windows or on Linux through Proton or Wine.",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "installerIcon": "../assets/icon.ico"
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0"
+        ],
+        "recommends": [
+          "gnome-keyring",
+          "pkexec"
+        ],
+        "section": "games",
+        "desktopTemplate": "linux/launcher.desktop"
+      },
+      "rpm": {
+        "depends": [
+          "webkit2gtk4.1"
+        ],
+        "desktopTemplate": "linux/launcher.desktop"
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDA2QTZFMEM5QTEyQjY0RDUKUldUVlpDdWh5ZUNtQmdUcFE5azBobDV0cFFxcURnaDJoY3pxSWxDWG9jakJ6VkFYT0RyVUlwbEwK",
+      "endpoints": [
+        "https://github.com/mixutin/dauntless-revived/releases/download/launcher-updates/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

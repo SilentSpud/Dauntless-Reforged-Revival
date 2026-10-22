@@ -1,16 +1,102 @@
 [package]
 name = "launcher"
-description = "The launcher backend (MIGRATION_PLAN.md RA rows)"
-version.workspace = true
+description = "Dauntless Revived Launcher: the Tauri backend (MIGRATION_PLAN.md Part A)"
+# The launcher's own version, not the workspace's: kept equal to package.json's (a test checks it).
+version = "0.1.39"
+# A member outside the workspace folder until the launcher moves to rust/launcher (R5, R7)
+workspace = "../../../rust"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish.workspace = true
 
-[[bin]]
+[lib]
 name = "launcher"
+
+[[bin]]
+name = "dauntless-revived-launcher"
 path = "src/main.rs"
+
+[build-dependencies]
+# The manifest's types, for the check build.rs runs (X4)
+protocol.workspace = true
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.11"
+tauri-build = { version = "2.7", features = ["isolation"] }
+
+[dependencies]
+protocol.workspace = true
+serde.workspace = true
+# preserve_order: settings.json keeps its key order (L28); workspace builds unify it on anyway
+serde_json = { workspace = true, features = ["preserve_order"] }
+dirs = "6"
+fs4 = "1"
+regex.workspace = true
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["registry"] }
+sha2.workspace = true
+chrono.workspace = true
+sys-locale = "0.3"
+bytes = "1"
+http-body-util.workspace = true
+hyper.workspace = true
+hyper-util = { workspace = true, features = ["tokio", "client-legacy", "http1"] }
+rustls.workspace = true
+tokio = { workspace = true, features = ["net", "time", "io-util", "sync", "macros", "rt", "process", "fs"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "tls12"] }
+tokio-util.workspace = true
+proxy.workspace = true
+hyper-rustls.workspace = true
+webpki-roots = "1"
+percent-encoding.workspace = true
+rand.workspace = true
+futures-util.workspace = true
+aes-gcm.workspace = true
+aes = "0.9"
+cbc = { version = "0.2", features = ["alloc"] }
+pbkdf2 = { version = "0.13", default-features = false, features = ["hmac"] }
+sha1 = "0.11"
+base64.workspace = true
+tower-service = "0.3"
+tauri = { version = "2.12", features = ["isolation"] }
+open = { version = "5.4", features = ["shellexecute-on-windows"] }
+tauri-plugin-dialog = "2.8"
+# Self-update on Windows (NSIS) and the AppImage, with signed bundles (L46, D2). Without `zip`: that is for
+# v1-style archives, and the updater artifacts here are the setup exe and the AppImage themselves.
+tauri-plugin-updater = { version = "2.14", default-features = false, features = ["rustls-tls", "system-proxy"] }
+# The deb and rpm update check (the updater plugin's own HTTP client)
+reqwest = { version = "0.13", default-features = false, features = ["json"] }
+url.workspace = true
+# Offline play (feature `offline`)
+metagame = { path = "../../../rust/services/metagame", optional = true }
+deploy = { path = "../../../rust/services/deploy", optional = true }
+rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem", "crypto"], optional = true }
+thiserror = { workspace = true, optional = true }
+
+[dev-dependencies]
+sha1_smol = "1"
+service-kit.workspace = true
+diesel.workspace = true
+store.workspace = true
+tokio-stream = "0.1"
+tempfile.workspace = true
+rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem", "crypto"] }
+protocol = { workspace = true, features = ["ts"] }
+ts-rs.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+dbus-secret-service = { version = "4.1", features = ["crypto-rust"] }
+
+[features]
+# Set by `tauri build`: serve the built page from the binary instead of the Vite dev server
+custom-protocol = ["tauri/custom-protocol"]
+# Offline play on the Rust metagame and DeployServer, run by this binary as `--service` (D12, L43). Off in
+# 0.2.0 (D1, L42) until X2 turns it on.
+offline = ["dep:metagame", "dep:deploy", "dep:rcgen", "dep:thiserror"]
 
 [lints]
 workspace = true
