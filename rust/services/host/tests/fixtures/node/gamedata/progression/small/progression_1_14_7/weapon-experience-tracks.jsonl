@@ -1,0 +1,4 @@
+﻿{"rowName":"Sword","prestigeTrack":"PrestigeTrack_Weapon_Sword","base":{"progressionTrack":"ExperienceTrack_Weapon_Sword","premiumGatingEntitlement":"","resetWithCharacter":false,"progressionMultiplier":1,"requirementCount":2,"requirements":[{"rankId":0,"requiredXP":0},{"rankId":1,"requiredXP":50}],"freeRewards":[],"premiumRewards":[]}}
+{"rowName":"Axe","prestigeTrack":"None","base":{"progressionTrack":"ExperienceTrack_Weapon_Axe","premiumGatingEntitlement":"","resetWithCharacter":false,"progressionMultiplier":1,"requirementCount":2,"requirements":[{"rankId":0,"requiredXP":0},{"rankId":1,"requiredXP":70}],"freeRewards":[],"premiumRewards":[]}}
+{"rowName":"Empty","prestigeTrack":"None","base":{"progressionTrack":"ExperienceTrack_Weapon_None","premiumGatingEntitlement":"","resetWithCharacter":false,"progressionMultiplier":1,"requirementCount":0,"requirements":[],"freeRewards":[],"premiumRewards":[]}}
+status: 3 rows

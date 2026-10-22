@@ -1,0 +1,1114 @@
+{
+  "generated_by": "Dauntless Reforged Revival host kit, from the CatalogExporter progression export",
+  "code": null,
+  "message": "OK",
+  "payload": {
+    "paths": [
+      {
+        "progression_id": "ExperienceTrack_PlayerLevel",
+        "premium_gating_entitlement": "ent_élite \"x\"\t",
+        "progression_multiplier": 1.5,
+        "start_date": "2019-01-01T14:00:00+00:00",
+        "end_date": "2099-01-01T14:00:00+00:00",
+        "requirements": [
+          {
+            "rank_id": 0,
+            "xp_required": 0
+          },
+          {
+            "rank_id": 1,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 2,
+            "xp_required": 250
+          }
+        ],
+        "free_rewards": [
+          {
+            "rank_id": 1,
+            "custom_reward_string": {
+              "culture_invariant_string": "Reward — one\n"
+            },
+            "stacked_items": [
+              {
+                "catalog_id": "CURRENCY_RAMS",
+                "hidden": false,
+                "priority": 0,
+                "quantity": 1
+              }
+            ],
+            "instanced_items": [
+              "A",
+              "B"
+            ],
+            "ordered_instanced_items": [
+              {
+                "catalog_id": "O1",
+                "priority": 2
+              }
+            ],
+            "entitlements": [
+              {
+                "duration": 1000,
+                "entitlement": "E1"
+              }
+            ],
+            "buffs": []
+          },
+          {
+            "rank_id": 0,
+            "custom_reward_string": {
+              "culture_invariant_string": null
+            },
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": [],
+            "buffs": []
+          }
+        ],
+        "premium_rewards": [
+          {
+            "rank_id": 0,
+            "custom_reward_string": {
+              "culture_invariant_string": null
+            },
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": [],
+            "buffs": []
+          }
+        ]
+      },
+      {
+        "progression_id": "ExperienceTrack_Weapon_Hammer",
+        "premium_gating_entitlement": "",
+        "progression_multiplier": 1,
+        "start_date": "2019-01-01T14:00:00+00:00",
+        "end_date": "2099-01-01T14:00:00+00:00",
+        "requirements": [
+          {
+            "rank_id": 0,
+            "xp_required": 0
+          },
+          {
+            "rank_id": 1,
+            "xp_required": 80
+          }
+        ],
+        "free_rewards": [],
+        "premium_rewards": []
+      },
+      {
+        "progression_id": "ExperienceTrack_Generic",
+        "premium_gating_entitlement": "",
+        "progression_multiplier": 2,
+        "start_date": "2019-01-01T14:00:00+00:00",
+        "end_date": "2099-01-01T14:00:00+00:00",
+        "requirements": [
+          {
+            "rank_id": 0,
+            "xp_required": 0
+          },
+          {
+            "rank_id": 1,
+            "xp_required": 10
+          }
+        ],
+        "free_rewards": [],
+        "premium_rewards": []
+      },
+      {
+        "progression_id": "MasteryTrack_Sword",
+        "premium_gating_entitlement": "",
+        "progression_multiplier": 1,
+        "start_date": "2019-01-01T14:00:00+00:00",
+        "end_date": "2099-01-01T14:00:00+00:00",
+        "requirements": [
+          {
+            "rank_id": 0,
+            "xp_required": 0
+          },
+          {
+            "rank_id": 1,
+            "xp_required": 5
+          }
+        ],
+        "free_rewards": [],
+        "premium_rewards": []
+      },
+      {
+        "progression_id": "PrestigeTrack_Weapon_Hammer",
+        "premium_gating_entitlement": "",
+        "progression_multiplier": 1,
+        "start_date": "2019-01-01T14:00:00+00:00",
+        "end_date": "2099-01-01T14:00:00+00:00",
+        "requirements": [
+          {
+            "rank_id": 0,
+            "xp_required": 0
+          },
+          {
+            "rank_id": 1,
+            "xp_required": 80
+          }
+        ],
+        "free_rewards": [],
+        "premium_rewards": []
+      },
+      {
+        "progression_id": "PrestigeTrack_Generic",
+        "premium_gating_entitlement": "",
+        "progression_multiplier": 1,
+        "start_date": "2019-01-01T14:00:00+00:00",
+        "end_date": "2099-01-01T14:00:00+00:00",
+        "requirements": [
+          {
+            "rank_id": 0,
+            "xp_required": 0
+          },
+          {
+            "rank_id": 1,
+            "xp_required": 10
+          }
+        ],
+        "free_rewards": [],
+        "premium_rewards": []
+      },
+      {
+        "progression_id": "season43",
+        "premium_gating_entitlement": "season43_premium",
+        "progression_multiplier": 1,
+        "start_date": "2019-01-01T14:00:00+00:00",
+        "end_date": "2099-01-01T14:00:00+00:00",
+        "requirements": [
+          {
+            "rank_id": 0,
+            "xp_required": 0
+          },
+          {
+            "rank_id": 1,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 2,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 3,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 4,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 5,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 6,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 7,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 8,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 9,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 10,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 11,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 12,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 13,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 14,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 15,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 16,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 17,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 18,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 19,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 20,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 21,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 22,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 23,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 24,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 25,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 26,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 27,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 28,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 29,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 30,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 31,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 32,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 33,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 34,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 35,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 36,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 37,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 38,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 39,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 40,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 41,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 42,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 43,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 44,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 45,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 46,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 47,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 48,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 49,
+            "xp_required": 100
+          },
+          {
+            "rank_id": 50,
+            "xp_required": 100
+          }
+        ],
+        "free_rewards": [
+          {
+            "rank_id": 0,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 1,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 2,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 3,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 4,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 5,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 6,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 7,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 8,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 9,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 10,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 11,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 12,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 13,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 14,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 15,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 16,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 17,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 18,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 19,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 20,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 21,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 22,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 23,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 24,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 25,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 26,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 27,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 28,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 29,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 30,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 31,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 32,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 33,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 34,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 35,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 36,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 37,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 38,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 39,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 40,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 41,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 42,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 43,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 44,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 45,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 46,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 47,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 48,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 49,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 50,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          }
+        ],
+        "premium_rewards": [
+          {
+            "rank_id": 0,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 1,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 2,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 3,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 4,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 5,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 6,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 7,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 8,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 9,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 10,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 11,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 12,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 13,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 14,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 15,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 16,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 17,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 18,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 19,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 20,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 21,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 22,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 23,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 24,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 25,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 26,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 27,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 28,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 29,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 30,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 31,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 32,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 33,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 34,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 35,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 36,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 37,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 38,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 39,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 40,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 41,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 42,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 43,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 44,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 45,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 46,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 47,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 48,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 49,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          },
+          {
+            "rank_id": 50,
+            "stacked_items": [],
+            "instanced_items": [],
+            "ordered_instanced_items": [],
+            "entitlements": []
+          }
+        ],
+        "prestige": null
+      }
+    ]
+  }
+}

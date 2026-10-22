@@ -1,0 +1,18 @@
+{
+  "tracks": [
+    "ExperienceTrack_PlayerLevel",
+    "ExperienceTrack_Weapon_Hammer",
+    "ExperienceTrack_Generic",
+    "MasteryTrack_Sword",
+    "PrestigeTrack_Weapon_Hammer",
+    "PrestigeTrack_Generic",
+    "season43"
+  ],
+  "skipped": [
+    "NoBase"
+  ],
+  "derived": [
+    "PrestigeTrack_Weapon_Hammer",
+    "PrestigeTrack_Generic"
+  ]
+}

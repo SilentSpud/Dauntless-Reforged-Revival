@@ -2019,9 +2019,12 @@ dependencies = [
 name = "host"
 version = "0.0.0"
 dependencies = [
+ "chrono",
  "clap",
+ "flate2",
  "serde_json",
  "service-kit",
+ "sha2 0.11.1",
  "tempfile",
  "thiserror 2.0.21",
 ]

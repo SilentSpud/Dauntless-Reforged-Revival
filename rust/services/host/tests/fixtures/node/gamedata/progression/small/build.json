@@ -1,0 +1,18 @@
+{
+  "tracks": [
+    "ExperienceTrack_PlayerLevel",
+    "ExperienceTrack_Weapon_Sword",
+    "ExperienceTrack_Weapon_Axe",
+    "MasteryTrack_PlayerLevel",
+    "PrestigeTrack_Weapon_Sword",
+    "PrestigeTrack_Weapon_Axe",
+    "season43"
+  ],
+  "skipped": [
+    "ExperienceTrack_Weapon_None"
+  ],
+  "derived": [
+    "PrestigeTrack_Weapon_Sword",
+    "PrestigeTrack_Weapon_Axe"
+  ]
+}

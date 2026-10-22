@@ -1,0 +1,2 @@
+﻿{"rowName":"Generic","prestigeTrack":"PrestigeTrack_Generic","base":{"progressionTrack":"ExperienceTrack_Generic","premiumGatingEntitlement":"","resetWithCharacter":false,"progressionMultiplier":2,"requirementCount":2,"requirements":[{"rankId":0,"requiredXP":0},{"rankId":1,"requiredXP":10}],"freeRewards":[],"premiumRewards":[]}}
+status: 3 rows

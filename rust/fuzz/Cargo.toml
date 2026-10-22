@@ -3,8 +3,9 @@
 # Targets: http_body (JSON and form bodies, URL decoding in service-kit), proxy_headers (the shared
 # hop-by-hop rules), protocol_input (invites, server status, usernames and keys, runtime manifests; RS1),
 # allowlist_input (the allowlist helper's request body, state file and firewall settings; RS4) and launcher_input
-# (invites, server status, usernames and keys, read by the launcher; RA1). Each component row adds its own
-# target here.
+# (invites, server status, usernames and keys, read by the launcher; RA1) and host_gamedata_input (game data packs,
+# CatalogExporter's progression export and the store-capture pin, read by reforged-host; RH4). Each component row adds
+# its own target here.
 # On Windows the AddressSanitizer runtime (clang_rt.asan_dynamic-x86_64.dll) must be on PATH: it is in
 # the Visual Studio install, VC/Tools/MSVC/<version>/bin/Hostx64/x64. A workspace of its own: cargo fuzz
 # needs nightly and its own build flags.
@@ -22,7 +23,9 @@ libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
 arbitrary = { version = "1", features = ["derive"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 http = "1"
+flate2 = "1"
 gateway = { path = "../services/gateway" }
+host = { path = "../services/host" }
 protocol = { path = "../crates/protocol" }
 proxy = { path = "../crates/proxy" }
 serde_json = "1"
@@ -60,6 +63,13 @@ bench = false
 [[bin]]
 name = "launcher_input"
 path = "fuzz_targets/launcher_input.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "host_gamedata_input"
+path = "fuzz_targets/host_gamedata_input.rs"
 test = false
 doc = false
 bench = false

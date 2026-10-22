@@ -1,0 +1,43 @@
+{
+  "_comment": [
+    "Server preset \"Friday \"Hunts\" — Público\": the game data every server set up from this project starts from (legacy/ReforgedHost/src/preset.ts).",
+    "Read from an installed Dauntless 1.14.7 (647472) client for interoperability: identifiers and tuning values (item catalogue, store, progression and hunt tables), no game assets.",
+    "Sources: CatalogExporter's export from the running game, converted by Mystic Paradox's game-data generators and the host kit (npm run gamedata).",
+    "Game executable SHA-256 abababababababababababababababababababababababababababababababab.",
+    "Lady Luck's Store and the platinum store are not in it: npm run gamedata builds them on each server from the live store captures (paradox/backend/store-captures.json).",
+    "A host's own generated game data takes precedence over this preset. Regenerate it with npm run preset -- --create; do not edit the files by hand."
+  ],
+  "format": "dauntless-reforged-revival-preset",
+  "version": 1,
+  "name": "Friday \"Hunts\" — Público",
+  "game": "1.14.7 (647472)",
+  "executableSha256": "abababababababababababababababababababababababababababababababab",
+  "created": "2026-10-15T14:52:05.055Z",
+  "sources": [
+    "CatalogExporter (native/catalog-exporter, from Mystic Paradox)",
+    "Mystic Paradox game-data generators",
+    "Dauntless Reforged Revival host kit"
+  ],
+  "files": [
+    {
+      "path": "backend/progression_config.json",
+      "sha256": "313547c499a6a093d947d62414c485b00cc3a9b3ddf8a8ad5a76bc5ab2c32ff1",
+      "bytes": 41
+    },
+    {
+      "path": "backend/slayers_path.json",
+      "sha256": "7999123be32597cf707cc6951d4dd02a0782fb25d6a2aa64def151f0fd422931",
+      "bytes": 22
+    },
+    {
+      "path": "director/player_hunts_table.json",
+      "sha256": "c7c6bcb683169e1ced5747cc2864ba80beb9817f422ae590bda23323d83f1b79",
+      "bytes": 12
+    },
+    {
+      "path": "backend/raw/progression_config.source.json",
+      "sha256": "0e0f12d3592082061f5f540b9d4322e4f093c785f7bacf99002d8dbf7f79bdc4",
+      "bytes": 13
+    }
+  ]
+}

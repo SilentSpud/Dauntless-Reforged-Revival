@@ -13,10 +13,16 @@ name = "reforged-host"
 path = "src/main.rs"
 
 [dependencies]
+# RH4: dates in the files the game-data commands write, as JavaScript's toISOString.
+chrono.workspace = true
 clap.workspace = true
+# RH4: game data packs are gzip-compressed JSON.
+flate2.workspace = true
 # host.json in JavaScript's key order and number text (service-kit turns on preserve_order).
 serde_json.workspace = true
 service-kit.workspace = true
+# RH4: the hashes in preset.json, runtime.json, game data packs and the store-capture pin.
+sha2.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
