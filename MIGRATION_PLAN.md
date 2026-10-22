@@ -6,8 +6,8 @@ Status: draft, written 2026-10-22; the decisions in section 3 were made the same
 same evening (RD5, RD15 changed; RD16 and RD17 added); section 5 was rewritten as parallel waves and RD18 added
 afterwards; RD19–RD23 came from wave 0's delta lists (`docs/port/delta-*.md`). Wave 0 is under way.
 
-Completed rows will be ~~struck through~~ in the tables below, as in DR's plan, and a "What's left" table will be
-added above section 1 once the first row closes. The decisions, the reuse table and section 6 are reference, not
+Completed rows are ~~struck through~~ in the tables below, as in DR's plan, and the "What's left" table above
+section 1 is kept current by each integration pass. The decisions, the reuse table and section 6 are reference, not
 work, and are never struck through.
 
 This plan replaces Dauntless Revived's Rust migration, which stopped on 2026-10-22 at `e1c5fec` on its `plan` branch
@@ -26,6 +26,27 @@ Row ids: **RA** = launcher, **RS** = gateway, allowlist and content, **RH** = ho
 **RB** = backend and Director, **RR** = repository and CI, **RX** = cross-cutting, **RD** = decisions. "DR" means
 Dauntless Revived at `e1c5fec`; DR row ids (L27, S2, X4, …) point into its plan, where the method and the checks
 for each piece are written down.
+
+## What's left
+
+Updated by the wave 0 integration pass, 2026-10-22. Wave 0 merged into `plan`: RR1
+([#1](https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/1)), RR2
+([#5](https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/5)), RX1
+([#2](https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/2),
+[#3](https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/3),
+[#4](https://github.com/SilentSpud/Dauntless-Reforged-Revival/pull/4)); RP1 is `reforged` at `24e60c8` in the fork.
+
+| Area | Done | Next (wave 1 unless said) | Waiting on the maintainer |
+| --- | --- | --- | --- |
+| Repository and CI | RR1, RR2 | RR3 CI, RR4 Dependabot; RR1's Linux check runs in RR3's first CI | — |
+| Paradox fork | RP1 | RP2–RP4 | — |
+| Gateway, allowlist, content | RX1 delta list | RS1, RS4; RS2, RS3 in wave 2 | RS4's nft check on Debian 13 |
+| Host kit | — | RH1; RH2–RH4 in wave 2 | — |
+| Launcher | RX1 delta lists | RA1–RA2; RA3–RA9, RA11 in wave 2 | RA10 spike (Linux machine with the game), not started |
+| Backend and Director | — | After the gate (RD17) | Cut-off date (RD16) |
+
+Local notes from wave 0, not plan changes: on the maintainer's Windows PC two of Content's test ports fall in
+Windows' reserved range, and the npm config refuses git-sourced packages, which blocks the launcher's `npm ci`.
 
 ## 1. End state
 
@@ -134,8 +155,8 @@ those top-level files, so the attribution stays next to the code that came from 
 
 | # | What | From DR | Verify |
 | --- | --- | --- | --- |
-| RR1 | Copy `rust/` (workspace files, `rust-toolchain.toml`, `deny.toml`, `.cargo/config.toml`, `clippy.toml`, `rustfmt.toml`, `crates/protocol`, `crates/proxy`, `crates/service-kit`, `crates/store`, `fuzz/` targets for those crates) in one commit (RD6) | R4, X6 | `cargo test --workspace`, `cargo deny check`, `cargo clippy` pass on Windows and Linux |
-| RR2 | `git mv` `ReforgedGateway`, `ReforgedContent`, `ReforgedLauncher`, `ReforgedHost` to `legacy/` | R5 | Today's npm tests pass from `legacy/` |
+| ~~RR1~~ | ~~Copy `rust/` (workspace files, `rust-toolchain.toml`, `deny.toml`, `.cargo/config.toml`, `clippy.toml`, `rustfmt.toml`, `crates/protocol`, `crates/proxy`, `crates/service-kit`, `crates/store`, `fuzz/` targets for those crates) in one commit (RD6)~~ | R4, X6 | `cargo test --workspace`, `cargo deny check`, `cargo clippy` pass on Windows and Linux |
+| ~~RR2~~ | ~~`git mv` `ReforgedGateway`, `ReforgedContent`, `ReforgedLauncher`, `ReforgedHost` to `legacy/`~~ | R5 | Today's npm tests pass from `legacy/` |
 | RR3 | CI by family behind one required check: Rust (fmt, clippy, test, deny, short fuzz) on Windows and Linux, the launcher page, the Paradox fork's Node tests, legacy Node | R8 | A Rust-only PR skips the Node jobs and the other way round |
 | RR4 | Dependabot entries for `cargo` (`/rust`), the page and `paradox/*`, under the current policy; each npm entry under `legacy/` removed with its folder | X6 | Dependabot opens a `cargo` PR |
 | RR5 | Move the launcher page to `rust/launcher/ui` once Electron is deleted (RA16); path sweep for `legacy/` and `upstream/` | R7, R10 | No reference to a deleted path |
@@ -144,12 +165,14 @@ those top-level files, so the attribution stays next to the code that came from 
 
 | # | What | Verify |
 | --- | --- | --- |
-| RP1 | In the fork: branch `reforged` from `00d3be8`, patches 0001–0033 as 33 commits, in order; push it | The tree equals what `npm run upstream` produces today (`.reforged-patches.json` set) |
+| ~~RP1~~ | ~~In the fork: branch `reforged` from `00d3be8`, patches 0001–0033 as 33 commits, in order; push it~~ | The tree equals what `npm run upstream` produces today (`.reforged-patches.json` set) |
 | RP2 | Merge the fork's `reforged` branch as a subtree at `paradox/` | `git log paradox/` shows Paradox's commits and the 33 patch commits |
 | RP3 | `git mv` the backend and Director to `paradox/backend`, `paradox/director`, the runtime and loader to `native/`; delete what Reforged does not use (`ParadoxLauncher`, `tools/`, `scripts/` at the top level, Paradox's deployment docs); Paradox's top-level files (`ADDITIONAL_TERMS.md`, licence, `NOTICE.md`) stay under `paradox/` | The backend and Director tests pass; the runtime builds from `native/` with a host's SDK |
 | RP4 | `ReforgedHost` (still Node) builds from `paradox/` instead of downloading; delete `upstream/` and `npm run upstream`; move `store-captures.json` to `paradox/backend`; attribution in `NOTICE.md` and the READMEs; a `docs/` note on how Freeza's runtime patches are applied to `native/` after the cut-off (RD16) | `npm run setup` on a clean host with no network access to Paradox's repository |
 
 ### 4.3 Gateway, allowlist and content (RS)
+
+The file-by-file delta each row carries over is in `docs/port/delta-servers.md` (RX1).
 
 | # | What | From DR | Delta | Verify |
 | --- | --- | --- | --- | --- |
@@ -197,6 +220,8 @@ pieces, one area per PR, chat last, then shadow traffic before any cutover. The 
 ### 4.6 Launcher (RA)
 
 Phases follow DR's Part A. The DR rows in brackets hold the method; the Reforged work is the delta.
+The file-by-file delta is in `docs/port/delta-launcher-platform.md` (RA4–RA12) and
+`docs/port/delta-launcher-controller.md` (RA1–RA3, RA13, and the bridge's command list for RA2), from RX1.
 
 | # | What | From DR | Verify |
 | --- | --- | --- | --- |
@@ -222,7 +247,7 @@ Phases follow DR's Part A. The DR rows in brackets hold the method; the Reforged
 
 | # | What |
 | --- | --- |
-| RX1 | Per-file delta lists: for each Reforged Node file, `diff` against DR's Node file at `e1c5fec`, written as `docs/port/delta-<family>.md` (gateway, allowlist and content; launcher net and platform; launcher controller, bridge and page) and linked from the RS/RA row that ports it, so nothing Reforged changed is lost in the Rust copy. Read-only, so it runs first, one agent per file |
+| ~~RX1~~ | ~~Per-file delta lists: for each Reforged Node file, `diff` against DR's Node file at `e1c5fec`, written as `docs/port/delta-<family>.md` (gateway, allowlist and content; launcher net and platform; launcher controller, bridge and page) and linked from the RS/RA row that ports it, so nothing Reforged changed is lost in the Rust copy. Read-only, so it runs first, one agent per file~~ |
 | RX2 | Catch-up lists from the copy commit to the cut-off (RD16): Reforged's own and Freeza's Node commits to the launcher, gateway, content, host kit, and the forked backend and Director, written as `docs/port/catchup-<family>.md` and ported before each one's cutover by the agent that owns the family. After the cut-off the lists stop; only runtime patches keep coming (RD16) |
 | RX3 | Security pass (RD10), done per row rather than at the end: every row that writes a trust-boundary component delivers its fuzz target and a `docs/security/<component>.md` checklist with its code; `SECURITY_REVIEW.md` is the index, kept by the integration pass. Components: gateway policy and TLS, allowlist helper and its IPC, relay, pinned TLS, keystore and legacy reader, invite parsing, runtime download, the injector, the host kit's handling of secrets, the backend's auth and tokens, its JSON and body parsing and XMPP, the documents `db migrate` and `export-mongo` read, and the Director's game-server launch. The 24-hour fuzz run and the signed checklist before each cutover stay with the maintainer |
 
@@ -272,10 +297,10 @@ still run as two tracks (RD12) and the backend still waits for the gate (RD17); 
 
 | Wave | Row (one agent each unless said) | Needs | Hands-on |
 | --- | --- | --- | --- |
-| 0 | RX1, three agents: gateway, allowlist and content; launcher net and platform; launcher controller, bridge and page | — | — |
-| 0 | RP1 in the fork | — | — |
-| 0 | RR1 copy of `rust/` | — | — |
-| 0 | RR2 moves to `legacy/` | — | — |
+| 0 | ~~RX1, three agents: gateway, allowlist and content; launcher net and platform; launcher controller, bridge and page~~ | — | — |
+| 0 | ~~RP1 in the fork~~ | — | — |
+| 0 | ~~RR1 copy of `rust/`~~ | — | — |
+| 0 | ~~RR2 moves to `legacy/`~~ | — | — |
 | 0 | RA10 spike: 1.14.7 under Proton with the runtime loaded | — | Linux machine with the game |
 | 1 | RP2–RP4 | RP1, RR2 | — |
 | 1 | RR3 CI, RR4 Dependabot (the `paradox/` job waits for RP3 to exist, it does not block) | RR1, RR2 | — |
