@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <vector>
 #include <thread>
+#include <chrono>   // [Reforged 0020] server frame pacing
 #include <iostream>
 #include <ranges>
 
@@ -4957,6 +4958,76 @@ static void MpExpectedPlayerWorldCensus(const char* When) {
         + " objects=" + std::to_string(Count) + Detail);
 }
 
+// [Reforged 0020 server frame pacing] Every game server is a whole Dauntless process, and nothing in this
+// build reliably caps its game thread: each frame runs the engine tick, the replication-graph drive and this
+// hook's own work as fast as the CPU allows, which on a small VPS (and under Wine) keeps a core busy per
+// server even with nobody connected. Dauntless Revived's server DLL caps its game thread the same way
+// (DR_SERVER_MAX_FPS, default 30). Here:
+//   REFORGED_SERVER_MAX_FPS   frames per second while a client is connected (default 30, the configured
+//                             NetServerMaxTickRate, so replication keeps its rate); 10-240, or 0 for no cap.
+//   REFORGED_SERVER_IDLE_FPS  frames per second once the server has listened with NO client connection for
+//                             15 s straight (default 0 = same as REFORGED_SERVER_MAX_FPS); 1-240. The first
+//                             connection (the [NetConnEdge] count) switches back to the full rate on the
+//                             next frame. Boot, the map load and the first 15 s after listening always run
+//                             at the full rate.
+// The wait uses real elapsed time (sleep, not a fixed timestep): DeltaTime stays the real frame time, so
+// game time is unchanged; only the number of frames per second drops. Server role only; read once at the
+// first frame; a value that is not a whole number in range falls back to the default (logged).
+static int MpServerFpsSetting(const char* Name, int Default, int Min, int Max, std::string& Note) {
+    char Buf[16] = {};
+    const DWORD Len = GetEnvironmentVariableA(Name, Buf, static_cast<DWORD>(sizeof(Buf)));
+    if (Len == 0) return Default;
+    if (Len >= sizeof(Buf)) { Note += std::string(" ") + Name + " too long (default used)"; return Default; }
+    char* End = nullptr;
+    const long Value = std::strtol(Buf, &End, 10);
+    if (End == Buf || *End != '\0' || (Value != 0 && (Value < Min || Value > Max))) {
+        Note += std::string(" ") + Name + "='" + Buf + "' invalid (default used)";
+        return Default;
+    }
+    return static_cast<int>(Value);
+}
+
+static void MpPaceServerFrame() {
+    static int s_activeFps = -1;
+    static int s_idleFps = -1;
+    if (s_activeFps < 0) {
+        std::string Note;
+        s_activeFps = MpServerFpsSetting("REFORGED_SERVER_MAX_FPS", 30, 10, 240, Note);
+        s_idleFps = MpServerFpsSetting("REFORGED_SERVER_IDLE_FPS", 0, 1, 240, Note);
+        MpLog("[FramePace] server frame cap: "
+            + (s_activeFps > 0 ? std::to_string(s_activeFps) + " fps" : std::string("off"))
+            + ", idle (no client for 15 s): "
+            + (s_idleFps > 0 ? std::to_string(s_idleFps) + " fps" : std::string("same"))
+            + " (REFORGED_SERVER_MAX_FPS / REFORGED_SERVER_IDLE_FPS)" + Note);
+    }
+
+    static constexpr uint64_t kIdleAfterMs = 15000;
+    static uint64_t s_idleSinceMs = 0;
+    static bool s_wasIdle = false;
+    bool Idle = false;
+    if (s_idleFps > 0 && Globals::Listening && g_wdConnCount.load(std::memory_order_relaxed) == 0) {
+        const uint64_t NowMs = GetTickCount64();
+        if (s_idleSinceMs == 0) s_idleSinceMs = NowMs;
+        Idle = NowMs - s_idleSinceMs >= kIdleAfterMs;
+    } else {
+        s_idleSinceMs = 0;
+    }
+    if (Idle != s_wasIdle) {
+        s_wasIdle = Idle;
+        MpLog(std::string("[FramePace] ") + (Idle
+            ? "no client for 15 s: " + std::to_string(s_idleFps) + " fps"
+            : "client connected: " + (s_activeFps > 0 ? std::to_string(s_activeFps) + " fps" : std::string("no cap"))));
+    }
+
+    const int Fps = Idle ? s_idleFps : s_activeFps;
+    static auto s_previous = std::chrono::steady_clock::now();
+    if (Fps > 0) {
+        const auto Target = s_previous + std::chrono::microseconds(1000000 / Fps);
+        if (Target > std::chrono::steady_clock::now()) std::this_thread::sleep_until(Target);
+    }
+    s_previous = std::chrono::steady_clock::now();
+}
+
 // [1.14.7 FIX 2026-10-04] The engine pointer, captured from the tick hook itself.
 //
 // The manual net tick has always called 0x00A82CF0 with Networking::NetDriver as the first argument:
@@ -4992,6 +5063,11 @@ void GameEngineTickHook(UGameEngine* GameEngine, float DeltaTime, char CanRender
             + " DoListen=" + std::to_string(Globals::DoListen ? 1 : 0)
             + " Listening=" + std::to_string(Globals::Listening ? 1 : 0)
             + " tid=" + std::to_string(CurTid));
+    }
+
+    // [Reforged 0020] Pace the server's game thread (see MpPaceServerFrame) before this frame's work.
+    if (Globals::AmServer) {
+        MpPaceServerFrame();
     }
 
     // [1.14.7 client replication membership 2026-10-05] Bounded, read-only server probe: does the
