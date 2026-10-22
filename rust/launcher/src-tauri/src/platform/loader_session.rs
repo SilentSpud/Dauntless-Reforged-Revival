@@ -112,10 +112,10 @@ pub fn ini_entries(text: &str) -> Vec<String> {
 }
 
 /// A plain file name the loader would find beside itself; None for paths, which never name a file the
-/// launcher placed.
+/// launcher placed. Windows' rules on every OS: the loader runs in the game, under Wine too.
 fn plain_name(entry: &str) -> Option<&str> {
-    let name = Path::new(entry).file_name()?.to_str()?;
-    (name == entry).then_some(name)
+    let plain = !entry.is_empty() && entry != "." && entry != ".." && !entry.contains(['\\', '/', ':']);
+    plain.then_some(entry)
 }
 
 fn read_small(path: &Path) -> Option<String> {
@@ -337,6 +337,7 @@ mod tests {
         assert_eq!(plain_name("first.dll"), Some("first.dll"));
         assert_eq!(plain_name("..\\first.dll"), None);
         assert_eq!(plain_name("sub/first.dll"), None);
+        assert_eq!(plain_name("C:first.dll"), None);
     }
 
     #[test]
