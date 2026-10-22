@@ -189,6 +189,85 @@ function Cap(list: StoredBounty[]): StoredBounty[] {
     return list.filter((_, Index) => !Drop.has(Index));
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// [Dauntless Reforged Revival] POST /bounty/delete/:userId (the bounty components' DeleteBountiesEndpoint).
+//
+// Claiming a completed bounty on the board (U) makes UBountyComponent::ServerClaimBounty ask the backend to DELETE the
+// bounty; only when that answers 200 does OnClaimBountyComplete run UBountyComponent::GrantBounty (the reward) and
+// remove the bounty from the board. The route did not exist (404 "Unstubbed route"), so every claim logged
+//   [LogArchonBounty][Error][bounty_bpc] UBountyComponent::OnClaimBountyComplete() - invalid http response
+// and the completed bounty stayed on the board, unclaimable. Drafting a daily bounty sends the same request for the
+// previous one. No capture of the live body exists; the 1.14.7 executable names the fields `bounty_ids` and
+// `delete_claimed_bounties`, so both are read, plus `bounties` (ids or bounty objects) in case the list is sent that way.
+//
+// Season challenges (weekly group) are never deleted: their claim is what keeps a completed challenge from being
+// re-seeded at progress 0 and paying its Cache Coins again (see the season-challenge block above). They are never
+// claimed through this route anyway (AutomaticClaimBounty saves them with claimed: true).
+
+export interface BountyDeleteRequest {
+    bountyIds: string[];
+    deleteClaimed: boolean;
+}
+
+/** Reads the delete body. Throws BountySaveValidationError when it names nothing to delete. */
+export function ParseBountyDelete(body: unknown): BountyDeleteRequest {
+    if (!IsPlainObject(body)) throw new BountySaveValidationError("body must be an object");
+    const Ids = new Set<string>();
+    for (const Key of ["bounty_ids", "bountyIds", "bounties"]) {
+        const List = body[Key];
+        if (List === undefined) continue;
+        if (!Array.isArray(List)) throw new BountySaveValidationError(`${Key} must be an array`);
+        if (List.length > MAX_BOUNTIES_PER_SAVE) throw new BountySaveValidationError(`too many bounties (${List.length})`);
+        for (const Item of List) {
+            const Id = typeof Item === "string" ? Item : IsPlainObject(Item) ? Item.bounty_id : undefined;
+            if (typeof Id !== "string" || Id.length === 0 || Id.length > MAX_BOUNTY_ID_LENGTH) {
+                throw new BountySaveValidationError(`every entry of ${Key} needs a bounty id string`);
+            }
+            Ids.add(Id);
+        }
+    }
+    const DeleteClaimed = body.delete_claimed_bounties === true;
+    if (Ids.size === 0 && !DeleteClaimed) throw new BountySaveValidationError("no bounty to delete");
+    return { bountyIds: [...Ids], deleteClaimed: DeleteClaimed };
+}
+
+export interface BountyDeleteSummary {
+    deleted: string[];
+    /** Named ids that were not deleted: season challenges, or ids that are not stored. */
+    kept: string[];
+}
+
+export function DeleteBounties(
+    userId: string,
+    previous: BountyStateRecord | undefined,
+    body: unknown,
+    now: string = new Date().toISOString()
+): { record: BountyStateRecord; summary: BountyDeleteSummary } {
+    const { bountyIds, deleteClaimed } = ParseBountyDelete(body);
+    const Named = new Set(bountyIds);
+    const Deleted: string[] = [];
+    const List = (previous?.bounties ?? []).filter((Entry) => {
+        const Id = String(Entry.bounty.bounty_id);
+        if (GroupOf(Entry) === "weekly") return true;
+        if (Named.has(Id) || (deleteClaimed && Entry.bounty.claimed === true)) {
+            Deleted.push(Id);
+            return false;
+        }
+        return true;
+    });
+    return {
+        record: {
+            userId,
+            bounties: List,
+            draftData: { ...(previous?.draftData ?? {}) },
+            updateVersion: (previous?.updateVersion ?? 0) + 1,
+            createdAt: previous?.createdAt ?? now,
+            updatedAt: now,
+        },
+        summary: { deleted: Deleted, kept: bountyIds.filter((Id) => !Deleted.includes(Id)) },
+    };
+}
+
 export interface BountyMergeSummary {
     mode: "replace" | "upsert";
     group?: Exclude<BountyGroup, "unassigned">;

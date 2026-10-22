@@ -21,7 +21,7 @@ import { MonitorBountyLoad, MonitorBountySave, MonitorCooldownLoad, MonitorCoold
 import { CooldownSaveValidationError, IsAuthorizedCooldownReader, IsAuthorizedCooldownWriter } from "../cooldownState";
 import { GetCooldownState, SaveCooldowns } from "../controllers/cooldowns";
 import { BountyGroupCounts, BountySaveValidationError, BountyStatePayload, IsAuthorizedBountyReader, IsAuthorizedBountyWriter } from "../bountyState";
-import { GetBountyState, SaveBountyState } from "../controllers/bounty";
+import { DeleteBountyState, GetBountyState, SaveBountyState } from "../controllers/bounty";
 import { EscalationSeasonProgressUpdate, IsAuthorizedEscalationReader, IsAuthorizedEscalationWriter } from "../escalationProgress";
 
 export const systemRouter = Router();
@@ -690,6 +690,41 @@ systemRouter.post("/bounty/:userId", HasParadoxBackendAuth, async (req: any, res
 		throw Err;
 	}
 });
+
+// [Dauntless Reforged Revival] Claiming a completed bounty deletes it here first; the game grants the reward only after a
+// 200 (bountyState.ts, DeleteBounties). Registered for DELETE too, the verb the game's own log line names.
+async function HandleBountyDelete(req: any, res: any) {
+	const UserId = String(req.params.userId);
+	const Raw = JSON.stringify(req.body ?? null).slice(0, 2000);
+	if (!IsAuthorizedBountyWriter(req.AuthData)) {
+		logger.warn(`Rejected bounty delete without gameserver authority actor=${req.AuthData?.userId ?? "unknown"} target=${UserId}`);
+		res.status(403).send();
+		return;
+	}
+	if (!BOUNTY_PERSISTENCE || UserId === BOUNTY_NO_PLAYER) {
+		logger.info(`[DraftMon] BOUNTY-DELETE user=${UserId} ${BOUNTY_PERSISTENCE ? "no-player sentinel" : "persistence off (stub)"}, not stored body=${Raw}`);
+		res.status(200).json({ code: null, message: "OK", payload: BountyStatePayload(undefined) });
+		return;
+	}
+
+	try {
+		const { payload, record, summary } = await DeleteBountyState(UserId, req.body);
+		logger.info(`[DraftMon] BOUNTY-DELETE user=${UserId} deleted=[${summary.deleted.join(", ")}] kept=[${summary.kept.join(", ")}]`
+			+ ` -> ${JSON.stringify(BountyGroupCounts(record))} version=${record.updateVersion} body=${Raw}`);
+		res.status(200).json({ code: null, message: "OK", payload });
+	}
+	catch (Err) {
+		if (Err instanceof BountySaveValidationError) {
+			logger.warn(`[DraftMon] BOUNTY-DELETE user=${UserId} REJECTED ${Err.message} body=${Raw}`);
+			res.status(400).json({ code: null, message: "Bad Request", payload: {} });
+			return;
+		}
+		throw Err;
+	}
+}
+
+systemRouter.post("/bounty/delete/:userId", HasParadoxBackendAuth, HandleBountyDelete);
+systemRouter.delete("/bounty/delete/:userId", HasParadoxBackendAuth, HandleBountyDelete);
 
 systemRouter.get("/all/", HasParadoxBackendAuth, (req: any, res) => {
 	logger.info("Mailbox (stubbed)");

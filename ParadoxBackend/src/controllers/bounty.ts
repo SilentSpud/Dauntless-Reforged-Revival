@@ -6,7 +6,7 @@
  * Additional terms under AGPLv3 Section 7 apply. See ADDITIONAL_TERMS.md.
  */
 
-import { BountyMergeSummary, BountyStatePayload, MergeBountyState } from "../bountyState";
+import { BountyDeleteSummary, BountyMergeSummary, BountyStatePayload, DeleteBounties, MergeBountyState } from "../bountyState";
 import { BountyStateRecord, GetRepositories } from "../persistence";
 import { PerAccountQueue } from "./perAccountQueue";
 
@@ -33,5 +33,21 @@ export function SaveBountyState(userId: string, body: unknown): Promise<{ payloa
             }
         }
         throw new Error(`Bounty state save remained contended for ${userId}`);
+    });
+}
+
+// [Dauntless Reforged Revival] Claiming a bounty deletes it (bountyState.ts, DeleteBounties); same queue and version check.
+export function DeleteBountyState(userId: string, body: unknown): Promise<{ payload: Record<string, unknown>; record: BountyStateRecord; summary: BountyDeleteSummary }> {
+    return SaveQueue.run(userId, async () => {
+        const Repository = GetRepositories().bountyStates;
+        for (let Attempt = 0; Attempt < MAX_SAVE_ATTEMPTS; Attempt++) {
+            const Previous = await Repository.get(userId);
+            const { record, summary } = DeleteBounties(userId, Previous, body);
+            const Saved = await Repository.saveIfVersion(record, Previous?.updateVersion);
+            if (Saved !== undefined) {
+                return { payload: BountyStatePayload(Saved), record: Saved, summary };
+            }
+        }
+        throw new Error(`Bounty delete remained contended for ${userId}`);
     });
 }

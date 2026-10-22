@@ -13,12 +13,14 @@ import {
     BountySaveValidationError,
     BountyStatePayload,
     DefaultDraftData,
+    DeleteBounties,
     FindFundableSeasonClaim,
     InferBountyGroup,
     IsAuthorizedBountyReader,
     IsAuthorizedBountyWriter,
     MAX_STORED_BOUNTIES,
     MergeBountyState,
+    ParseBountyDelete,
     WithRewardCredit
 } from "./bountyState";
 import { IsChallengeRewardGrant } from "./controllers/challengeRewards";
@@ -230,4 +232,36 @@ test("only Cache Coin grants of a bounded size count as challenge rewards", () =
     assert.equal(IsChallengeRewardGrant("CURRENCY_SEASONAL_COIN", 1001), false);
     assert.equal(IsChallengeRewardGrant("CURRENCY_SEASONAL_COIN", 0), false);
     assert.equal(IsChallengeRewardGrant("CURRENCY_NOTES", 400), false);
+});
+
+// [Dauntless Reforged Revival] Claiming a bounty deletes it (POST /bounty/delete/:userId).
+test("a claimed bounty is deleted by id; season challenges are never deleted", () => {
+    const Base = { bounty_id: "Bounty_Bronze_PhysicalDodges", premium_bounty: false, slot_index: 0,
+        objectives: [{ objective_id: "Bounty_Bronze_PhysicalDodges", progress: 10 }], drafted_timestamp: NOW, update_version: 7, claimed: false };
+    let Record = Apply(undefined, { bounties: [Base], draft_data: DefaultDraftData() });
+    Record = Apply(Record, { bounties: [Season("43_2_5_Challenge_Season_Staggers-season43-1", 5, true)], draft_data_weekly: DefaultDraftData() });
+    Record = Apply(Record, { bounties: [Daily("Challenge_Daily_Bronze_KillASChain", NOW, 3, true)], draft_data_daily: DefaultDraftData() });
+
+    const { record, summary } = DeleteBounties(USER, Record, {
+        bounty_ids: ["Bounty_Bronze_PhysicalDodges", "43_2_5_Challenge_Season_Staggers-season43-1", "Unknown"]
+    }, NOW);
+    assert.deepEqual(summary.deleted, ["Bounty_Bronze_PhysicalDodges"]);
+    assert.deepEqual(summary.kept, ["43_2_5_Challenge_Season_Staggers-season43-1", "Unknown"]);
+    assert.deepEqual(record.bounties.map((Entry) => Entry.bounty.bounty_id), ["43_2_5_Challenge_Season_Staggers-season43-1", "Challenge_Daily_Bronze_KillASChain"]);
+    assert.equal(record.updateVersion, Record.updateVersion + 1);
+    assert.deepEqual(record.draftData, Record.draftData);
+    assert.equal((BountyStatePayload(record).bounties as unknown[]).length, 2);
+
+    const Flag = DeleteBounties(USER, Record, { delete_claimed_bounties: true }, NOW);
+    assert.deepEqual(Flag.summary.deleted, ["Challenge_Daily_Bronze_KillASChain"]);
+    assert.equal(Flag.record.bounties.length, 2);
+});
+
+test("the delete body accepts ids or bounty objects and must name something", () => {
+    assert.deepEqual(ParseBountyDelete({ bounty_ids: ["A", "A"] }), { bountyIds: ["A"], deleteClaimed: false });
+    assert.deepEqual(ParseBountyDelete({ bounties: [{ bounty_id: "B" }, "C"] }), { bountyIds: ["B", "C"], deleteClaimed: false });
+    assert.deepEqual(ParseBountyDelete({ delete_claimed_bounties: true }), { bountyIds: [], deleteClaimed: true });
+    for (const Body of [undefined, [], {}, { bounty_ids: [] }, { bounty_ids: "A" }, { bounty_ids: [1] }, { bounty_ids: [""] }]) {
+        assert.throws(() => ParseBountyDelete(Body), BountySaveValidationError, JSON.stringify(Body));
+    }
 });
