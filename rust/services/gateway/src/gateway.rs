@@ -1,12 +1,13 @@
-//! The gateway itself (`src/gateway.ts`): TLS on the public port, the policy and limits on every
-//! request, then a reverse proxy to the metagame, the content server or the chat listener.
+//! The gateway itself (`src/gateway.ts`): TLS on the public port (plain HTTP in private mode), the
+//! policy and limits on every request, then a reverse proxy to the backend, the content server or
+//! the chat listener, with the traffic capture when it is on.
 
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::task::{Context, Poll};
 use std::time::Duration;
 
@@ -21,10 +22,15 @@ use hyper_util::client::legacy::connect::HttpConnector;
 use hyper_util::rt::{TokioExecutor, TokioIo, TokioTimer};
 use serde_json::{Map, Value, json};
 use service_kit::linelog::{self, Throttle};
+use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::watch;
 use tokio::time::{Instant, Sleep};
 
+use crate::capture::{
+    BodyTap, Capture, CaptureWriter, ChatTap, ConnectionId, Direction, SharedTap, redact_capture_body,
+    redact_capture_headers, redact_capture_target,
+};
 use crate::cert::CertInfo;
 use crate::config::{Config, Endpoint};
 use crate::feed::AllowlistFeed;
@@ -48,21 +54,21 @@ const CLIENT_CLAIMS: [&str; 12] = [
     "x-client-ip",
     "true-client-ip",
     "cf-connecting-ip",
-    "x-dauntless-gateway",
+    "x-reforged-gateway",
     // The gateway already answered any 100-continue itself
     "expect",
 ];
 
-const RESPONSE_DROP: [&str; 2] = ["x-powered-by", "x-dauntless-gateway"];
+const RESPONSE_DROP: [&str; 2] = ["x-powered-by", "x-reforged-gateway"];
 
-/// `ForwardHeaders`.
-pub fn forward_headers(incoming: &HeaderMap, ip: &str, secret: &str, upgrade: bool) -> HeaderMap {
+/// `ForwardHeaders`; `proto` is `https`, or `http` in private mode.
+pub fn forward_headers(incoming: &HeaderMap, ip: &str, secret: &str, upgrade: bool, proto: &'static str) -> HeaderMap {
     let mut out = proxy::end_to_end(incoming, |name| CLIENT_CLAIMS.contains(&name));
-    // Overwritten, never appended: the metagame trusts exactly one address, the real peer
+    // Overwritten, never appended: the backend trusts exactly one address, the real peer
     let value = |text: &str| HeaderValue::from_str(text).unwrap_or_else(|_| HeaderValue::from_static(""));
     out.insert("x-forwarded-for", value(ip));
-    out.insert("x-forwarded-proto", HeaderValue::from_static("https"));
-    out.insert("x-dauntless-gateway", value(secret));
+    out.insert("x-forwarded-proto", HeaderValue::from_static(proto));
+    out.insert("x-reforged-gateway", value(secret));
     if upgrade {
         out.insert(CONNECTION, HeaderValue::from_static("Upgrade"));
         out.insert(UPGRADE, HeaderValue::from_static("websocket"));
@@ -131,6 +137,65 @@ struct Access {
     reason: Option<String>,
     ua: Option<String>,
     started: Instant,
+    /// The capture record of this request, when the capture is on
+    capture: Option<Box<Record>>,
+}
+
+/// What the capture keeps of one request while it is answered (`Record`).
+struct Record {
+    capture: Arc<Capture>,
+    conn: ConnectionId,
+    target: String,
+    req_headers: Value,
+    req_type: Option<String>,
+    req: SharedTap,
+    res: BodyTap,
+    res_headers: HeaderMap,
+}
+
+fn content_type(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get(http::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_owned)
+}
+
+impl Record {
+    /// One record per answered request: the replay sends the request again and compares the
+    /// answer. Upgrades are recorded as chat instead.
+    fn write(self, access: &Access, aborted: bool) {
+        let max = self.capture.max_body_bytes();
+        let req = self.req.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut fields = Map::new();
+        fields.insert("kind".into(), json!("http"));
+        fields.insert("conn".into(), json!(self.capture.connection(&self.conn)));
+        fields.insert("seq".into(), json!(self.capture.next_seq()));
+        fields.insert("ip".into(), json!(access.ip));
+        fields.insert("method".into(), json!(access.method));
+        fields.insert("target".into(), json!(self.target));
+        fields.insert("route".into(), json!(access.route));
+        fields.insert("reqHeaders".into(), self.req_headers.clone());
+        fields.insert(
+            "reqBody".into(),
+            redact_capture_body(req.body(), self.req_type.as_deref(), req.total, max),
+        );
+        fields.insert("status".into(), json!(access.status));
+        fields.insert("resHeaders".into(), redact_capture_headers(&self.res_headers));
+        fields.insert(
+            "resBody".into(),
+            redact_capture_body(
+                self.res.body(),
+                content_type(&self.res_headers).as_deref(),
+                self.res.total,
+                max,
+            ),
+        );
+        fields.insert("ms".into(), json!(access.started.elapsed().as_millis() as u64));
+        if aborted {
+            fields.insert("aborted".into(), json!(true));
+        }
+        self.capture.write(Value::Object(fields));
+    }
 }
 
 impl Access {
@@ -172,6 +237,7 @@ struct RequestBody {
     exchange: Arc<Exchange>,
     cap: u64,
     deadline: Pin<Box<Sleep>>,
+    tap: Option<SharedTap>,
 }
 
 impl Body for RequestBody {
@@ -182,6 +248,9 @@ impl Body for RequestBody {
         match Pin::new(&mut self.inner).poll_frame(cx) {
             Poll::Ready(Some(Ok(frame))) => {
                 if let Some(data) = frame.data_ref() {
+                    if let Some(tap) = &self.tap {
+                        tap.lock().unwrap_or_else(PoisonError::into_inner).add(data);
+                    }
                     let total =
                         self.exchange.bytes_in.fetch_add(data.len() as u64, Ordering::Relaxed) + data.len() as u64;
                     if total > self.cap {
@@ -311,6 +380,9 @@ impl Body for ResponseBody {
             Poll::Ready(Some(Ok(frame))) => {
                 if let Some(data) = frame.data_ref() {
                     this.sent += data.len() as u64;
+                    if let Some(record) = this.access.as_mut().and_then(|a| a.capture.as_deref_mut()) {
+                        record.res.add(data);
+                    }
                 }
             }
             Poll::Ready(None) => this.ended = true,
@@ -343,6 +415,9 @@ impl Drop for ResponseBody {
             }
             let finished = self.ended || self.expected == Some(self.sent);
             access.log(if self.from_upstream { self.sent } else { 0 }, !finished);
+            if let Some(record) = access.capture.take() {
+                record.write(access, !finished);
+            }
         }
         if let Some(phases) = &self.phases {
             phases.request_done();
@@ -393,11 +468,19 @@ pub struct Stats {
     pub websockets: usize,
 }
 
+/// The certificate and the TLS settings made from it (public mode).
+pub struct Tls {
+    pub config: Arc<rustls::ServerConfig>,
+    pub info: CertInfo,
+}
+
 pub struct Gateway {
     config: Config,
-    certificate: CertInfo,
-    tls: tokio_rustls::TlsAcceptor,
+    /// `None` in private mode (plain HTTP inside the tailnet)
+    certificate: Option<CertInfo>,
+    tls: Option<tokio_rustls::TlsAcceptor>,
     feed: Option<AllowlistFeed>,
+    capture: Option<Arc<Capture>>,
     client: Client<HttpConnector, RequestBody>,
     limiters: Mutex<Limiters>,
     per_ip: Mutex<HashMap<String, usize>>,
@@ -427,12 +510,29 @@ impl Drop for Admitted {
 }
 
 impl Gateway {
+    /// A TLS gateway needs its certificate, and a private one has none (`config.tls`).
     pub fn new(
         config: Config,
-        tls: Arc<rustls::ServerConfig>,
-        certificate: CertInfo,
+        tls: Option<Tls>,
         feed: Option<AllowlistFeed>,
-    ) -> Arc<Self> {
+        capture: Option<CaptureWriter>,
+    ) -> Result<Arc<Self>, String> {
+        if config.tls != tls.is_some() {
+            return Err(if config.tls {
+                "the TLS gateway needs its certificate and key".into()
+            } else {
+                "a private gateway (GATEWAY_TLS=0) serves plain HTTP and takes no certificate".into()
+            });
+        }
+        let capture = capture.map(|mut writer| {
+            writer.add_secret(Some(&config.secret));
+            writer.add_secret(config.allowlist.as_ref().map(|a| a.secret.as_str()));
+            Arc::new(Capture::new(writer))
+        });
+        let (tls, certificate) = match tls {
+            Some(Tls { config, info }) => (Some(tokio_rustls::TlsAcceptor::from(config)), Some(info)),
+            None => (None, None),
+        };
         let rates = &config.limits.rate;
         let limiters = Limiters {
             general: RateLimiter::new(rates.general),
@@ -449,11 +549,12 @@ impl Gateway {
             .pool_idle_timeout(Duration::from_secs(30))
             .pool_timer(TokioTimer::new())
             .build(connector);
-        Arc::new(Self {
+        Ok(Arc::new(Self {
             config,
             certificate,
-            tls: tokio_rustls::TlsAcceptor::from(tls),
+            tls,
             feed,
+            capture,
             client,
             limiters: Mutex::new(limiters),
             per_ip: Mutex::default(),
@@ -461,11 +562,16 @@ impl Gateway {
             websockets: AtomicUsize::new(0),
             throttle: Throttle::new(60_000),
             closing: watch::Sender::new(false),
-        })
+        }))
     }
 
-    pub fn certificate(&self) -> &CertInfo {
-        &self.certificate
+    /// `None` in private mode.
+    pub fn certificate(&self) -> Option<&CertInfo> {
+        self.certificate.as_ref()
+    }
+
+    fn proto(&self) -> &'static str {
+        if self.config.tls { "https" } else { "http" }
     }
 
     pub fn config(&self) -> &Config {
@@ -495,7 +601,7 @@ impl Gateway {
 
     fn upstream(&self, name: Upstream) -> &Endpoint {
         match name {
-            Upstream::Metagame => &self.config.metagame,
+            Upstream::Backend => &self.config.backend,
             Upstream::Content => &self.config.content,
             Upstream::Ws => &self.config.ws,
         }
@@ -608,20 +714,31 @@ impl Gateway {
     async fn connection(self: Arc<Self>, stream: TcpStream, peer: SocketAddr, _admitted: Admitted) {
         let _ = stream.set_nodelay(true);
         let ip = peer_address(Some(&peer.ip().to_string()));
-        let timeouts = &self.config.timeouts;
-        let tls = match tokio::time::timeout(timeouts.handshake, self.tls.accept(stream)).await {
-            Ok(Ok(tls)) => tls,
-            Ok(Err(error)) => return self.handshake_failed(&ip, &error.to_string()),
-            Err(_) => return self.handshake_failed(&ip, "timed out"),
+        let Some(acceptor) = self.tls.clone() else {
+            return self.serve_connection(stream, ip).await;
         };
+        match tokio::time::timeout(self.config.timeouts.handshake, acceptor.accept(stream)).await {
+            Ok(Ok(tls)) => self.serve_connection(tls, ip).await,
+            Ok(Err(error)) => self.handshake_failed(&ip, &error.to_string()),
+            Err(_) => self.handshake_failed(&ip, "timed out"),
+        }
+    }
+
+    /// HTTP/1.1 on one connection, TLS or (private mode) plain.
+    async fn serve_connection<S>(self: Arc<Self>, io: S, ip: String)
+    where
+        S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    {
+        let timeouts = &self.config.timeouts;
         let phases = Phases::new(timeouts.headers, timeouts.keep_alive, timeouts.idle);
+        let conn: ConnectionId = Arc::new(OnceLock::new());
         let service = {
             let gateway = self.clone();
             let phases = phases.clone();
             let ip = ip.clone();
             hyper::service::service_fn(move |request: Request<Incoming>| {
-                let (gateway, phases, ip) = (gateway.clone(), phases.clone(), ip.clone());
-                async move { Ok::<_, Infallible>(gateway.handle(request, ip, phases).await) }
+                let (gateway, phases, ip, conn) = (gateway.clone(), phases.clone(), ip.clone(), conn.clone());
+                async move { Ok::<_, Infallible>(gateway.handle(request, ip, conn, phases).await) }
             })
         };
         let connection = hyper::server::conn::http1::Builder::new()
@@ -630,7 +747,7 @@ impl Gateway {
             .header_read_timeout(None)
             .max_headers(self.config.limits.max_headers_count)
             .max_header_size(16 * 1024)
-            .serve_connection(TokioIo::new(Guard::new(tls, phases)), service)
+            .serve_connection(TokioIo::new(Guard::new(io, phases)), service)
             .with_upgrades();
         tokio::pin!(connection);
         let mut closing = self.closing.subscribe();
@@ -681,8 +798,21 @@ impl Gateway {
         }
     }
 
-    fn access(&self, request: &Request<Incoming>, ip: &str) -> Access {
+    fn access(&self, request: &Request<Incoming>, ip: &str, conn: &ConnectionId) -> Access {
+        let capture = self.capture.as_ref().map(|capture| {
+            Box::new(Record {
+                capture: capture.clone(),
+                conn: conn.clone(),
+                target: redact_capture_target(&request.uri().to_string()),
+                req_headers: redact_capture_headers(request.headers()),
+                req_type: content_type(request.headers()),
+                req: Arc::new(Mutex::new(BodyTap::new(capture.max_body_bytes()))),
+                res: BodyTap::new(capture.max_body_bytes()),
+                res_headers: HeaderMap::new(),
+            })
+        });
         Access {
+            capture,
             ip: ip.to_owned(),
             method: request.method().as_str().to_owned(),
             target: redact_target(&request.uri().to_string()),
@@ -742,17 +872,27 @@ impl Gateway {
         for (name, value) in extra {
             response = response.header(*name, value);
         }
-        response
-            .body(ResponseBody::full(body).logged(access, None, phases))
-            .unwrap_or_else(|_| Response::new(ResponseBody::full(Bytes::new())))
+        let response = response
+            .body(ResponseBody::full(body))
+            .unwrap_or_else(|_| Response::new(ResponseBody::full(Bytes::new())));
+        if let Some(record) = access.capture.as_deref_mut() {
+            record.res_headers = response.headers().clone();
+        }
+        response.map(|body| body.logged(access, None, phases))
     }
 
-    async fn handle(self: Arc<Self>, request: Request<Incoming>, ip: String, phases: Phases) -> Reply {
+    async fn handle(
+        self: Arc<Self>,
+        request: Request<Incoming>,
+        ip: String,
+        conn: ConnectionId,
+        phases: Phases,
+    ) -> Reply {
         phases.request_started();
         if is_upgrade(request.headers()) {
-            return self.upgrade(request, ip, phases).await;
+            return self.upgrade(request, ip, conn, phases).await;
         }
-        let access = self.access(&request, &ip);
+        let access = self.access(&request, &ip, &conn);
         let target = request.uri().to_string();
         let choice = classify(request.method().as_str(), &target, request.headers(), false);
         let limit_class = choice.limit_class();
@@ -812,10 +952,12 @@ impl Gateway {
             exchange: exchange.clone(),
             cap: self.config.limits.max_body_bytes,
             deadline: Box::pin(tokio::time::sleep(self.config.timeouts.request)),
+            tap: access.capture.as_ref().map(|record| record.req.clone()),
         };
         let mut upstream_request = Request::new(body);
         *upstream_request.method_mut() = parts.method.clone();
-        *upstream_request.headers_mut() = forward_headers(&parts.headers, &ip, &self.config.secret, false);
+        *upstream_request.headers_mut() =
+            forward_headers(&parts.headers, &ip, &self.config.secret, false, self.proto());
         match format!("http://{}{path}", endpoint.authority()).parse() {
             Ok(uri) => *upstream_request.uri_mut() = uri,
             Err(_) => {
@@ -876,6 +1018,9 @@ impl Gateway {
             feed.report(&ip);
         }
         let headers = response_headers(response.headers(), self.closing());
+        if let Some(record) = access.capture.as_deref_mut() {
+            record.res_headers = response.headers().clone();
+        }
         access.status = status.as_u16();
         let mut reply =
             Response::new(ResponseBody::upstream(response.into_body(), idle).logged(access, Some(exchange), phases));
@@ -886,8 +1031,16 @@ impl Gateway {
 
     /// WebSocket upgrades (the game's chat): the same checks as any request, then the handshake
     /// goes to the ws upstream and the two connections are joined byte for byte.
-    async fn upgrade(self: Arc<Self>, mut request: Request<Incoming>, ip: String, phases: Phases) -> Reply {
-        let mut access = self.access(&request, &ip);
+    async fn upgrade(
+        self: Arc<Self>,
+        mut request: Request<Incoming>,
+        ip: String,
+        conn: ConnectionId,
+        phases: Phases,
+    ) -> Reply {
+        let mut access = self.access(&request, &ip, &conn);
+        // Upgrades are recorded as chat (below), not as an HTTP exchange
+        access.capture = None;
         let raw_refuse =
             |access: Access, status: u16, error: &str, reason: String, extra: &[(&'static str, String)]| {
                 let mut headers = HeaderMap::new();
@@ -922,8 +1075,9 @@ impl Gateway {
         };
         access.route = upstream.as_str();
         let endpoint = self.upstream(upstream).authority();
-        let headers = forward_headers(request.headers(), &ip, &self.config.secret, true);
+        let headers = forward_headers(request.headers(), &ip, &self.config.secret, true, self.proto());
         let path = request.uri().path_and_query().map_or("/", |p| p.as_str()).to_owned();
+        let chat_target = redact_capture_target(&path);
         let handshake = async {
             let stream = TcpStream::connect(&endpoint).await?;
             let _ = stream.set_nodelay(true);
@@ -991,8 +1145,29 @@ impl Gateway {
             phases.upgraded(ws_idle);
             gateway.websockets.fetch_add(1, Ordering::Relaxed);
             let mut closing = gateway.closing.subscribe();
+            let tunnel = async {
+                let Some(capture) = &gateway.capture else {
+                    return proxy::tunnel(TokioIo::new(client), TokioIo::new(upstream), ws_idle).await;
+                };
+                let id = capture.connection(&conn);
+                capture.write(json!({
+                    "kind": "chat",
+                    "conn": id,
+                    "event": "open",
+                    "ip": access.ip,
+                    "target": chat_target,
+                }));
+                let moved = proxy::tunnel(
+                    ChatTap::new(TokioIo::new(client), capture.clone(), id, Direction::In),
+                    ChatTap::new(TokioIo::new(upstream), capture.clone(), id, Direction::Out),
+                    ws_idle,
+                )
+                .await;
+                capture.write(json!({ "kind": "chat", "conn": id, "event": "close", "reason": "socket" }));
+                moved
+            };
             let (bytes_in, bytes_out) = tokio::select! {
-                moved = proxy::tunnel(TokioIo::new(client), TokioIo::new(upstream), ws_idle) => moved,
+                moved = tunnel => moved,
                 () = until(&mut closing) => (0, 0),
             };
             gateway.websockets.fetch_sub(1, Ordering::Relaxed);
@@ -1022,7 +1197,7 @@ mod tests {
             ("x-forwarded-for", "1.2.3.4"),
             ("forwarded", "for=1.2.3.4"),
             ("x-real-ip", "1.2.3.4"),
-            ("x-dauntless-gateway", "guess"),
+            ("x-reforged-gateway", "guess"),
             ("expect", "100-continue"),
             ("connection", "keep-alive, x-hidden"),
             ("x-hidden", "1"),
@@ -1032,7 +1207,7 @@ mod tests {
         ] {
             incoming.append(name, HeaderValue::from_static(value));
         }
-        let out = forward_headers(&incoming, "203.0.113.7", "s3cret", false);
+        let out = forward_headers(&incoming, "203.0.113.7", "s3cret", false, "https");
         let names: Vec<&str> = out.keys().map(HeaderName::as_str).collect();
         assert_eq!(
             names,
@@ -1041,12 +1216,15 @@ mod tests {
                 "host",
                 "x-forwarded-for",
                 "x-forwarded-proto",
-                "x-dauntless-gateway"
+                "x-reforged-gateway"
             ]
         );
         assert_eq!(out["x-forwarded-for"], "203.0.113.7");
-        assert_eq!(out["x-dauntless-gateway"], "s3cret");
-        let upgraded = forward_headers(&incoming, "203.0.113.7", "s3cret", true);
+        assert_eq!(out["x-forwarded-proto"], "https");
+        assert_eq!(out["x-reforged-gateway"], "s3cret");
+        let private = forward_headers(&incoming, "203.0.113.7", "s3cret", false, "http");
+        assert_eq!(private["x-forwarded-proto"], "http");
+        let upgraded = forward_headers(&incoming, "203.0.113.7", "s3cret", true, "https");
         assert_eq!(
             (upgraded["connection"].as_bytes(), upgraded["upgrade"].as_bytes()),
             (&b"Upgrade"[..], &b"websocket"[..])

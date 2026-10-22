@@ -1,7 +1,7 @@
 // Records what the Node gateway answers to a request script (<name>.requests.json), for the Rust
-// gateway's parity test (tests/parity.rs; MIGRATION_PLAN.md S2).
+// gateway's parity test (tests/parity.rs; MIGRATION_PLAN.md RS3).
 //
-//   cd legacy/UndauntedGateway && npm ci && npx tsc -p tsconfig.test.json
+//   cd legacy/ReforgedGateway && npm ci && npx tsc -p tsconfig.test.json
 //   node ../../rust/services/gateway/tests/parity/record.cjs <name>
 //
 // Each request is raw HTTP/1.1 text sent on its own TLS connection (from "local" when given); an
@@ -22,7 +22,7 @@ const name = process.argv[2];
 if (!name) throw new Error("usage: record.cjs <name>");
 const here = __dirname;
 const script = JSON.parse(fs.readFileSync(path.join(here, `${name}.requests.json`), "utf8"));
-const gatewayDir = path.resolve(here, "../../../../../legacy/UndauntedGateway");
+const gatewayDir = path.resolve(here, "../../../../../legacy/ReforgedGateway");
 const build = path.join(gatewayDir, "build", "src");
 const { Gateway } = require(path.join(build, "gateway.js"));
 const { AllowlistFeed } = require(path.join(build, "feed.js"));
@@ -63,13 +63,13 @@ function upstream(label, handle) {
   });
 }
 
-// Kept in step with metagame() in tests/parity.rs.
-const metagame = upstream("metagame", (req, res) => {
+// Kept in step with the backend in tests/parity.rs.
+const backend = upstream("backend", (req, res) => {
   const pathOnly = req.url.split("?")[0];
   const status = /^\/status\/(\d+)$/.exec(pathOnly);
   if (status) {
     const code = Number(status[1]);
-    res.writeHead(code, { "content-type": "text/plain", "x-powered-by": "Express", "x-dauntless-gateway": "leak", "set-cookie": ["a=1", "b=2"] });
+    res.writeHead(code, { "content-type": "text/plain", "x-powered-by": "Express", "x-reforged-gateway": "leak", "set-cookie": ["a=1", "b=2"] });
     res.end(code === 204 ? undefined : `status ${code}`);
     return true;
   }
@@ -77,6 +77,12 @@ const metagame = upstream("metagame", (req, res) => {
     const ok = req.headers["authorization"] === "Bearer good-token";
     res.writeHead(ok ? 200 : 401, { "content-type": "text/plain", "content-length": ok ? 5 : 0 });
     res.end(ok ? "20000" : "");
+    return true;
+  }
+  // Paradox's POST /login answers 2xx after its own bearer check; /game/login is DR's route
+  if (pathOnly === "/login" || pathOnly === "/game/login") {
+    res.writeHead(200, { "content-type": "application/json", "content-length": 2 });
+    res.end("{}");
     return true;
   }
   if (pathOnly === "/account/api/oauth/token") {
@@ -115,7 +121,7 @@ ws.on("upgrade", (req, socket) => {
 });
 
 // Kept in step with HEADERS in tests/parity.rs.
-const HEADERS = ["content-type", "content-length", "transfer-encoding", "cache-control", "connection", "retry-after", "x-powered-by", "x-dauntless-gateway", "set-cookie", "upgrade", "sec-websocket-accept", "sec-websocket-protocol"];
+const HEADERS = ["content-type", "content-length", "transfer-encoding", "cache-control", "connection", "retry-after", "x-powered-by", "x-reforged-gateway", "set-cookie", "upgrade", "sec-websocket-accept", "sec-websocket-protocol"];
 
 // Kept in step with parse() in tests/parity.rs.
 function parse(label, data) {
@@ -188,12 +194,12 @@ async function main() {
   SetLogLevel("info");
   SetLogSink((raw) => lines.push(JSON.parse(raw)));
   const ports = {
-    metagame: await listen(metagame),
+    backend: await listen(backend),
     content: await listen(content),
     ws: await listen(ws),
     helper: await listen(helper),
   };
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dr-gateway-parity-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "rr-gateway-parity-"));
   const made = spawnSync(process.execPath, [path.join(gatewayDir, "tools", "make-cert.js"), "--host", "127.0.0.1", "--out", dir, "--json"], { encoding: "utf8" });
   if (made.status !== 0) throw new Error(made.stderr);
   const cert = JSON.parse(made.stdout);
@@ -203,7 +209,7 @@ async function main() {
     GATEWAY_CERT: cert.cert,
     GATEWAY_KEY: cert.key,
     GATEWAY_SECRET: SECRET,
-    GATEWAY_METAGAME_URL: `http://127.0.0.1:${ports.metagame}`,
+    GATEWAY_BACKEND_URL: `http://127.0.0.1:${ports.backend}`,
     GATEWAY_CONTENT_URL: `http://127.0.0.1:${ports.content}`,
     GATEWAY_WS_URL: `http://127.0.0.1:${ports.ws}`,
     ALLOWLIST_URL: `http://127.0.0.1:${ports.helper}`,
@@ -231,7 +237,7 @@ async function main() {
   results.push({ request: "allowlist feed", status: 0, headers: {}, body: [...allowed].sort(), log: [] });
 
   await gateway.Close(500);
-  for (const server of [metagame, content, ws, helper]) {
+  for (const server of [backend, content, ws, helper]) {
     server.closeAllConnections?.();
     server.close();
   }

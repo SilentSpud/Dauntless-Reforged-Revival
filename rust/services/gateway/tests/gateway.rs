@@ -15,7 +15,7 @@ use serde_json::json;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 const HELPER_SECRET: &str = "test-helper-secret-abcdefabcdefabcdefabcdefabcdef";
-const FAKE_KEY: &str = "UUK_fedcba9876543210fedcba9876543210fedcba9876543210";
+const FAKE_KEY: &str = "RRK_fedcba9876543210fedcba9876543210fedcba9876543210";
 
 struct World {
     cert: TestCert,
@@ -47,15 +47,6 @@ async fn world() -> World {
                         header("authorization") == Some("Bearer good-token") || header("x-test-force-ok") == Some("1");
                     answer(if ok { 200 } else { 401 }, "text/plain", if ok { "20000" } else { "" })
                 }
-                "/undaunted/api/devicesignals" => {
-                    let blocked = header("x-test-device-result") == Some("blocked");
-                    let error = if blocked { "device_banned" } else { "not_found" };
-                    answer(
-                        if blocked { 403 } else { 404 },
-                        "application/json",
-                        &json!({ "error": error }).to_string(),
-                    )
-                }
                 "/account/api/oauth/token" => {
                     let ok = String::from_utf8_lossy(&seen.body).contains("exchange_code=good");
                     answer(
@@ -68,7 +59,7 @@ async fn world() -> World {
             }
         })
     });
-    let meta = start_upstream("metagame", Some(meta_handler)).await;
+    let meta = start_upstream("backend", Some(meta_handler)).await;
     let content = start_upstream("content", None).await;
     let helper = start_upstream(
         "helper",
@@ -84,7 +75,7 @@ async fn world() -> World {
         additional_urls: Vec::new(),
     });
     let ports = Ports {
-        metagame: meta.port,
+        backend: meta.port,
         content: content.port,
         ws: ws.port,
     };
@@ -124,33 +115,12 @@ fn from(mut options: Options<'static>, local: &'static str) -> Options<'static> 
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn device_checks_pass_through_unchanged() {
-    let w = world().await;
-    let port = w.gateway.port;
-    let legacy = https_request(port, "/undaunted/api/DeviceSignals", post("{}"))
-        .await
-        .unwrap();
-    assert_eq!(legacy.status, 404);
-    let banned = https_request(
-        port,
-        "/undaunted/api/DeviceSignals",
-        with(post("{}"), "x-test-device-result", "blocked"),
-    )
-    .await
-    .unwrap();
-    assert_eq!(
-        (banned.status, banned.json()["error"].clone()),
-        (403, json!("device_banned"))
-    );
-}
-
-#[tokio::test(flavor = "multi_thread")]
 async fn serves_its_certificate_and_a_pinning_client_connects() {
     let w = world().await;
     let port = w.gateway.port;
     let fingerprint = w.cert.info.fingerprint.clone();
     assert_eq!(fingerprint.len(), 64);
-    assert_eq!(w.gateway.gateway.certificate().fingerprint, fingerprint);
+    assert_eq!(w.gateway.gateway.certificate().unwrap().fingerprint, fingerprint);
     let pinned = Options {
         pin: Some(&fingerprint),
         ..get()
@@ -193,6 +163,19 @@ async fn refuses_plain_http() {
         "answered plain HTTP: {}",
         String::from_utf8_lossy(&received)
     );
+
+    // A TLS 1.1 ClientHello (no supported_versions extension) gets an alert, never a ServerHello
+    let mut hello = vec![0x03, 0x02];
+    hello.extend_from_slice(&[7u8; 32]);
+    hello.extend_from_slice(&[0x00, 0x00, 0x02, 0x00, 0x2f, 0x01, 0x00]);
+    let mut handshake = vec![0x01, 0x00, 0x00, hello.len() as u8];
+    handshake.extend(hello);
+    let mut record = vec![0x16, 0x03, 0x01, 0x00, handshake.len() as u8];
+    record.extend(handshake);
+    let mut tcp = tcp_connect(w.gateway.port, None).await.unwrap();
+    tcp.write_all(&record).await.unwrap();
+    let (_, received) = wait_close(&mut tcp, Duration::from_secs(5)).await;
+    assert_eq!(received.first(), Some(&0x15), "an alert record: {received:?}");
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -210,27 +193,27 @@ async fn routes_content_and_the_rest_with_path_and_query_untouched() {
     let file = https_request(
         port,
         "/content/v1/files/Archon/Content/Paks/x.pak",
-        with(with(get(), "x-undaunted-user-api-key", FAKE_KEY), "range", "bytes=0-9"),
+        with(with(get(), "x-reforged-user-api-key", FAKE_KEY), "range", "bytes=0-9"),
     )
     .await
     .unwrap()
     .json();
     assert_eq!(file["upstream"], "content");
-    assert_eq!(file["headers"]["x-undaunted-user-api-key"], FAKE_KEY);
+    assert_eq!(file["headers"]["x-reforged-user-api-key"], FAKE_KEY);
     assert_eq!(file["headers"]["range"], "bytes=0-9");
 
     for path in [
         "/party/invites",
         "/entitlementsv2?accountId=UID-1&x=%20y",
         "/account127.0.0.1:61000",
-        "/undaunted/api/ServerStatus",
+        "/reforged/api/ServerStatus",
         "/QoS",
     ] {
         let reply = https_request(port, path, get()).await.unwrap();
         assert_eq!(reply.status, 200, "{path}");
         assert_eq!(
             (reply.json()["upstream"].as_str(), reply.json()["url"].as_str()),
-            (Some("metagame"), Some(path))
+            (Some("backend"), Some(path))
         );
     }
 }
@@ -268,7 +251,7 @@ async fn sets_the_forwarded_address_and_secret_whatever_the_client_claims() {
     for (local, path) in [
         ("127.0.0.1", "/party"),
         ("127.0.0.2", "/content/v1/news"),
-        ("127.0.0.3", "/undaunted/api/GetUserInfo"),
+        ("127.0.0.3", "/reforged/api/GetUserInfo"),
     ] {
         let mut options = from(get(), local);
         for (name, value) in [
@@ -277,20 +260,20 @@ async fn sets_the_forwarded_address_and_secret_whatever_the_client_claims() {
             ("forwarded", "for=6.6.6.6"),
             ("x-forwarded-proto", "http"),
             ("x-forwarded-host", "evil.example"),
-            ("x-dauntless-gateway", "forged"),
+            ("x-reforged-gateway", "forged"),
         ] {
             options = with(options, name, value);
         }
         let reply = https_request(w.gateway.port, path, options).await.unwrap();
         let headers = reply.json()["headers"].clone();
         assert_eq!(headers["x-forwarded-for"], local, "{path}");
-        assert_eq!(headers["x-dauntless-gateway"], GATEWAY_SECRET, "{path}");
+        assert_eq!(headers["x-reforged-gateway"], GATEWAY_SECRET, "{path}");
         assert_eq!(headers["x-forwarded-proto"], "https");
         for gone in ["x-real-ip", "forwarded", "x-forwarded-host"] {
             assert!(headers.get(gone).is_none(), "{gone}");
         }
         // The secret never goes back to the client
-        assert!(!reply.headers.contains_key("x-dauntless-gateway"));
+        assert!(!reply.headers.contains_key("x-reforged-gateway"));
     }
 }
 
@@ -303,7 +286,7 @@ async fn the_game_server_key_header_is_refused_and_never_forwarded() {
         ("POST", "/progression/UID-1"),
         ("PUT", "/cooldown/batch/UID-1"),
         ("GET", "/content/v1/manifest"),
-        ("POST", "/undaunted/api/Register"),
+        ("POST", "/reforged/api/Register"),
         ("GET", "/party/invites"),
     ] {
         let mut options = Options {
@@ -313,7 +296,7 @@ async fn the_game_server_key_header_is_refused_and_never_forwarded() {
         };
         options
             .headers
-            .push(("x-undaunted-gameserver-apikey", "0123456789abcdef".repeat(3)));
+            .push(("x-mysticparadox-gameserver-apikey", "0123456789abcdef".repeat(3)));
         options.headers.push(("authorization", "Bearer good-token".into()));
         let reply = https_request(w.gateway.port, path, options).await.unwrap();
         assert_eq!(
@@ -325,7 +308,7 @@ async fn the_game_server_key_header_is_refused_and_never_forwarded() {
     let upper = https_request(
         w.gateway.port,
         "/party",
-        with(get(), "X-Undaunted-GameServer-ApiKey", "k"),
+        with(get(), "X-MysticParadox-GameServer-ApiKey", "k"),
     )
     .await
     .unwrap();
@@ -334,26 +317,30 @@ async fn the_game_server_key_header_is_refused_and_never_forwarded() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn only_the_public_undaunted_routes_reach_the_metagame() {
+async fn only_the_public_reforged_routes_reach_the_backend() {
     let w = world().await;
     let port = w.gateway.port;
-    for (method, path, public) in [
-        ("POST", "/undaunted/api/Register", true),
-        ("GET", "/undaunted/api/GetUserInfo", true),
-        ("GET", "/undaunted/api/ServerStatus", true),
-        ("GET", "/undaunted/api/RegistrationStatus", true),
-        ("POST", "/undaunted/api/RegistrationStatus", false),
-        ("POST", "/undaunted/api/CreateInvite", false),
-        ("POST", "/undaunted/api/GenerateJWTForUserId", false),
-        ("GET", "/undaunted/api/GetAllUsers", false),
-        ("DELETE", "/undaunted/api/InviteCode/ABCD-EFGH-JKMN", false),
-    ] {
+    let public = |method: &str, path: &str| {
+        let name = path["/reforged/api/".len()..].to_lowercase();
+        gateway::policy::PUBLIC_REFORGED_API
+            .iter()
+            .any(|(route, methods)| *route == name && methods.contains(&method))
+    };
+    // Every route the backend registers, read from its source, plus two it never had
+    let mut routes = reforged_api_routes();
+    routes.push(("POST".into(), "/reforged/api/RegistrationStatus".into()));
+    routes.push(("GET".into(), "/reforged/api/GetAllUsers".into()));
+    let mut blocked = 0;
+    for (method, path) in &routes {
+        let (method, path) = (method.as_str(), path.as_str());
+        let public = public(method, path);
+        blocked += usize::from(!public);
         let before = w.meta.count();
         let options = Options {
             method: Some(method),
             body: (method != "GET").then(|| b"{}".to_vec()),
             headers: vec![
-                ("x-undaunted-user-api-key", FAKE_KEY.into()),
+                ("x-reforged-user-api-key", FAKE_KEY.into()),
                 ("content-type", "application/json".into()),
             ],
             ..get()
@@ -368,15 +355,16 @@ async fn only_the_public_undaunted_routes_reach_the_metagame() {
                 (403, json!({ "error": "forbidden" })),
                 "{method} {path}"
             );
-            assert_eq!(w.meta.count(), before, "{method} {path} reached the metagame");
+            assert_eq!(w.meta.count(), before, "{method} {path} reached the backend");
         }
     }
+    assert!(blocked >= 4, "blocked {blocked}");
     for path in [
-        "/UNDAUNTED/API/CREATEINVITE",
-        "/undaunted/api/createinvite/",
-        "/undaunted//api/CreateInvite",
-        "/undaunted/api/%43reateInvite",
-        "/undaunted/api/GrantEntitlement?UserId=x",
+        "/REFORGED/API/CREATEINVITE",
+        "/reforged/api/createinvite/",
+        "/reforged//api/CreateInvite",
+        "/reforged/api/%43reateInvite",
+        "/reforged/api/GrantEntitlement?UserId=x",
     ] {
         let before = w.meta.count();
         let reply = https_request(port, path, with(post("{}"), "content-type", "application/json"))
@@ -385,10 +373,7 @@ async fn only_the_public_undaunted_routes_reach_the_metagame() {
         assert_eq!(reply.status, 403, "{path}");
         assert_eq!(w.meta.count(), before, "{path}");
     }
-    for path in [
-        "/undaunted/api/Register/../CreateInvite",
-        "/undaunted%2Fapi/CreateInvite",
-    ] {
+    for path in ["/reforged/api/Register/../CreateInvite", "/reforged%2Fapi/CreateInvite"] {
         assert_eq!(
             https_request(port, path, post("{}")).await.unwrap().status,
             400,
@@ -396,7 +381,7 @@ async fn only_the_public_undaunted_routes_reach_the_metagame() {
         );
     }
     // A backslash never gets past the HTTP parser
-    let backslash = https_request(port, "/undaunted/api\\CreateInvite", post("{}")).await;
+    let backslash = https_request(port, "/reforged/api\\CreateInvite", post("{}")).await;
     assert!(backslash.is_err() || backslash.unwrap().status == 400);
 }
 
@@ -520,7 +505,7 @@ async fn one_access_log_line_per_request_with_no_secret_in_it() {
         method: Some("DELETE"),
         headers: vec![
             ("authorization", bearer.clone()),
-            ("x-undaunted-user-api-key", FAKE_KEY.into()),
+            ("x-reforged-user-api-key", FAKE_KEY.into()),
         ],
         ..get()
     };
@@ -536,11 +521,11 @@ async fn one_access_log_line_per_request_with_no_secret_in_it() {
     .unwrap();
     https_request(
         port,
-        "/undaunted/api/CreateInvite",
+        "/reforged/api/CreateInvite",
         from(
             with(
                 post("{\"InviteCode\":\"SECRET-CODE-1234\"}"),
-                "x-undaunted-user-api-key",
+                "x-reforged-user-api-key",
                 FAKE_KEY,
             ),
             "127.0.0.40",
@@ -571,7 +556,7 @@ async fn one_access_log_line_per_request_with_no_secret_in_it() {
     assert_eq!(kill["target"], "/account/api/oauth/sessions/kill/<token>");
     assert_eq!(
         (kill["route"].as_str(), kill["status"].as_u64(), kill["ip"].as_str()),
-        (Some("metagame"), Some(200), Some("127.0.0.40"))
+        (Some("backend"), Some(200), Some("127.0.0.40"))
     );
     let entitlements = requests
         .iter()
@@ -606,9 +591,9 @@ async fn server_status_keys_are_forwarded_byte_for_byte_and_never_logged() {
     // A key that does not look like one: it stays out of the log only because headers never go there
     let odd_key = format!("k3y-{}", &sha256_hex(b"odd")[..16]);
     let cases = [
-        ("GET", "/undaunted/api/ServerStatus", FAKE_KEY.to_owned()),
-        ("GET", "/undaunted/api/serverstatus", odd_key.clone()),
-        ("HEAD", "/undaunted/api/ServerStatus", FAKE_KEY.to_owned()),
+        ("GET", "/reforged/api/ServerStatus", FAKE_KEY.to_owned()),
+        ("GET", "/reforged/api/serverstatus", odd_key.clone()),
+        ("HEAD", "/reforged/api/ServerStatus", FAKE_KEY.to_owned()),
     ];
     for (method, path, key) in &cases {
         let before = w.meta.count();
@@ -618,28 +603,25 @@ async fn server_status_keys_are_forwarded_byte_for_byte_and_never_logged() {
             Options {
                 method: Some(method),
                 local: Some("127.0.0.41"),
-                headers: vec![("X-Undaunted-User-Api-Key", key.clone())],
+                headers: vec![("X-Reforged-User-Api-Key", key.clone())],
                 ..get()
             },
         )
         .await
         .unwrap();
         assert_eq!(reply.status, 200, "{method} {path}");
-        assert_eq!(w.meta.count(), before + 1, "{method} {path} reached the metagame");
+        assert_eq!(w.meta.count(), before + 1, "{method} {path} reached the backend");
         let seen = w.meta.last();
         assert_eq!((seen.method.as_str(), seen.url.as_str()), (*method, *path));
-        assert_eq!(
-            seen.headers["x-undaunted-user-api-key"], *key,
-            "forwarded byte for byte"
-        );
-        assert_eq!(seen.headers["x-dauntless-gateway"], GATEWAY_SECRET);
+        assert_eq!(seen.headers["x-reforged-user-api-key"], *key, "forwarded byte for byte");
+        assert_eq!(seen.headers["x-reforged-gateway"], GATEWAY_SECRET);
         assert_eq!(seen.headers["x-forwarded-for"], "127.0.0.41");
     }
-    let anonymous = https_request(port, "/undaunted/api/ServerStatus", from(get(), "127.0.0.41"))
+    let anonymous = https_request(port, "/reforged/api/ServerStatus", from(get(), "127.0.0.41"))
         .await
         .unwrap();
     assert_eq!(anonymous.status, 200);
-    assert!(!w.meta.last().headers.contains_key("x-undaunted-user-api-key"));
+    assert!(!w.meta.last().headers.contains_key("x-reforged-user-api-key"));
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     let lines = log_since(start);
@@ -654,7 +636,7 @@ async fn server_status_keys_are_forwarded_byte_for_byte_and_never_logged() {
         assert!(!text.contains(secret), "the log contains {}...", &secret[..6]);
     }
     assert!(
-        !text.to_lowercase().contains("x-undaunted-user-api-key"),
+        !text.to_lowercase().contains("x-reforged-user-api-key"),
         "no header names or values in the access log"
     );
     let allowed = [
@@ -690,7 +672,7 @@ async fn proxies_websocket_upgrades_byte_for_byte() {
     assert_eq!(got, b"echo:hello over tls");
     let (_, seen) = w.ws.last();
     assert_eq!(seen["x-forwarded-for"], "127.0.0.1");
-    assert_eq!(seen["x-dauntless-gateway"], GATEWAY_SECRET);
+    assert_eq!(seen["x-reforged-gateway"], GATEWAY_SECRET);
     assert_eq!(seen["sec-websocket-protocol"], "xmpp");
     assert_eq!(w.gateway.gateway.stats().websockets, 1);
     drop(result);
@@ -731,7 +713,7 @@ async fn carries_the_clients_chat_connection_as_libwebsockets_sends_it() {
     assert_eq!(count("sec-websocket-protocol", "xmpp"), 1, "{headers:?}");
     let (url, seen) = w.ws.last();
     assert_eq!(url, "//", "the upstream sees the request target as sent");
-    assert_eq!(seen["x-dauntless-gateway"], GATEWAY_SECRET);
+    assert_eq!(seen["x-reforged-gateway"], GATEWAY_SECRET);
     assert_eq!(seen["x-forwarded-for"], "127.0.0.1");
     assert_eq!(seen["sec-websocket-protocol"], "xmpp");
 }
@@ -742,15 +724,12 @@ async fn upgrades_follow_the_same_rules_and_pass_on_a_refusal() {
     let port = w.gateway.port;
     let before = w.ws.count();
     assert_eq!(
-        upgrade(port, "/xmpp", &[("x-undaunted-gameserver-apikey", "k")], None)
+        upgrade(port, "/xmpp", &[("x-mysticparadox-gameserver-apikey", "k")], None)
             .await
             .status,
         403
     );
-    assert_eq!(
-        upgrade(port, "/undaunted/api/ServerStatus", &[], None).await.status,
-        403
-    );
+    assert_eq!(upgrade(port, "/reforged/api/ServerStatus", &[], None).await.status, 403);
     assert_eq!(upgrade(port, "/a/../xmpp", &[], None).await.status, 400);
     assert_eq!(w.ws.count(), before);
     let refused = upgrade(port, "/refuse", &[], None).await;
@@ -763,7 +742,7 @@ async fn answers_502_when_an_upstream_is_down() {
     let cert = make_cert();
     let dead = dead_port().await;
     let ports = Ports {
-        metagame: dead,
+        backend: dead,
         content: dead,
         ws: dead,
     };
@@ -777,4 +756,255 @@ async fn answers_502_when_an_upstream_is_down() {
     let http = https_request(running.port, "/heartbeat", post("{}")).await.unwrap();
     assert_eq!((http.status, http.json()), (502, json!({ "error": "bad_gateway" })));
     running.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn private_mode_serves_plain_http_with_the_same_rules() {
+    let backend = start_upstream("backend", None).await;
+    let content = start_upstream("content", None).await;
+    let (backend_url, content_url) = (
+        format!("http://127.0.0.1:{}", backend.port),
+        format!("http://127.0.0.1:{}", content.port),
+    );
+    let env = service_kit::env::Env::from_pairs([
+        ("GATEWAY_TLS", "0"),
+        ("GATEWAY_BIND", "127.0.0.1"),
+        ("GATEWAY_SECRET", GATEWAY_SECRET),
+        ("GATEWAY_BACKEND_URL", backend_url.as_str()),
+        ("GATEWAY_CONTENT_URL", content_url.as_str()),
+        ("GATEWAY_WS_URL", backend_url.as_str()),
+        ("GATEWAY_ALLOWLIST", "0"),
+        ("GATEWAY_SHUTDOWN_GRACE_MS", "500"),
+    ]);
+    let config = gateway::config::Config::from_env(&env).unwrap();
+    // A public gateway without its certificate is a programming error
+    let cert = make_cert();
+    let public = test_config(
+        &cert,
+        &Ports {
+            backend: 1,
+            content: 1,
+            ws: 1,
+        },
+        &[],
+    );
+    assert!(gateway::gateway::Gateway::new(public, None, None, None).is_err());
+
+    let running = start_gateway_with(None, config, None, None).await;
+    assert!(running.gateway.certificate().is_none());
+    let port = running.port;
+    let target = "/__origin/gamedev-prod.steelyard.ca/party/invites";
+    assert_eq!(plain_request(port, target, get()).await.unwrap().status, 200);
+    let seen = backend.last();
+    assert_eq!(seen.url, target, "the target goes upstream unchanged");
+    assert_eq!(seen.headers["x-forwarded-proto"], "http");
+    assert_eq!(seen.headers["x-forwarded-for"], "127.0.0.1");
+    assert_eq!(seen.headers["x-reforged-gateway"], GATEWAY_SECRET);
+    assert_eq!(
+        plain_request(port, "/content/v1/runtime/manifest", get())
+            .await
+            .unwrap()
+            .status,
+        200
+    );
+    assert_eq!(content.count(), 1);
+    let before = backend.count();
+    for path in ["/reforged/api/CreateInvite", "/launcher/v1/auth/register"] {
+        assert_eq!(
+            plain_request(port, path, post("{}")).await.unwrap().status,
+            403,
+            "{path}"
+        );
+    }
+    assert_eq!(backend.count(), before, "nothing blocked reached the backend");
+    // TLS is not spoken here
+    assert!(tls_connect(port, None).await.is_err());
+    running.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_origin_prefix_and_the_host_only_routes_end_to_end() {
+    let _serial = serial().await;
+    let w = world().await;
+    let port = w.gateway.port;
+    let host = "/__origin/gamedev-prod.steelyard.ca";
+    let reply = https_request(port, &format!("{host}/party/invites"), get())
+        .await
+        .unwrap();
+    assert_eq!(reply.status, 200);
+    assert_eq!(w.meta.last().url, format!("{host}/party/invites"));
+    let before = (w.meta.count(), w.content.count());
+    for (path, status, reason) in [
+        (format!("{host}/reforged/api/CreateInvite"), 403, "admin_route"),
+        (format!("{host}/admin/v1/players"), 403, "host_only_route"),
+        ("/internal/v1/metrics".to_owned(), 403, "host_only_route"),
+        ("/health/ready".to_owned(), 403, "host_only_route"),
+        (format!("{host}/__origin/other/x"), 400, "bad_origin"),
+        ("/__origin/a..b/x".to_owned(), 400, "bad_origin"),
+    ] {
+        let start = log_len();
+        let reply = https_request(port, &path, get()).await.unwrap();
+        assert_eq!(reply.status, status, "{path}");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        assert!(
+            log_since(start).iter().any(|(_, line)| line["reason"] == reason),
+            "{path} logs {reason}"
+        );
+    }
+    for name in ["x-reforged-admin-key", "x-mysticparadox-metrics-token"] {
+        let reply = https_request(port, "/reforged/api/ServerStatus", with(get(), name, "x"))
+            .await
+            .unwrap();
+        assert_eq!(reply.status, 403, "{name}");
+    }
+    // The runtime's content path goes to the backend, never to the content server
+    let reply = https_request(port, &format!("{host}/content/v1/runtime/manifest"), get())
+        .await
+        .unwrap();
+    assert_eq!(reply.json()["upstream"], "backend");
+    assert_eq!((w.meta.count(), w.content.count()), (before.0 + 1, before.1));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_capture_records_requests_answers_and_chat_redacted() {
+    use gateway::capture::{CaptureOptions, CaptureWriter};
+
+    const KEY: &str = "RRK_0a1b2c3d4e5f0a1b2c3d4e5f0a1b2c3d4e5f0a1b2c3d4e5f";
+    const GS_KEY: &str = "ffffffffffffffffffffffffffffffffffffffffffffffff";
+    let key_hash = sha256_hex(KEY.as_bytes());
+    let cert = make_cert();
+    let handler: Handler = Arc::new(|seen: Seen| {
+        Box::pin(async move {
+            let path = seen.url.split('?').next().unwrap().to_owned();
+            path.ends_with("/account/api/oauth/token").then(|| {
+                let text = json!({ "access_token": FAKE_JWT, "account_id": "UID-test", "expires_in": 86400 });
+                (
+                    200,
+                    vec![("content-type", "application/json".to_owned())],
+                    text.to_string().into_bytes(),
+                )
+            })
+        })
+    });
+    let backend = start_upstream("backend", Some(handler)).await;
+    let ws = start_ws_upstream().await;
+    let ports = Ports {
+        backend: backend.port,
+        content: dead_port().await,
+        ws: ws.port,
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let options = CaptureOptions {
+        dir: dir.path().to_path_buf(),
+        retention_days: 14,
+        max_body_bytes: 4096,
+        source: "gateway".into(),
+    };
+    let writer = CaptureWriter::new(options, Box::new(|_| {}), Arc::new(gateway::now_ms)).unwrap();
+    let config = test_config(&cert, &ports, &[]);
+    let running = start_gateway_with(Some(&cert), config, None, Some(writer)).await;
+    let port = running.port;
+
+    let login = Options {
+        method: Some("POST"),
+        headers: vec![("content-type", "application/x-www-form-urlencoded".into())],
+        body: Some(format!("grant_type=password&username=Alex&password={KEY}").into_bytes()),
+        ..get()
+    };
+    let target = "/__origin/account-public-service-prod.ol.epicgames.com/account/api/oauth/token";
+    assert_eq!(https_request(port, target, login).await.unwrap().status, 200);
+    let profile = Options {
+        method: Some("POST"),
+        headers: vec![
+            ("authorization", format!("bearer {FAKE_JWT}")),
+            ("content-type", "application/json".into()),
+            ("x-reforged-user-api-key", KEY.into()),
+        ],
+        body: Some(br#"{"profileId":"athena"}"#.to_vec()),
+        ..get()
+    };
+    assert_eq!(https_request(port, "/character", profile).await.unwrap().status, 200);
+    let refused = https_request(
+        port,
+        "/reforged/admin/anything",
+        with(get(), "x-mysticparadox-gameserver-apikey", GS_KEY),
+    )
+    .await
+    .unwrap();
+    assert_eq!(refused.status, 403);
+
+    // Chat: a SASL PLAIN login from the game, masked as a client's frames are
+    let mut chat = upgrade(port, "//", &[("sec-websocket-protocol", "xmpp")], None).await;
+    assert_eq!(chat.status, 101);
+    let plain = base64::Engine::encode(
+        &base64::engine::general_purpose::STANDARD,
+        format!("\0UID-chat-a\0{FAKE_JWT}"),
+    );
+    let stanza = format!("<auth xmlns=\"urn:ietf:params:xml:ns:xmpp-sasl\" mechanism=\"PLAIN\">{plain}</auth>");
+    let mask = [7u8, 1, 9, 3];
+    let mut frame = vec![0x81, 0x80 | 126];
+    frame.extend_from_slice(&(stanza.len() as u16).to_be_bytes());
+    frame.extend_from_slice(&mask);
+    frame.extend(stanza.bytes().enumerate().map(|(i, b)| b ^ mask[i % 4]));
+    chat.stream.write_all(&frame).await.unwrap();
+    let mut echo = vec![0u8; 5];
+    chat.stream.read_exact(&mut echo).await.unwrap();
+    assert_eq!(&echo, b"echo:");
+    drop(chat);
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    running.close().await;
+
+    let mut text = String::new();
+    for entry in std::fs::read_dir(dir.path()).unwrap() {
+        text.push_str(&std::fs::read_to_string(entry.unwrap().path()).unwrap());
+    }
+    let lines: Vec<serde_json::Value> = text.lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+    let http: Vec<&serde_json::Value> = lines.iter().filter(|l| l["kind"] == "http").collect();
+    assert_eq!(http.len(), 3, "{text}");
+    let (first, second, third) = (http[0], http[1], http[2]);
+    assert_eq!(
+        (&first["src"], &first["route"], &first["status"], &first["method"]),
+        (&json!("gateway"), &json!("backend"), &json!(200), &json!("POST"))
+    );
+    assert_eq!(first["target"], target);
+    assert_eq!(
+        first["reqBody"],
+        json!({ "form": [["grant_type", "password"], ["username", "Alex"], ["password", format!("<key:{key_hash}>")]] })
+    );
+    assert_eq!(
+        first["resBody"],
+        json!({ "json": { "access_token": "<token:UID-test>", "account_id": "UID-test", "expires_in": 86400 } })
+    );
+    assert_eq!(second["reqHeaders"]["authorization"], "bearer <token:UID-test>");
+    assert_eq!(
+        second["reqHeaders"]["x-reforged-user-api-key"],
+        format!("<key:{key_hash}>")
+    );
+    assert_eq!(second["reqBody"], json!({ "json": { "profileId": "athena" } }));
+    assert_eq!(second["resBody"]["json"]["upstream"], "backend");
+    assert_eq!(
+        second["resBody"]["json"]["headers"]["x-reforged-gateway"], "<redacted>",
+        "the gateway secret echoed by the backend is cut"
+    );
+    assert_eq!((&third["status"], &third["route"]), (&json!(403), &json!("gateway")));
+    assert_eq!(third["reqHeaders"]["x-mysticparadox-gameserver-apikey"], "<gskey>");
+    assert_eq!(third["resBody"], json!({ "json": { "error": "forbidden" } }));
+    let seq: Vec<u64> = http.iter().map(|l| l["seq"].as_u64().unwrap()).collect();
+    assert!(seq[0] < seq[1] && seq[1] < seq[2]);
+    // Each request was on its own connection
+    let conns: std::collections::HashSet<u64> = http.iter().map(|l| l["conn"].as_u64().unwrap()).collect();
+    assert_eq!(conns.len(), 3);
+
+    let chat: Vec<&serde_json::Value> = lines.iter().filter(|l| l["kind"] == "chat").collect();
+    assert_eq!(chat.first().unwrap()["event"], "open", "{text}");
+    assert_eq!(chat.first().unwrap()["target"], "//");
+    assert_eq!(chat.last().unwrap()["event"], "close");
+    let login = chat.iter().find(|l| l["dir"] == "in").unwrap();
+    assert_eq!(
+        login["text"],
+        "<auth xmlns=\"urn:ietf:params:xml:ns:xmpp-sasl\" mechanism=\"PLAIN\"><plain:UID-chat-a></auth>"
+    );
+    assert!(!text.contains(KEY) && !text.contains(FAKE_JWT) && !text.contains(GS_KEY));
+    assert!(!text.contains(&plain), "nor the chat login");
+    assert!(!text.contains(GATEWAY_SECRET), "nor the gateway secret");
 }

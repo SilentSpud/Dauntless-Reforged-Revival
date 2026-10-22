@@ -74,10 +74,14 @@ pub struct Allowlist {
 pub struct Config {
     pub bind_host: String,
     pub port: u16,
+    /// Public mode: TLS with the pinned self-signed certificate. Private mode (`GATEWAY_TLS=0`):
+    /// plain HTTP, only on a Tailscale or loopback address (Tailscale encrypts the traffic)
+    pub tls: bool,
+    /// Empty in private mode
     pub cert_file: PathBuf,
     pub key_file: PathBuf,
     pub secret: String,
-    pub metagame: Endpoint,
+    pub backend: Endpoint,
     pub content: Endpoint,
     pub ws: Endpoint,
     pub allowlist: Option<Allowlist>,
@@ -85,7 +89,9 @@ pub struct Config {
     pub timeouts: Timeouts,
 }
 
-/// Sized from the metagame logs and bodies.log of real 1.4.4 sessions; README.md has the numbers.
+/// Dauntless Revived's limits, sized from real 1.4.4 sessions (its README has the numbers). The
+/// Mystic Paradox backend parses JSON bodies with Express's default 100 KB limit, which fits under
+/// the 128 KiB body cap.
 pub const DEFAULT_LIMITS: Limits = Limits {
     max_body_bytes: 128 * 1024,
     max_connections: 2048,
@@ -153,6 +159,12 @@ pub fn is_loopback_host(host: &str) -> bool {
     host == "::1" || host == "[::1]"
 }
 
+/// `IsTailscaleIPv4`: Tailscale's address range, 100.64.0.0/10.
+pub fn is_tailscale_ipv4(host: &str) -> bool {
+    host.parse::<std::net::Ipv4Addr>()
+        .is_ok_and(|ip| ip.octets()[0] == 100 && (64..=127).contains(&ip.octets()[1]))
+}
+
 /// Upstreams are plain http:// on this machine only: the gateway secret header must never leave it.
 pub fn parse_loopback_url(text: &str, name: &str) -> Result<Endpoint, String> {
     let parsed = url::Url::parse(text).map_err(|_| format!("{name} is not a URL"))?;
@@ -205,23 +217,32 @@ impl Config {
                 serde_json::to_string(&bind_host).unwrap_or_default()
             ));
         }
-        let (Some(cert_file), Some(key_file)) = (optional(env, "GATEWAY_CERT"), optional(env, "GATEWAY_KEY")) else {
-            return Err(
-                "GATEWAY_CERT and GATEWAY_KEY must name the PEM certificate and key (make them with `gateway make-cert`)"
-                    .into(),
-            );
+        let tls = env.raw("GATEWAY_TLS") != Some("0");
+        // Plain HTTP never faces the internet: the account key and the game's session token travel in it
+        if !tls && !is_tailscale_ipv4(&bind_host) && !is_loopback_host(&bind_host) {
+            return Err(format!(
+                "GATEWAY_TLS=0 (private mode) listens only on this PC's Tailscale address (100.64.0.0/10) or on loopback, not on {bind_host}"
+            ));
+        }
+        let (cert_file, key_file) = match (optional(env, "GATEWAY_CERT"), optional(env, "GATEWAY_KEY")) {
+            (Some(cert), Some(key)) if tls => (resolve(&cert), resolve(&key)),
+            _ if tls => {
+                return Err("GATEWAY_CERT and GATEWAY_KEY must name the PEM certificate and key (make them with `gateway make-cert`), or set GATEWAY_TLS=0 for a private server over Tailscale".into());
+            }
+            _ => (PathBuf::new(), PathBuf::new()),
         };
         let rate = |name: &str, default: BucketSpec| -> Result<BucketSpec, String> {
             optional(env, name).map_or(Ok(default), |raw| parse_bucket_spec(&raw, name))
         };
-        let port = int(env, "GATEWAY_PORT", 443, 1, 65535)? as u16;
+        let port = int(env, "GATEWAY_PORT", if tls { 443 } else { 61000 }, 1, 65535)? as u16;
         let secret = check_secret(optional(env, "GATEWAY_SECRET"), "GATEWAY_SECRET")?;
         let upstream = |name: &str, default: &str| {
             parse_loopback_url(&optional(env, name).unwrap_or_else(|| default.into()), name)
         };
-        let metagame = upstream("GATEWAY_METAGAME_URL", "http://127.0.0.1:61000")?;
+        let backend = upstream("GATEWAY_BACKEND_URL", "http://127.0.0.1:61000")?;
         let content = upstream("GATEWAY_CONTENT_URL", "http://127.0.0.1:61002")?;
-        let ws = upstream("GATEWAY_WS_URL", "http://127.0.0.1:61099")?;
+        // The backend serves the game's chat (XMPP over WebSocket) on its own listener
+        let ws = upstream("GATEWAY_WS_URL", "http://127.0.0.1:61000")?;
         // Without the feed nobody's game ports open, so a missing secret is an error, not a silent off
         let allowlist = if env.raw("GATEWAY_ALLOWLIST") == Some("0") {
             None
@@ -305,10 +326,11 @@ impl Config {
         Ok(Self {
             bind_host,
             port,
-            cert_file: resolve(&cert_file),
-            key_file: resolve(&key_file),
+            tls,
+            cert_file,
+            key_file,
             secret,
-            metagame,
+            backend,
             content,
             ws,
             allowlist,
@@ -368,9 +390,10 @@ mod tests {
             host: "127.0.0.1".into(),
             port,
         };
-        assert_eq!(config.metagame, endpoint(61000));
+        assert!(config.tls);
+        assert_eq!(config.backend, endpoint(61000));
         assert_eq!(config.content, endpoint(61002));
-        assert_eq!(config.ws, endpoint(61099));
+        assert_eq!(config.ws, endpoint(61000));
         let allowlist = config.allowlist.unwrap();
         assert_eq!(allowlist.url, "http://127.0.0.1:61005");
         assert_eq!(allowlist.refresh, Duration::from_secs(60));
@@ -378,6 +401,30 @@ mod tests {
         assert_eq!(config.limits.max_body_bytes, 131_072);
         assert_eq!(config.timeouts, DEFAULT_TIMEOUTS);
         assert!(config.cert_file.is_absolute());
+    }
+
+    #[test]
+    fn private_mode_is_plain_http_on_a_tailscale_or_loopback_address_only() {
+        let private = [("GATEWAY_TLS", "0"), ("GATEWAY_ALLOWLIST", "0")];
+        let without = ["GATEWAY_CERT", "GATEWAY_KEY", "ALLOWLIST_SECRET"];
+        let config = load(&[private[0], private[1], ("GATEWAY_BIND", "100.101.102.103")], &without).unwrap();
+        assert!(!config.tls);
+        assert_eq!(config.port, 61000);
+        assert_eq!(config.bind_host, "100.101.102.103");
+        assert_eq!(config.cert_file, PathBuf::new());
+        assert!(
+            !load(&[private[0], private[1], ("GATEWAY_BIND", "127.0.0.1")], &without)
+                .unwrap()
+                .tls
+        );
+        for bind in ["0.0.0.0", "203.0.113.7", "192.168.1.20", "100.128.0.1", "::"] {
+            fails(&[private[0], private[1], ("GATEWAY_BIND", bind)], &without, "Tailscale");
+        }
+        assert!(load(&[], &[]).unwrap().tls);
+        // Any value but 0 is public mode, which needs the certificate
+        fails(&[("GATEWAY_TLS", "false")], &["GATEWAY_CERT"], "GATEWAY_TLS=0");
+        assert!(is_tailscale_ipv4("100.64.0.1") && is_tailscale_ipv4("100.127.255.255"));
+        assert!(!is_tailscale_ipv4("100.63.0.1") && !is_tailscale_ipv4("::ffff:100.64.0.1"));
     }
 
     #[test]
@@ -394,11 +441,11 @@ mod tests {
                 .allowlist,
             None
         );
-        fails(&[("GATEWAY_METAGAME_URL", "http://10.0.0.5:61000")], &[], "127.0.0.1");
+        fails(&[("GATEWAY_BACKEND_URL", "http://10.0.0.5:61000")], &[], "127.0.0.1");
         fails(&[("GATEWAY_CONTENT_URL", "https://127.0.0.1:61002")], &[], "http://");
         fails(&[("ALLOWLIST_URL", "http://203.0.113.5:61005")], &[], "127.0.0.1");
         fails(
-            &[("GATEWAY_METAGAME_URL", "http://127.0.0.1:61000/x")],
+            &[("GATEWAY_BACKEND_URL", "http://127.0.0.1:61000/x")],
             &[],
             "just http://host:port",
         );

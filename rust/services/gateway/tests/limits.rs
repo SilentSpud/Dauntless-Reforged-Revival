@@ -30,10 +30,10 @@ async fn upstreams() -> (Upstream, Upstream, Ports) {
             }
         })
     });
-    let meta = start_upstream("metagame", Some(handler)).await;
+    let meta = start_upstream("backend", Some(handler)).await;
     let content = start_upstream("content", None).await;
     let ports = Ports {
-        metagame: meta.port,
+        backend: meta.port,
         content: content.port,
         ws: dead_port().await,
     };
@@ -259,12 +259,12 @@ async fn rate_limits() {
         local: Some("127.0.0.22"),
         ..get()
     };
-    assert_eq!(status("/undaunted/api/Register", register()).await.status, 200);
-    assert_eq!(status("/undaunted/api/register", register()).await.status, 200);
-    let limited = status("/undaunted/api/Register", register()).await;
+    assert_eq!(status("/reforged/api/Register", register()).await.status, 200);
+    assert_eq!(status("/reforged/api/register", register()).await.status, 200);
+    let limited = status("/reforged/api/Register", register()).await;
     assert_eq!((limited.status, limited.headers["retry-after"].as_str()), (429, "300"));
     assert_eq!(
-        status("/undaunted/api/ServerStatus", from("127.0.0.22")).await.status,
+        status("/reforged/api/ServerStatus", from("127.0.0.22")).await.status,
         200
     );
 
