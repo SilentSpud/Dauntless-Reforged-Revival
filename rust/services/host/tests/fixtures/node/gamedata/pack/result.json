@@ -1,0 +1,22 @@
+{
+  "included": [
+    "backend/progression_config.json",
+    "backend/slayers_path.json",
+    "backend/ladyluck_store.json",
+    "backend/platinum_store.json",
+    "director/player_hunts_table.json",
+    "backend/raw/progression_config.source.json"
+  ],
+  "left": [
+    "backend/slayers_path_definitions.json",
+    "backend/reward_cache_store.json",
+    "backend/inventory_storage_policy.json",
+    "director/matchmaker_hunts_table.json",
+    "director/arena_easy_matchmaker_hunts.json",
+    "director/arena_hard_matchmaker_hunts.json",
+    "director/arena_elite_matchmaker_hunts.json",
+    "director/arena_hard_matchmaker_hunts_new.json",
+    "director/arena_elite_matchmaker_hunts_new.json",
+    "backend/raw/ladyluck_store.source.json"
+  ]
+}

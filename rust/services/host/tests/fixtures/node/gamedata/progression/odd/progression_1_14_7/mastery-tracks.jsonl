@@ -1,0 +1,2 @@
+﻿{"rowName":"Mastery","prestigeTrack":"PrestigeTrack_Weapon_Hammer","base":{"progressionTrack":"MasteryTrack_Sword","premiumGatingEntitlement":"","resetWithCharacter":false,"progressionMultiplier":1,"requirementCount":2,"requirements":[{"rankId":0,"requiredXP":0},{"rankId":1,"requiredXP":5}],"freeRewards":[],"premiumRewards":[]}}
+status: 3 rows

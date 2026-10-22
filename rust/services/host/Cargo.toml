@@ -19,6 +19,8 @@ base64.workspace = true
 # The supervisor's log lines (`===== <ISO time> starting ...`, as the Node kit's)
 chrono.workspace = true
 clap.workspace = true
+# RH4: game data packs are gzip-compressed JSON.
+flate2.workspace = true
 # The invite links (section 6).
 protocol.workspace = true
 # Reading the certificate a port serves (doctor).
