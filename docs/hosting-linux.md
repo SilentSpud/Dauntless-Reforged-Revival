@@ -20,7 +20,7 @@ Steps 2 to 7 below, done for you from the Windows PC that has your game, with th
 with Windows. You need the VPS's public IPv4 address and its `root` password (Hostinger: hPanel > VPS >
 Overview), and step 1 (the provider's firewall) done.
 
-1. Download [`Deploy-FromWindows.ps1`](../ReforgedHost/linux/Deploy-FromWindows.ps1) (on GitHub:
+1. Download [`Deploy-FromWindows.ps1`](../legacy/ReforgedHost/linux/Deploy-FromWindows.ps1) (on GitHub:
    **Download raw file**), for example into `Downloads`.
 2. In PowerShell:
 
@@ -31,7 +31,7 @@ Overview), and step 1 (the provider's firewall) done.
 
 It checks that `C:\Dauntless` is Dauntless 1.14.7 (the folder with `Archon` inside, or the folder
 holding it), asks the VPS password once (it adds an SSH key for this PC), installs everything on the
-VPS with [`setup-vps.sh`](../ReforgedHost/linux/setup-vps.sh), sends the game (about 15 GB: keep the
+VPS with [`setup-vps.sh`](../legacy/ReforgedHost/linux/setup-vps.sh), sends the game (about 15 GB: keep the
 window open; a second run skips it when the VPS already has the same files), sends the runtime and the
 newest game data pack when this PC has a Reforged project (`C:\Reforged`, or `-Runtime <folder>` and
 `-GameData <pack>`), starts the server and prints your first invite. Run it again whenever you like:
@@ -46,8 +46,8 @@ Without a runtime yet, players can join but not play: send it later with
 `-Runtime <folder> -SkipGame` (step 6 says where it comes from).
 
 On the VPS itself, without Windows: as root, `sh setup-vps.sh --name "Friday Hunts"` (the script is
-in `ReforgedHost/linux/`), copy the game to `/home/reforged/games/Dauntless`, then
-`sh /home/reforged/Reforged/ReforgedHost/linux/setup-vps.sh --finish [--runtime <folder>] [--gamedata <pack>]`.
+in `legacy/ReforgedHost/linux/`), copy the game to `/home/reforged/games/Dauntless`, then
+`sh /home/reforged/Reforged/legacy/ReforgedHost/linux/setup-vps.sh --finish [--runtime <folder>] [--gamedata <pack>]`.
 
 The rest of this page is the same thing by hand, and what to do when something goes wrong.
 
@@ -153,7 +153,7 @@ The game is then in `/home/reforged/games/Dauntless` (the folder with `Archon` i
 
 ```sh
 git clone https://github.com/FreezaMotoqueiro/Dauntless-Reforged-Revival ~/Reforged
-cd ~/Reforged/ReforgedHost
+cd ~/Reforged/legacy/ReforgedHost
 npm install
 ip -br addr             # the network interface with the public IP, usually eth0
 npm run setup -- --mode public --host <VPS public IPv4> --name "Friday Hunts" --game /home/reforged/games/Dauntless --firewall-interface eth0
@@ -190,7 +190,7 @@ On the Windows PC with your 1.14.7, follow [hosting.md](hosting.md) up to a serv
 On the VPS:
 
 ```sh
-cd ~/Reforged/ReforgedHost
+cd ~/Reforged/legacy/ReforgedHost
 npm run publish-runtime -- --from ~/runtime
 npm run gamedata -- --import ~/reforged-gamedata-1.14.7-<date>.json.gz
 ```
@@ -285,7 +285,7 @@ download a GE-Proton release from <https://github.com/GloriousEggroll/proton-ge-
 `~/.local/share/Steam/compatibilitytools.d/`, then
 
 ```sh
-cd ~/Reforged/ReforgedHost
+cd ~/Reforged/legacy/ReforgedHost
 npm run setup -- --proton ~/.local/share/Steam/compatibilitytools.d/<GE-Proton folder>/proton
 sudo systemctl restart reforged
 ```
@@ -313,7 +313,7 @@ VPS that only the server's user signs in to, nobody else can read it.
 ## Resumo em português
 
 **O jeito rápido (um comando no Windows):** libere TCP 443 e UDP 8770-8777 no firewall da VPS na
-Hostinger, baixe o [`Deploy-FromWindows.ps1`](../ReforgedHost/linux/Deploy-FromWindows.ps1) e rode no
+Hostinger, baixe o [`Deploy-FromWindows.ps1`](../legacy/ReforgedHost/linux/Deploy-FromWindows.ps1) e rode no
 PowerShell:
 
 ```powershell
@@ -336,7 +336,7 @@ certificado dele ("o certificado de segurança não confere").
 3. **Usuário:** `adduser reforged`, `usermod -aG sudo reforged`, `sudo -iu reforged`. O servidor
    nunca roda como root.
 4. **Jogo 1.14.7:** copie a pasta `Dauntless` do seu PC ou instale com o Legendary em `~/games`.
-5. **Projeto:** `git clone` em `~/Reforged`, `cd ReforgedHost`, `npm install` e
+5. **Projeto:** `git clone` em `~/Reforged`, `cd legacy/ReforgedHost`, `npm install` e
    `npm run setup -- --mode public --host <IP da VPS> --name "Seu Servidor" --game /home/reforged/games/Dauntless --firewall-interface eth0`.
 6. **No PC com Windows (uma vez):** gere o runtime e os dados do jogo, copie a pasta
    `.workspace\runtime` e o pacote de dados para a VPS, e rode
@@ -370,7 +370,7 @@ cada caçada usa uma porta a mais abaixo de 8770 (UDP 8768-8777 para 8, 8766-877
 estar liberada no firewall da Hostinger. Por exemplo, para 8, como root:
 
 ```sh
-sudo -iu reforged bash -c 'cd ~/Reforged/ReforgedHost && npm run update && npm run setup -- --max-hunts 8 --skip-install'
+sudo -iu reforged bash -c 'cd ~/Reforged/legacy/ReforgedHost && npm run update && npm run setup -- --max-hunts 8 --skip-install'
 sh /home/reforged/Reforged/.workspace/config/systemd/install.sh
 ```
 

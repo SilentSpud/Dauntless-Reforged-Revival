@@ -1,7 +1,7 @@
 {
   "_comment": [
     "Captures of the live Dauntless store service, which Mystic Paradox's store generators read from DauntlessEndpointDocumentation/Store/Product/Skus/ (ParadoxBackend/scripts/enrich_ladyluck_store.ts and generate_platinum_store.ts).",
-    "They are published by their author for academic and informational purposes and carry no license, so this project does not copy them: npm run gamedata fetches exactly these files at this commit from that repository on the host's own machine and checks each one's SHA-256 (ReforgedHost/src/captures.ts)."
+    "They are published by their author for academic and informational purposes and carry no license, so this project does not copy them: npm run gamedata fetches exactly these files at this commit from that repository on the host's own machine and checks each one's SHA-256 (legacy/ReforgedHost/src/captures.ts)."
   ],
   "name": "DauntlessEndpointDocumentation",
   "repository": "https://github.com/EisigesEis/DauntlessEndpointDocumentation",

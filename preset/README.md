@@ -3,7 +3,7 @@
 The game data every server set up from this project starts from, like the `vendor/*.json` files of
 [Dauntless Revived](https://github.com/mixutin/dauntless-revived)'s metagame and deploy server.
 
-`npm run setup` (in `ReforgedHost/`) copies these files into the server's game data wherever a file is
+`npm run setup` (in `legacy/ReforgedHost/`) copies these files into the server's game data wherever a file is
 missing or still the shipped example. A host's own generated game data always takes precedence: the
 preset never replaces it unless the host asks (`npm run preset -- --apply --force`, which keeps the old
 file as `.bak`).
@@ -27,7 +27,7 @@ out, and a preset that lists them is refused.
 Make or refresh the preset from your own game:
 
 1. Play on your own server, inject CatalogExporter in Ramsgate and **Copy export** (launcher, Host page).
-2. `cd ReforgedHost` and `npm run preset -- --create --generate` (the generators run on the export, then
+2. `cd legacy/ReforgedHost` and `npm run preset -- --create --generate` (the generators run on the export, then
    the result is written here). `npm run preset` shows what is in it.
 
 Do not edit the files by hand: their hashes are in `preset.json`.

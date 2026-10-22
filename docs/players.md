@@ -36,7 +36,7 @@ install command again.
 
 Download `ReforgedRevivalLauncher-Setup.exe` from the project's
 [releases](https://github.com/FreezaMotoqueiro/Dauntless-Reforged-Revival/releases) and run it (or
-build it yourself, see [ReforgedLauncher/README.md](../ReforgedLauncher/README.md)). It updates
+build it yourself, see [legacy/ReforgedLauncher/README.md](../legacy/ReforgedLauncher/README.md)). It updates
 itself from the releases afterwards.
 
 ## 3. Join with your invite

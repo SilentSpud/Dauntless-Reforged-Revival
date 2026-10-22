@@ -546,4 +546,4 @@ bytes do not match its pinned hash is refused.
    `npm run setup` on a clean workspace, and play a hunt before publishing.
 
 Hosts then run `npm run setup` again; it replaces `.workspace/Mystic-Paradox/` but keeps the SDK,
-the game data and the builds it finds there (see `ReforgedHost/README.md`).
+the game data and the builds it finds there (see `legacy/ReforgedHost/README.md`).

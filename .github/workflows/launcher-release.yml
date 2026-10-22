@@ -2,12 +2,12 @@
 #  - ReforgedRevivalLauncher-Setup.exe (the installer), ReforgedRevivalLauncher-<version>-win32-x64.zip
 #    (portable), the Squirrel update files (RELEASES and the -full.nupkg) and SHA256SUMS.txt;
 #  - then brings the rolling "launcher-updates" release up to it: installed launchers read that release
-#    to update themselves (UPDATE_FEED_URL in ReforgedLauncher/src/main/constants.ts).
+#    to update themselves (UPDATE_FEED_URL in legacy/ReforgedLauncher/src/main/constants.ts).
 #
 # Four ways in:
 #  - Automatically, as in Dauntless Revived: ci.yml calls this workflow once every check passed on a push
 #    to main, unless the repository variable LAUNCHER_AUTO_RELEASE is false. When the version in
-#    ReforgedLauncher/package.json has no release yet and is newer than every release, it builds that
+#    legacy/ReforgedLauncher/package.json has no release yet and is newer than every release, it builds that
 #    commit, creates the tag and the release (named like the manual ones, with generated notes) and
 #    updates the feed. Raising that version in a pull request is all it takes to ship a launcher update.
 #    The release it creates does not start this workflow again: GitHub starts no workflow for events
@@ -78,14 +78,14 @@ jobs:
           # Called by ci.yml (the event is then the caller's push): the package.json version of this commit.
           if [ "$AUTO" = true ]; then
             [ "$REF" = refs/heads/main ] || fail "automatic launcher releases are made from main only, not $REF"
-            version="$(gh api "repos/$GH_REPO/contents/ReforgedLauncher/package.json?ref=$SHA" --jq .content | base64 -d | jq -r .version)"
+            version="$(gh api "repos/$GH_REPO/contents/legacy/ReforgedLauncher/package.json?ref=$SHA" --jq .content | base64 -d | jq -r .version)"
             [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$ ]] ||
-              fail "ReforgedLauncher/package.json version \"$version\" is not a launcher version (x.y.z or x.y.z-beta.1)"
+              fail "legacy/ReforgedLauncher/package.json version \"$version\" is not a launcher version (x.y.z or x.y.z-beta.1)"
             tag="$version"
             prerelease=false
             case "$version" in *-*) prerelease=true ;; esac
             if gh release view "$tag" --json tagName > /dev/null 2> release-error.txt; then
-              skip "launcher $version has a release already: nothing to publish (raise the version in ReforgedLauncher/package.json to ship an update)"
+              skip "launcher $version has a release already: nothing to publish (raise the version in legacy/ReforgedLauncher/package.json to ship an update)"
             fi
             grep -qi 'release not found' release-error.txt || fail "could not look up the release $tag: $(cat release-error.txt)"
             if gh api "repos/$GH_REPO/git/ref/tags/$tag" --silent 2> /dev/null; then
@@ -177,7 +177,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: ReforgedLauncher
+        working-directory: legacy/ReforgedLauncher
     env:
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
     steps:
@@ -190,7 +190,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: ReforgedLauncher/package-lock.json
+          cache-dependency-path: legacy/ReforgedLauncher/package-lock.json
 
       - run: npm ci --no-audit --no-fund
 
@@ -238,7 +238,7 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: launcher-release
-          path: ReforgedLauncher/release/
+          path: legacy/ReforgedLauncher/release/
           if-no-files-found: error
           retention-days: 7
 
