@@ -132,6 +132,13 @@ jobs:
         with:
           persist-credentials: false
 
+      # The runner's temporary folder as bash and GNU tar take it on every runner (tar reads D: as a remote host)
+      - name: Work folder
+        run: |
+          work="$RUNNER_TEMP"
+          if [ "$RUNNER_OS" = Windows ]; then work="$(cygpath -u "$RUNNER_TEMP")"; fi
+          echo "WORK=$work" >> "$GITHUB_ENV"
+
       - name: Install the pinned toolchain
         working-directory: rust
         run: |
@@ -165,8 +172,8 @@ jobs:
           set -euo pipefail
           ext=""; [ "$RUNNER_OS" = Windows ] && ext=".exe"
           name="reforged-revival-server-$VERSION"
-          out="$RUNNER_TEMP/assemble/$name"
-          rm -rf "$RUNNER_TEMP/assemble" && mkdir -p "$out"
+          out="$WORK/assemble/$name"
+          rm -rf "$WORK/assemble" && mkdir -p "$out"
           # The commit's source, as git has it (no .workspace, nothing git ignores)
           git archive --format=tar "$COMMIT" | tar -x -C "$out"
           mkdir -p "$out/bin"
@@ -207,7 +214,7 @@ jobs:
         run: |
           set -euo pipefail
           ext=""; [ "$RUNNER_OS" = Windows ] && ext=".exe"
-          bin="$RUNNER_TEMP/assemble/reforged-revival-server-$VERSION/bin"
+          bin="$WORK/assemble/reforged-revival-server-$VERSION/bin"
           for b in reforged-host gateway allowlist content; do "$bin/$b$ext" --help > /dev/null; done
           "$bin/reforged-host$ext" --help
 
@@ -215,16 +222,16 @@ jobs:
         run: |
           set -euo pipefail
           name="reforged-revival-server-$VERSION"
-          mkdir -p "$RUNNER_TEMP/release"
-          cd "$RUNNER_TEMP/assemble"
+          mkdir -p "$WORK/release"
+          cd "$WORK/assemble"
           if [ "$RUNNER_OS" = Windows ]; then
             archive="ReforgedRevivalServer-$VERSION-$PLATFORM.zip"
-            7z a -tzip -mx=9 -bd "$RUNNER_TEMP/release/$archive" "$name" > /dev/null
+            7z a -tzip -mx=9 -bd "$WORK/release/$archive" "$name" > /dev/null
           else
             archive="ReforgedRevivalServer-$VERSION-$PLATFORM.tar.gz"
-            tar --sort=name --owner=0 --group=0 --numeric-owner -czf "$RUNNER_TEMP/release/$archive" "$name"
+            tar --sort=name --owner=0 --group=0 --numeric-owner -czf "$WORK/release/$archive" "$name"
           fi
-          ls -l "$RUNNER_TEMP/release"
+          ls -l "$WORK/release"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
