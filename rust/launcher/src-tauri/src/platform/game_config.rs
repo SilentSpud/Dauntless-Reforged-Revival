@@ -1,28 +1,22 @@
-//! The game's user config, rewritten before each launch exactly like `friend-kit/play.ps1` (row L30):
-//! `src/main/engineini.ts` and `display-repair.ts`.
+//! The game's user config, rewritten before each launch (rows L30, RA9): Reforged's `src/main/engineini.ts`
+//! and `display-repair.ts`.
 //!
-//! - Engine.ini: `[SystemSettings]` (memory lines, the forced graphics level if one is chosen, and
-//!   `r.EyeAdaptation.MethodOverride=2` for "Basic adaptive" exposure) and `[OnlineSubsystemMcp.XMPP]`
-//!   (chat pointed at the host instead of Epic's live server) are replaced; every other section stays.
-//!   Private mode: `ws://<host>:61099`. Public mode: `ws://127.0.0.1:<relay port>`.
+//! - Engine.ini: the launcher owns two sections and replaces them on every launch; every other section is
+//!   kept. `[OnlineSubsystemMcp.XMPP]` points chat and presence at the launcher's relay
+//!   (`ws://127.0.0.1:<relay port>`, no TLS on this PC) instead of Epic's old server; `[SystemSettings]`
+//!   holds the forced graphics level, and is left out when the game picks it.
 //! - GameUserSettings.ini: when a graphics level is forced, its `sg.*Quality` lines follow it; impossible
 //!   saved window sizes (and, when asked, every size) are reset to a safe 1280x720 window.
+//! - Game.ini: Dauntless Revived's `[OnlineSubsystemPhoenix]` endpoints, which point 1.14.7 at 127.0.0.1,
+//!   are removed (`PHOENIX_ENDPOINTS_SECTION`).
+//!
+//! The config folder inside a Proton prefix is RA10's.
 
 use std::path::{Path, PathBuf};
 
 use crate::bridge::types::GraphicsPreset;
 use crate::core::invite::is_valid_host;
-use crate::core::pins::XMPP_PORT;
-use crate::core::text::{is_js_space, js_number};
-
-/// DR's exposure setting: keep the game's scene-specific exposure, or basic as an opt-in experiment. No
-/// longer a bridge type (Reforged has no such setting); RA9 decides whether it goes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ExposureMode {
-    Game,
-    Basic,
-}
+use crate::core::text::{is_js_space, js_number, js_trim};
 
 pub const SCALABILITY_GROUPS: [&str; 8] = [
     "ViewDistance",
@@ -95,42 +89,23 @@ pub fn split_lines(text: &str) -> Vec<String> {
     lines
 }
 
-/// The `[SystemSettings]` section. With "game" exposure it is byte for byte what play.ps1 writes.
-pub fn system_settings_lines(graphics: GraphicsPreset, exposure: ExposureMode) -> Vec<String> {
-    let mut lines: Vec<String> = [
-        "[SystemSettings]",
-        "r.Streaming.PoolSize=3000",
-        "r.Streaming.LimitPoolSizeToVRAM=1",
-        "gc.TimeBetweenPurgingPendingKillObjects=10",
-        "s.ForceGCAfterLevelStreamedOut=1",
-    ]
-    .map(str::to_owned)
-    .to_vec();
+/// The `[SystemSettings]` section: only when a graphics level is forced, else nothing.
+pub fn system_settings_lines(graphics: GraphicsPreset) -> Vec<String> {
     let level = graphics.value();
-    if level >= 0 {
-        lines.extend(
-            SCALABILITY_GROUPS
-                .iter()
-                .map(|group| format!("sg.{group}Quality={level}")),
-        );
-        lines.extend(
-            [
-                "sg.ResolutionQuality=100",
-                "r.ScreenPercentage=100",
-                "r.MipMapLODBias=0",
-                "r.MaxAnisotropy=16",
-                "r.Tonemapper.Sharpen=0.6",
-            ]
-            .map(str::to_owned),
-        );
+    if level < 0 {
+        return Vec::new();
     }
-    // "2: Auto Basic" in the pinned executable's help: adaptation stays on in dark maps
-    if exposure == ExposureMode::Basic {
-        lines.push("r.EyeAdaptation.MethodOverride=2".into());
-    }
+    let mut lines = vec!["[SystemSettings]".to_owned()];
+    lines.extend(
+        SCALABILITY_GROUPS
+            .iter()
+            .map(|group| format!("sg.{group}Quality={level}")),
+    );
+    lines.extend(["sg.ResolutionQuality=100", "r.ScreenPercentage=100"].map(str::to_owned));
     lines
 }
 
+/// Chat and presence through the relay; None for a host or port the game must never be given.
 pub fn xmpp_lines(host: &str, port: u16) -> Option<Vec<String>> {
     if !is_valid_host(host) || port == 0 {
         return None;
@@ -148,13 +123,7 @@ fn starts_with_ignore_case(text: &str, prefix: &str) -> bool {
         .is_some_and(|head| head.eq_ignore_ascii_case(prefix))
 }
 
-pub fn rewrite_engine_ini(
-    existing: &[String],
-    host: &str,
-    graphics: GraphicsPreset,
-    xmpp_port: u16,
-    exposure: ExposureMode,
-) -> Option<Vec<String>> {
+pub fn rewrite_engine_ini(existing: &[String], host: &str, port: u16, graphics: GraphicsPreset) -> Option<Vec<String>> {
     let mut keep = Vec::new();
     let mut skip = false;
     for line in existing {
@@ -171,12 +140,57 @@ pub fn rewrite_engine_ini(
             keep.push(line.clone());
         }
     }
-    let mut out = system_settings_lines(graphics, exposure);
+    // The blank lines a removed section leaves at the top go
+    let blank = keep.iter().take_while(|line| js_trim(line).is_empty()).count();
+    let mut out = system_settings_lines(graphics);
+    if !out.is_empty() {
+        out.push(String::new());
+    }
+    out.extend(xmpp_lines(host, port)?);
     out.push(String::new());
-    out.extend(xmpp_lines(host, xmpp_port)?);
-    out.push(String::new());
-    out.extend(keep);
+    out.extend(keep.into_iter().skip(blank));
     Some(out)
+}
+
+/// Dauntless Revived's launcher, in its local-server mode, writes every Phoenix service endpoint into
+/// Game.ini as `http://127.0.0.1:61000/...`. Every Dauntless version reads the same config folder, so
+/// 1.14.7 would send its own login checks (`CheckCrossPlayProgressionEndpoint`, ...) to 127.0.0.1, which the
+/// runtime does not redirect: the login stops at "An error occurred while communicating with the game
+/// servers". 1.14.7 needs none of these keys, so the section is removed before each launch.
+pub const PHOENIX_ENDPOINTS_SECTION: &str = "OnlineSubsystemPhoenix";
+
+/// `/^\s*\[([^\]]*)\]/`: the name a header line gives, which may be empty.
+fn header_name(line: &str) -> Option<&str> {
+    let rest = line.trim_start_matches(is_js_space).strip_prefix('[')?;
+    rest.find(']').map(|end| &rest[..end])
+}
+
+/// `/^\s*[^\s;#][^=]*=/`: a key line, not a comment or a blank.
+fn is_key_line(line: &str) -> bool {
+    let mut chars = line.trim_start_matches(is_js_space).chars();
+    chars
+        .next()
+        .is_some_and(|first| first != ';' && first != '#' && chars.as_str().contains('='))
+}
+
+/// The lines without one section (its header and everything up to the next header, the name matched in
+/// any case), and how many keys it held.
+pub fn remove_ini_section(lines: &[String], section: &str) -> (Vec<String>, usize) {
+    let mut out = Vec::new();
+    let mut skip = false;
+    let mut removed = 0;
+    for line in lines {
+        let header = header_name(line);
+        if let Some(name) = header {
+            skip = js_trim(name).to_lowercase() == section.to_lowercase();
+        }
+        if !skip {
+            out.push(line.clone());
+        } else if header.is_none() && is_key_line(line) {
+            removed += 1;
+        }
+    }
+    (out, removed)
 }
 
 pub fn rewrite_game_user_settings(lines: &[String], graphics: GraphicsPreset) -> Vec<String> {
@@ -332,65 +346,89 @@ fn read_lines(file: &Path) -> std::io::Result<Option<Vec<String>>> {
 
 fn write_atomically(file: &Path, data: &[u8]) -> std::io::Result<()> {
     let mut temporary = file.as_os_str().to_owned();
-    temporary.push(".dr-tmp");
+    temporary.push(".rr-tmp");
     std::fs::write(&temporary, data)?;
     std::fs::rename(&temporary, file)
 }
 
+fn with_suffix(file: &Path, suffix: &str) -> PathBuf {
+    let mut name = file.as_os_str().to_owned();
+    name.push(suffix);
+    PathBuf::from(name)
+}
+
 pub struct ApplyConfig<'a> {
-    /// Where chat and presence (XMPP) connect
+    /// Where chat and presence (XMPP) connect: the relay
     pub host: &'a str,
-    /// 61099 in private mode; the relay port in public mode
-    pub xmpp_port: u16,
+    /// The relay's port
+    pub port: u16,
     pub graphics: GraphicsPreset,
-    pub exposure: ExposureMode,
     pub config_dir: PathBuf,
     pub safe_window: bool,
+    /// Remove Dauntless Revived's `[OnlineSubsystemPhoenix]` endpoints from Game.ini
+    pub clear_phoenix_endpoints: bool,
 }
 
 impl<'a> ApplyConfig<'a> {
     #[cfg_attr(not(test), expect(dead_code, reason = "the tests use it"))]
-    pub fn new(host: &'a str, graphics: GraphicsPreset) -> Self {
+    pub fn new(host: &'a str, port: u16, graphics: GraphicsPreset) -> Self {
         Self {
             host,
-            xmpp_port: XMPP_PORT,
+            port,
             graphics,
-            exposure: ExposureMode::Game,
             config_dir: default_config_dir(),
             safe_window: false,
+            clear_phoenix_endpoints: true,
         }
     }
 }
 
-/// Writes Engine.ini and, when needed, GameUserSettings.ini. (Engine.ini's path, display repaired)
-pub fn apply_game_config(options: &ApplyConfig<'_>) -> std::io::Result<(PathBuf, bool)> {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AppliedConfig {
+    pub engine_ini: PathBuf,
+    pub display_repaired: bool,
+    /// The keys taken out of Game.ini (the controller logs it)
+    pub phoenix_endpoints_removed: usize,
+}
+
+/// Cleans Game.ini, writes Engine.ini and, when needed, GameUserSettings.ini.
+pub fn apply_game_config(options: &ApplyConfig<'_>) -> std::io::Result<AppliedConfig> {
     let dir = &options.config_dir;
     std::fs::create_dir_all(dir)?;
+    let mut phoenix_endpoints_removed = 0;
+    if options.clear_phoenix_endpoints {
+        let game_ini = dir.join("Game.ini");
+        // A missing Game.ini is left alone
+        if let Some(lines) = read_lines(&game_ini)? {
+            let (cleaned, removed) = remove_ini_section(&lines, PHOENIX_ENDPOINTS_SECTION);
+            if cleaned.len() != lines.len() {
+                std::fs::copy(&game_ini, with_suffix(&game_ini, ".before-reforged"))?;
+                write_atomically(&game_ini, &encode_ini(&cleaned))?;
+                phoenix_endpoints_removed = removed;
+            }
+        }
+    }
+
     let engine = dir.join("Engine.ini");
     let existing = read_lines(&engine)?.unwrap_or_default();
-    let lines = rewrite_engine_ini(
-        &existing,
-        options.host,
-        options.graphics,
-        options.xmpp_port,
-        options.exposure,
-    )
-    .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid host or port"))?;
+    let lines = rewrite_engine_ini(&existing, options.host, options.port, options.graphics)
+        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid host or port"))?;
     write_atomically(&engine, &encode_ini(&lines))?;
 
     let settings = dir.join("GameUserSettings.ini");
     let current = read_lines(&settings)?;
-    let mut repaired = false;
+    let mut display_repaired = false;
     if current.is_some() || options.safe_window {
         let (lines, changed) = repair_display_settings(current.as_deref().unwrap_or_default(), options.safe_window);
-        repaired = changed;
-        if repaired && current.is_some() {
+        display_repaired = changed;
+        if display_repaired && current.is_some() {
             let stamp = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map_or(0, |since| since.as_millis());
-            let mut backup = settings.as_os_str().to_owned();
-            backup.push(format!(".before-display-repair-{stamp}"));
-            std::fs::copy(&settings, backup)?;
+            std::fs::copy(
+                &settings,
+                with_suffix(&settings, &format!(".before-display-repair-{stamp}")),
+            )?;
         }
         let forced = options.graphics.value() >= 0;
         let next = if forced {
@@ -398,9 +436,13 @@ pub fn apply_game_config(options: &ApplyConfig<'_>) -> std::io::Result<(PathBuf,
         } else {
             lines
         };
-        if repaired || forced {
+        if display_repaired || forced {
             write_atomically(&settings, &encode_ini(&next))?;
         }
     }
-    Ok((engine, repaired))
+    Ok(AppliedConfig {
+        engine_ini: engine,
+        display_repaired,
+        phoenix_endpoints_removed,
+    })
 }

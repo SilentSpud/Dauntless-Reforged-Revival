@@ -9,6 +9,7 @@
 //! deb and rpm install their own).
 
 use std::future::Future;
+use std::path::Path;
 use std::pin::Pin;
 use std::sync::Arc;
 
@@ -184,58 +185,142 @@ pub async fn claim(name: &str, args: &[String], on_args: OnArgs) -> Claim {
     channel::claim(name, args, on_args).await
 }
 
-/// Points the `reforged-revival:` scheme at this launcher (packaged builds only: a development build must
-/// not take over the scheme).
-pub fn register_scheme(exe: &std::path::Path) {
-    let program = exe.to_string_lossy();
-    if cfg!(windows) {
+// ---------------------------------------------------------------- the scheme
+
+/// What the current user's registry gets on Windows, as `setAsDefaultProtocolClient` writes it:
+/// `HKCU\Software\Classes\reforged-revival` and its open command. (key, value name or None for the
+/// default value, data)
+pub fn registry_entries(program: &Path) -> Vec<(String, Option<&'static str>, String)> {
+    let key = format!(r"Software\Classes\{INVITE_SCHEME}");
+    vec![
+        (key.clone(), None, "URL:Dauntless Reforged Revival invite".to_owned()),
+        (key.clone(), Some("URL Protocol"), String::new()),
+        (
+            format!(r"{key}\shell\open\command"),
+            None,
+            format!("\"{}\" \"%1\"", program.display()),
+        ),
+    ]
+}
+
+/// The current user's registry (`HKEY_CURRENT_USER`), as far as registering the scheme needs it.
+pub trait Registry {
+    /// Sets a string value under `key` (relative to `HKEY_CURRENT_USER`), creating the key.
+    fn set_string(&mut self, key: &str, name: Option<&str>, data: &str) -> std::io::Result<()>;
+}
+
+/// `reg.exe` from System32, so no registry crate or feature comes in.
+pub struct RegExe;
+
+impl Registry for RegExe {
+    fn set_string(&mut self, key: &str, name: Option<&str>, data: &str) -> std::io::Result<()> {
         let reg = crate::platform::launch::system_root().join("System32").join("reg.exe");
-        let key = format!(r"HKCU\Software\Classes\{INVITE_SCHEME}");
-        let command = format!("\"{program}\" \"%1\"");
-        let command_key = format!(r"{key}\shell\open\command");
-        let steps: [&[&str]; 3] = [
-            &["add", &key, "/ve", "/d", "URL:Dauntless Reforged Revival invite", "/f"],
-            &["add", &key, "/v", "URL Protocol", "/d", "", "/f"],
-            &["add", &command_key, "/ve", "/d", &command, "/f"],
-        ];
-        for args in steps {
-            let ok = std::process::Command::new(&reg)
-                .args(args)
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .status()
-                .is_ok_and(|status| status.success());
-            if !ok {
-                log::warn("could not register the invite link handler");
-                return;
-            }
+        let key = format!(r"HKCU\{key}");
+        let mut args = vec!["add", key.as_str()];
+        match name {
+            Some(name) => args.extend(["/v", name]),
+            None => args.push("/ve"),
         }
-        return;
+        args.extend(["/t", "REG_SZ", "/d", data, "/f"]);
+        let status = std::process::Command::new(reg)
+            .args(args)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err(std::io::Error::other(format!("reg.exe failed for {key}")))
+        }
     }
-    // The AppImage moves with its file; deb and rpm packages install their own desktop entry
-    let Some(appimage) = std::env::var_os("APPIMAGE") else {
-        return;
+}
+
+/// Windows: the scheme's keys, stopping at the first that fails.
+pub fn register_windows(registry: &mut dyn Registry, program: &Path) -> std::io::Result<()> {
+    for (key, name, data) in registry_entries(program) {
+        registry.set_string(&key, name, &data)?;
+    }
+    Ok(())
+}
+
+pub const DESKTOP_FILE: &str = "reforged-revival-launcher-handler.desktop";
+
+/// An `Exec` argument: quoted, with `"`, `` ` ``, `$` and `\` escaped, then every `\` doubled for the
+/// string value and every `%` doubled for the field codes (the Desktop Entry Specification's rules).
+fn exec_argument(path: &str) -> String {
+    let mut quoted = String::from("\"");
+    for c in path.chars() {
+        if matches!(c, '"' | '`' | '$' | '\\') {
+            quoted.push('\\');
+        }
+        quoted.push(c);
+    }
+    quoted.push('"');
+    quoted.replace('\\', "\\\\").replace('%', "%%")
+}
+
+/// The AppImage's handler entry, or None for a path a desktop entry cannot hold.
+pub fn desktop_entry(appimage: &Path) -> Option<String> {
+    let path = appimage.to_str()?;
+    if !path.starts_with('/') || path.chars().any(char::is_control) {
+        return None;
+    }
+    Some(format!(
+        "[Desktop Entry]\nType=Application\nName=Dauntless Reforged Revival Launcher\nExec={} %u\nMimeType=x-scheme-handler/{INVITE_SCHEME};\nNoDisplay=true\nTerminal=false\n",
+        exec_argument(path)
+    ))
+}
+
+/// Linux (the AppImage): the handler entry in `applications`, then `set_default(desktop file, MIME
+/// type)`, which is `xdg-mime default` outside the tests.
+pub fn register_linux(
+    applications: &Path,
+    appimage: &Path,
+    set_default: &mut dyn FnMut(&str, &str) -> bool,
+) -> std::io::Result<()> {
+    let entry = desktop_entry(appimage).ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "the AppImage's path cannot go in a desktop entry",
+        )
+    })?;
+    std::fs::create_dir_all(applications)?;
+    std::fs::write(applications.join(DESKTOP_FILE), entry)?;
+    if set_default(DESKTOP_FILE, &format!("x-scheme-handler/{INVITE_SCHEME}")) {
+        Ok(())
+    } else {
+        Err(std::io::Error::other("xdg-mime failed"))
+    }
+}
+
+fn xdg_mime_default(desktop_file: &str, mime_type: &str) -> bool {
+    std::process::Command::new("xdg-mime")
+        .args(["default", desktop_file, mime_type])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .is_ok_and(|status| status.success())
+}
+
+/// Points the `reforged-revival:` scheme at this launcher (packaged builds only: a development build must
+/// not take over the scheme). On Linux only the AppImage registers itself, since it moves with its file;
+/// deb and rpm packages install their own desktop entry.
+pub fn register_scheme(exe: &Path) {
+    let result = if cfg!(windows) {
+        register_windows(&mut RegExe, exe)
+    } else {
+        let Some(appimage) = std::env::var_os("APPIMAGE") else {
+            return;
+        };
+        let Some(applications) = dirs::data_dir().map(|dir| dir.join("applications")) else {
+            return;
+        };
+        register_linux(&applications, Path::new(&appimage), &mut xdg_mime_default)
     };
-    let Some(applications) = dirs::data_dir().map(|dir| dir.join("applications")) else {
-        return;
-    };
-    let entry = format!(
-        "[Desktop Entry]\nType=Application\nName=Dauntless Reforged Revival Launcher\nExec=\"{}\" %u\nMimeType=x-scheme-handler/{INVITE_SCHEME};\nNoDisplay=true\nTerminal=false\n",
-        std::path::Path::new(&appimage).display()
-    );
-    let file = applications.join("reforged-revival-launcher-handler.desktop");
-    let written = std::fs::create_dir_all(&applications).is_ok() && std::fs::write(&file, entry).is_ok();
-    let registered = written
-        && std::process::Command::new("xdg-mime")
-            .args([
-                "default",
-                "reforged-revival-launcher-handler.desktop",
-                &format!("x-scheme-handler/{INVITE_SCHEME}"),
-            ])
-            .status()
-            .is_ok_and(|status| status.success());
-    if !registered {
-        log::warn("could not register the invite link handler");
+    if let Err(error) = result {
+        log::warn(&format!("could not register the invite link handler: {error}"));
     }
 }
 
@@ -295,5 +380,97 @@ mod tests {
                 .unwrap();
             assert_eq!(invite_from_args(&got).as_deref(), Some(LINK));
         }
+    }
+
+    /// Records what would be written, failing at one key when asked to.
+    #[derive(Default)]
+    struct FakeRegistry {
+        values: Vec<(String, Option<String>, String)>,
+        fail_at: Option<usize>,
+    }
+
+    impl Registry for FakeRegistry {
+        fn set_string(&mut self, key: &str, name: Option<&str>, data: &str) -> std::io::Result<()> {
+            if self.fail_at == Some(self.values.len()) {
+                return Err(std::io::Error::other("denied"));
+            }
+            self.values
+                .push((key.to_owned(), name.map(str::to_owned), data.to_owned()));
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn windows_registers_the_scheme_for_the_current_user() {
+        let mut registry = FakeRegistry::default();
+        let exe = Path::new(r"C:\Users\me\AppData\Local\Dauntless Reforged Revival Launcher\launcher.exe");
+        register_windows(&mut registry, exe).unwrap();
+        let key = r"Software\Classes\reforged-revival";
+        assert_eq!(
+            registry.values,
+            [
+                (key.to_owned(), None, "URL:Dauntless Reforged Revival invite".to_owned()),
+                (key.to_owned(), Some("URL Protocol".to_owned()), String::new()),
+                (
+                    format!(r"{key}\shell\open\command"),
+                    None,
+                    format!("\"{}\" \"%1\"", exe.display())
+                ),
+            ]
+        );
+        let mut failing = FakeRegistry {
+            fail_at: Some(1),
+            ..FakeRegistry::default()
+        };
+        assert!(register_windows(&mut failing, exe).is_err());
+        assert_eq!(failing.values.len(), 1, "stops at the first key that fails");
+    }
+
+    #[test]
+    fn linux_writes_a_handler_entry_for_the_appimage() {
+        let dir = tempfile::tempdir().unwrap();
+        let applications = dir.path().join("share").join("applications");
+        let mut calls = Vec::new();
+        let mut set_default = |file: &str, mime: &str| {
+            calls.push((file.to_owned(), mime.to_owned()));
+            true
+        };
+        register_linux(
+            &applications,
+            Path::new("/home/me/Apps/Reforged Launcher.AppImage"),
+            &mut set_default,
+        )
+        .unwrap();
+        assert_eq!(
+            calls,
+            [(DESKTOP_FILE.to_owned(), "x-scheme-handler/reforged-revival".to_owned())]
+        );
+        assert_eq!(
+            std::fs::read_to_string(applications.join(DESKTOP_FILE)).unwrap(),
+            "[Desktop Entry]\nType=Application\nName=Dauntless Reforged Revival Launcher\nExec=\"/home/me/Apps/Reforged Launcher.AppImage\" %u\nMimeType=x-scheme-handler/reforged-revival;\nNoDisplay=true\nTerminal=false\n"
+        );
+        let mut refuse = |_: &str, _: &str| false;
+        assert!(register_linux(&applications, Path::new("/x.AppImage"), &mut refuse).is_err());
+        let mut never = |_: &str, _: &str| -> bool { unreachable!() };
+        assert!(register_linux(&applications, Path::new("relative.AppImage"), &mut never).is_err());
+    }
+
+    #[test]
+    fn desktop_entries_escape_the_path() {
+        let exec = |path: &str| {
+            desktop_entry(Path::new(path)).map(|entry| {
+                entry
+                    .lines()
+                    .find_map(|line| line.strip_prefix("Exec="))
+                    .unwrap()
+                    .to_owned()
+            })
+        };
+        assert_eq!(
+            exec(r#"/a/$b`c"d\e%f.AppImage"#).as_deref(),
+            Some(r#""/a/\\$b\\`c\\"d\\\\e%%f.AppImage" %u"#)
+        );
+        assert_eq!(exec("/a/b\nExec=evil"), None);
+        assert_eq!(exec("relative.AppImage"), None);
     }
 }
