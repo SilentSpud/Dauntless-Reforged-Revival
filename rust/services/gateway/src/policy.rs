@@ -314,6 +314,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "reads DR's metagame routes, which this repository does not have; RS3 points it at Paradox"]
     fn only_the_public_undaunted_routes_pass() {
         let routes = undaunted_api_routes();
         assert!(routes.len() >= 20, "found only {} routes", routes.len());

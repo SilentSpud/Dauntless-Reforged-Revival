@@ -27,6 +27,8 @@ serde.workspace = true
 serde_json.workspace = true
 service-kit.workspace = true
 sha2.workspace = true
+# The nft script file when nft refuses stdin (RD20)
+tempfile.workspace = true
 time = "0.3.55"
 tokio = { workspace = true, features = ["rt-multi-thread", "net", "time", "sync", "signal", "io-util", "macros", "process"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "tls12"] }
@@ -39,7 +41,6 @@ base64.workspace = true
 regex.workspace = true
 sha1 = "0.10"
 tokio = { workspace = true, features = ["test-util"] }
-tempfile.workspace = true
 
 [lints]
 workspace = true

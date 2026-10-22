@@ -86,7 +86,7 @@ pub fn applier(backend: Arc<Backend>, audit: Arc<AuditLog>, ports: String, dry_r
         Box::pin(async move {
             let plan = plan(&ips, &ports)?;
             if dry_run {
-                let mut fields = backend.describe(&plan);
+                let mut fields = backend.describe(&plan)?;
                 fields["backend"] = json!(backend.name());
                 audit.write("dry_run", fields);
                 return Ok(());
@@ -429,11 +429,12 @@ impl Helper {
         if path == "/status" {
             return reply(200, &self.status(), false);
         }
-        let declared = request
-            .headers()
-            .get(http::header::CONTENT_LENGTH)
-            .and_then(|v| v.to_str().ok())
-            .map_or(0.0, |v| service_kit::js::number(Some(&json!(v))));
+        let declared = declared_length(
+            request
+                .headers()
+                .get(http::header::CONTENT_LENGTH)
+                .and_then(|v| v.to_str().ok()),
+        );
         if declared > MAX_BODY as f64 {
             return reply(413, &json!({ "error": "body_too_large" }), true);
         }
@@ -441,10 +442,10 @@ impl Helper {
             Ok(body) => body.to_bytes(),
             Err(_) => return reply(413, &json!({ "error": "body_too_large" }), true),
         };
-        let Ok(body) = serde_json::from_slice::<Value>(&body) else {
+        let Some(ip) = allow_body(&body) else {
             return reply(400, &json!({ "error": "bad_request" }), false);
         };
-        self.allow(body.as_object().and_then(|o| o.get("ip")))
+        self.allow(ip.as_ref())
     }
 
     fn allow(&self, given: Option<&Value>) -> Response<Full<Bytes>> {
@@ -487,6 +488,18 @@ impl Helper {
             false,
         )
     }
+}
+
+/// The `Content-Length` a request declares, read as Node reads it (`Number(header)`); none is 0.
+pub fn declared_length(header: Option<&str>) -> f64 {
+    header.map_or(0.0, |v| service_kit::js::number(Some(&json!(v))))
+}
+
+/// An `/allow` body: `None` when it is not JSON, else the `ip` member of an object (the gateway's
+/// `{"ip": "203.0.113.7"}`), which [`check_allowlist_ip`] then judges.
+pub fn allow_body(body: &[u8]) -> Option<Option<Value>> {
+    let body = serde_json::from_slice::<Value>(body).ok()?;
+    Some(body.as_object().and_then(|o| o.get("ip")).cloned())
 }
 
 /// Mode 0600 where the file system has modes.

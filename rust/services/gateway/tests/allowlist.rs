@@ -14,7 +14,7 @@ use std::time::Duration;
 use bytes::Bytes;
 use common::*;
 use gateway::allowlist::config::AllowlistConfig;
-use gateway::allowlist::firewall::{Backend, NftSettings};
+use gateway::allowlist::firewall::Backend;
 use gateway::allowlist::helper::{AuditLog, Helper, Running};
 use gateway::config::Allowlist;
 use gateway::feed::AllowlistFeed;
@@ -79,7 +79,7 @@ async fn start(config: AllowlistConfig, clock: Arc<AtomicI64>) -> Started {
     let audit_file = config.audit_log.clone();
     let state_file = config.state_file.clone();
     let audit = Arc::new(AuditLog::new(Some(audit_file.clone())));
-    let backend = Backend::dry_run(NftSettings::from_env(&service_kit::env::Env::from_pairs([])).unwrap());
+    let backend = Backend::dry_run(&config);
     let helper = Helper::new(config, backend, audit, Arc::new(move || clock.load(Ordering::SeqCst)));
     let running = helper.start().await.unwrap();
     let port = running.port;
@@ -327,6 +327,145 @@ async fn stop_closes_and_saves_and_start_restores() {
     second.close().await;
 }
 
+/// The audit log's dry-run lines from `index` on.
+fn dry_run_events(file: &Path, from: usize) -> Vec<Value> {
+    audit_events(file)
+        .into_iter()
+        .filter(|e| e["event"] == "dry_run")
+        .skip(from)
+        .collect()
+}
+
+/// The exact nftables transaction the helper applies on a Linux VPS: after a player logs in, then
+/// after their address expires (a logout: the game sends no more heartbeats).
+#[tokio::test(flavor = "multi_thread")]
+async fn the_nft_ruleset_after_a_login_and_a_logout() {
+    let dir = tempfile::tempdir().unwrap();
+    let clock = Arc::new(AtomicI64::new(1_800_000_000_000));
+    let started = start(
+        helper_config(
+            dir.path(),
+            &[
+                ("ALLOWLIST_FIREWALL", "nftables"),
+                ("ALLOWLIST_NFT", "/usr/sbin/nft"),
+                ("ALLOWLIST_INTERFACE", "eth0"),
+                ("ALLOWLIST_PORTS", "8770-8801"),
+            ],
+        ),
+        clock.clone(),
+    )
+    .await;
+    let (port, audit, helper) = (started.port, started.audit_file.clone(), started.helper.clone());
+    helper.sync().settled(Duration::from_secs(5)).await;
+    let closed = "table inet reforged_revival {}\n\
+        delete table inet reforged_revival\n\
+        table inet reforged_revival {\n\
+        \tset players4 {\n\
+        \t\ttype ipv4_addr\n\
+        \t}\n\
+        \tset players6 {\n\
+        \t\ttype ipv6_addr\n\
+        \t}\n\
+        \tchain input {\n\
+        \t\ttype filter hook input priority -5; policy accept;\n\
+        \t\tiifname \"lo\" accept\n\
+        \t\tiifname \"eth0\" ip saddr @players4 udp dport 8770-8801 accept\n\
+        \t\tiifname \"eth0\" ip6 saddr @players6 udp dport 8770-8801 accept\n\
+        \t\tiifname \"eth0\" udp dport 8770-8801 drop\n\
+        \t}\n\
+        }\n";
+    let start_run = dry_run_events(&audit, 0);
+    assert_eq!(start_run.len(), 1);
+    assert_eq!(start_run[0]["firewall"], "nftables");
+    assert_eq!(start_run[0]["script"], closed);
+
+    // Login: two players' heartbeats reach the helper
+    assert_eq!(allow(port, json!("203.0.113.7")).await.0, 200);
+    assert_eq!(allow(port, json!("2001:db8::1")).await.0, 200);
+    helper.sync().settled(Duration::from_secs(5)).await;
+    let login = dry_run_events(&audit, 1);
+    assert_eq!(
+        login.last().unwrap()["script"],
+        "table inet reforged_revival {}\n\
+        delete table inet reforged_revival\n\
+        table inet reforged_revival {\n\
+        \tset players4 {\n\
+        \t\ttype ipv4_addr\n\
+        \t\telements = { 203.0.113.7 }\n\
+        \t}\n\
+        \tset players6 {\n\
+        \t\ttype ipv6_addr\n\
+        \t\telements = { 2001:db8::1 }\n\
+        \t}\n\
+        \tchain input {\n\
+        \t\ttype filter hook input priority -5; policy accept;\n\
+        \t\tiifname \"lo\" accept\n\
+        \t\tiifname \"eth0\" ip saddr @players4 udp dport 8770-8801 accept\n\
+        \t\tiifname \"eth0\" ip6 saddr @players6 udp dport 8770-8801 accept\n\
+        \t\tiifname \"eth0\" udp dport 8770-8801 drop\n\
+        \t}\n\
+        }\n"
+    );
+
+    // Logout: the addresses expire, the table is swapped for the closed one
+    let before = dry_run_events(&audit, 0).len();
+    clock.fetch_add(11 * 60_000, Ordering::SeqCst);
+    helper.expire_now();
+    helper.sync().settled(Duration::from_secs(5)).await;
+    let logout = dry_run_events(&audit, before);
+    assert_eq!(logout.len(), 1);
+    assert_eq!(logout[0]["script"], closed);
+    assert_eq!(logout[0]["enabled"], false);
+    started.close().await;
+}
+
+/// The Windows Firewall rule the helper sets, after a login and after a logout.
+#[tokio::test(flavor = "multi_thread")]
+async fn the_windows_rule_after_a_login_and_a_logout() {
+    let dir = tempfile::tempdir().unwrap();
+    let clock = Arc::new(AtomicI64::new(1_800_000_000_000));
+    let started = start(
+        helper_config(dir.path(), &[("ALLOWLIST_FIREWALL", "windows")]),
+        clock.clone(),
+    )
+    .await;
+    let (port, audit, helper) = (started.port, started.audit_file.clone(), started.helper.clone());
+    helper.sync().settled(Duration::from_secs(5)).await;
+    let start_run = dry_run_events(&audit, 0);
+    assert_eq!(
+        start_run[0]["rule"],
+        "Dauntless Reforged Revival game ports (allowlist)"
+    );
+    assert_eq!(start_run[0]["windows"], json!({ "enabled": false }));
+
+    assert_eq!(allow(port, json!("203.0.113.7")).await.0, 200);
+    helper.sync().settled(Duration::from_secs(5)).await;
+    let login = dry_run_events(&audit, 1);
+    assert_eq!(
+        login.last().unwrap()["windows"],
+        json!({
+            "enabled": true,
+            "displayName": "Dauntless Reforged Revival game ports (allowlist)",
+            "direction": "in",
+            "action": "allow",
+            "protocol": "udp",
+            "localPorts": "8770-8777",
+            "remoteAddresses": "203.0.113.7",
+            "profiles": "all",
+        })
+    );
+    assert!(login.last().unwrap().get("script").is_none());
+
+    let before = dry_run_events(&audit, 0).len();
+    clock.fetch_add(11 * 60_000, Ordering::SeqCst);
+    helper.expire_now();
+    helper.sync().settled(Duration::from_secs(5)).await;
+    let logout = dry_run_events(&audit, before);
+    assert_eq!(logout.len(), 1);
+    assert_eq!(logout[0]["windows"], json!({ "enabled": false }));
+    started.close().await;
+}
+
 /// `e2e.test.ts`: the gateway and the helper together, in process.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_logged_in_player_gets_the_game_ports() {
@@ -520,6 +659,61 @@ fn close_ports_closes_once_and_exits() {
         .collect();
     assert_eq!(events, ["dry_run", "closed_ports"]);
     assert_eq!(audit_events(&audit)[0]["enabled"], false);
+}
+
+#[test]
+fn close_ports_closes_the_nftables_table_too() {
+    let dir = tempfile::tempdir().unwrap();
+    let audit = dir.path().join("audit.log");
+    let output = command(
+        env!("CARGO_BIN_EXE_allowlist"),
+        dir.path(),
+        &[
+            ("ALLOWLIST_DRY_RUN", "1".into()),
+            ("ALLOWLIST_FIREWALL", "nftables".into()),
+            ("ALLOWLIST_NFT", "/usr/sbin/nft".into()),
+            ("ALLOWLIST_SECRET", SECRET.into()),
+            ("ALLOWLIST_AUDIT_LOG", audit.to_string_lossy().into_owned()),
+        ],
+    )
+    .arg("--close-ports")
+    .output()
+    .unwrap();
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let first = &audit_events(&audit)[0];
+    assert_eq!(first["event"], "dry_run");
+    assert!(
+        first["script"]
+            .as_str()
+            .unwrap()
+            .ends_with("\t\tudp dport 8770-8777 drop\n\t}\n}\n")
+    );
+}
+
+#[test]
+fn the_real_firewall_must_be_this_platforms() {
+    let dir = tempfile::tempdir().unwrap();
+    let wrong = if cfg!(windows) { "nftables" } else { "windows" };
+    let output = command(
+        env!("CARGO_BIN_EXE_allowlist"),
+        dir.path(),
+        &[
+            ("ALLOWLIST_DRY_RUN", "0".into()),
+            ("ALLOWLIST_FIREWALL", wrong.into()),
+            ("ALLOWLIST_SECRET", SECRET.into()),
+        ],
+    )
+    .arg("--close-ports")
+    .output()
+    .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let expected = if cfg!(windows) {
+        "ALLOWLIST_FIREWALL=nftables needs Linux"
+    } else {
+        "ALLOWLIST_FIREWALL=windows needs Windows"
+    };
+    assert!(stderr.contains(expected), "{stderr}");
 }
 
 #[test]

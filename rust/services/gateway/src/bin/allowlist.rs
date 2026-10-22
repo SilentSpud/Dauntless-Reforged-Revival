@@ -1,5 +1,5 @@
-//! The `allowlist` binary (`npm run start:allowlist`, the Linux kit's `allowlist.mjs`): keeps the
-//! game ports open to players who logged in. `--close-ports` closes them once and exits, for stop
+//! The `allowlist` binary (`src/allowlist/server.ts`, `npm run start:allowlist`): keeps the game
+//! ports open to players who logged in, through the firewall `ALLOWLIST_FIREWALL` names. `--close-ports` closes them once and exits, for stop
 //! scripts (a supervisor that ends the helper with TerminateProcess never lets it close them
 //! itself). Without `--env-file`, a `.env` in the working folder is read if there is one.
 
@@ -17,7 +17,7 @@ use service_kit::env::Env;
 use service_kit::linelog;
 
 #[derive(Parser)]
-#[command(name = "allowlist", version, about = "Dauntless Revived allowlist helper")]
+#[command(name = "allowlist", version, about = "Dauntless Reforged Revival allowlist helper")]
 struct Cli {
     #[arg(long)]
     env_file: Option<PathBuf>,
@@ -57,19 +57,13 @@ async fn run(config: AllowlistConfig, close_ports: bool) -> ExitCode {
             "DRY RUN: the firewall is never changed; every change is only written to the audit log",
             json!({}),
         );
-        Backend::dry_run(config.nft.clone())
+        Backend::dry_run(&config)
     } else {
-        match Backend::for_platform(config.nft.clone()) {
+        match Backend::real(&config).await {
             Ok(backend) => backend,
             Err(error) => return fatal(&error),
         }
     };
-    #[cfg(windows)]
-    if !config.dry_run && !gateway::allowlist::windows::is_elevated() {
-        return fatal(
-            "ALLOWLIST_DRY_RUN=0 needs administrator rights: run it as a scheduled task with \"Run with highest privileges\"",
-        );
-    }
 
     if close_ports {
         let backend = Arc::new(backend);
@@ -82,7 +76,7 @@ async fn run(config: AllowlistConfig, close_ports: bool) -> ExitCode {
                 audit.write("closed_ports", json!({ "dryRun": config.dry_run }));
                 ExitCode::SUCCESS
             }
-            Err(error) => fatal(&format!("Could not close the game ports: {error}")),
+            Err(error) => fatal(&format!("Could not disable the game-port rule: {error}")),
         };
     }
 
@@ -101,6 +95,7 @@ async fn run(config: AllowlistConfig, close_ports: bool) -> ExitCode {
         json!({
             "listen": format!("{}:{}", config.bind_host, running.port),
             "dryRun": config.dry_run,
+            "firewall": config.firewall.as_str(),
             "ports": config.ports,
             "ttlSeconds": config.ttl.as_secs(),
             "minIntervalMs": config.min_interval.as_millis() as u64,

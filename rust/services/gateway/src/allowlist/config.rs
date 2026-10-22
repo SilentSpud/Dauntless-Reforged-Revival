@@ -1,5 +1,7 @@
-//! The helper's settings (`src/allowlist/config.ts`, and the Linux kit's `allowlist-core.mjs`),
-//! read once at start; a bad one stops the start.
+//! The helper's settings (`src/allowlist/config.ts`), read once at start; a bad one stops the start.
+//! Only the `ALLOWLIST_*` names the host kit writes are read, so an existing host's `.env` starts the
+//! Rust helper unchanged. `ALLOWLIST_POWERSHELL` is accepted and ignored: Windows Firewall goes
+//! through COM.
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -7,7 +9,8 @@ use std::time::Duration;
 use serde_json::json;
 use service_kit::env::Env;
 
-use super::firewall::NftSettings;
+use super::nft::{NFT_TABLE, NftSettings, check_interface, check_nft_binary, check_nft_table, default_nft};
+pub use super::ports::check_ports;
 use crate::config::check_secret;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,6 +20,7 @@ pub struct AllowlistConfig {
     pub secret: String,
     /// Only write what would change to the audit log; never touch the firewall
     pub dry_run: bool,
+    pub firewall: FirewallKind,
     pub allow_private: bool,
     pub ttl: Duration,
     pub min_interval: Duration,
@@ -50,30 +54,22 @@ fn resolve(path: &str) -> PathBuf {
     std::path::absolute(path).unwrap_or_else(|_| PathBuf::from(path))
 }
 
-/// "8770-8777" or "8777": ports 1-65535, a range low to high, nothing else.
-pub fn check_ports(text: &str) -> Result<String, String> {
-    let shape = || {
-        format!(
-            "ALLOWLIST_PORTS must be a port or a range like 8770-8777 (got {})",
-            json!(text)
-        )
-    };
-    let digits = |s: &str| (1..=5).contains(&s.len()) && s.bytes().all(|b| b.is_ascii_digit());
-    let (low, high) = match text.split_once('-') {
-        Some((low, high)) if digits(low) && digits(high) => (low, Some(high)),
-        None if digits(text) => (text, None),
-        _ => return Err(shape()),
-    };
-    let low: u32 = low.parse().map_err(|_| shape())?;
-    let high_value: u32 = high.map_or(Ok(low), str::parse).map_err(|_| shape())?;
-    if low < 1 || high_value > 65535 || low > high_value {
-        return Err("ALLOWLIST_PORTS must be within 1-65535, low to high".into());
+/// `ALLOWLIST_FIREWALL`: which firewall the helper changes. The host kit writes `nftables` on Linux.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FirewallKind {
+    /// Windows Firewall, through COM
+    Windows,
+    /// One nftables table, on Linux
+    Nftables,
+}
+
+impl FirewallKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Windows => "windows",
+            Self::Nftables => "nftables",
+        }
     }
-    Ok(if high.is_none() {
-        low.to_string()
-    } else {
-        format!("{low}-{high_value}")
-    })
 }
 
 impl AllowlistConfig {
@@ -90,11 +86,33 @@ impl AllowlistConfig {
         if bind_host != "127.0.0.1" && bind_host != "::1" {
             return Err("ALLOWLIST_BIND must be 127.0.0.1 or ::1: the helper runs with administrator rights and only the gateway on this machine may reach it".into());
         }
+        // Windows unless the env file says otherwise: the host kit writes nftables on Linux
+        let firewall = match optional(env, "ALLOWLIST_FIREWALL").as_deref() {
+            None | Some("windows") => FirewallKind::Windows,
+            Some("nftables") => FirewallKind::Nftables,
+            Some(other) => {
+                return Err(format!(
+                    "ALLOWLIST_FIREWALL must be windows (Windows Firewall) or nftables (Linux), not {}",
+                    json!(other)
+                ));
+            }
+        };
+        let nft = NftSettings {
+            binary: match optional(env, "ALLOWLIST_NFT") {
+                Some(path) => check_nft_binary(&path)?,
+                None => default_nft(),
+            },
+            table: check_nft_table(&optional(env, "ALLOWLIST_NFT_TABLE").unwrap_or_else(|| NFT_TABLE.into()))?,
+            interface: optional(env, "ALLOWLIST_INTERFACE")
+                .map(|name| check_interface(&name))
+                .transpose()?,
+        };
         Ok(Self {
             bind_host,
             port: int(env, "ALLOWLIST_PORT", 61005, 1, 65535)? as u16,
             secret: check_secret(optional(env, "ALLOWLIST_SECRET"), "ALLOWLIST_SECRET")?,
             dry_run,
+            firewall,
             allow_private: env.raw("ALLOWLIST_ALLOW_PRIVATE") == Some("1"),
             ttl: Duration::from_secs(int(env, "ALLOWLIST_TTL_SECONDS", 600, 1, 86_400)? as u64),
             min_interval: Duration::from_millis(int(env, "ALLOWLIST_MIN_INTERVAL_MS", 3000, 50, 600_000)? as u64),
@@ -104,7 +122,7 @@ impl AllowlistConfig {
             state_file: resolve(
                 &optional(env, "ALLOWLIST_STATE_FILE").unwrap_or_else(|| "allowlist-state.json".into()),
             ),
-            nft: NftSettings::from_env(env)?,
+            nft,
         })
     }
 }
@@ -169,5 +187,77 @@ mod tests {
         }
         assert_eq!(check_ports("8777").unwrap(), "8777");
         assert_eq!(check_ports("08770-08777").unwrap(), "8770-8777");
+        assert_eq!(config.firewall, FirewallKind::Windows);
+        assert_eq!(config.nft.table, "reforged_revival");
+        assert_eq!(config.nft.interface, None);
+        assert!(["/usr/sbin/nft", "/sbin/nft"].contains(&config.nft.binary.to_str().unwrap()));
+    }
+
+    #[test]
+    fn picks_the_firewall_with_a_fixed_nft_path_a_table_name_and_an_interface() {
+        assert_eq!(
+            load(&[("ALLOWLIST_FIREWALL", "windows")]).unwrap().firewall,
+            FirewallKind::Windows
+        );
+        let config = load(&[
+            ("ALLOWLIST_FIREWALL", "nftables"),
+            ("ALLOWLIST_NFT", "/usr/sbin/nft"),
+            ("ALLOWLIST_NFT_TABLE", "my_table"),
+            ("ALLOWLIST_INTERFACE", "eth0"),
+        ])
+        .unwrap();
+        assert_eq!(config.firewall, FirewallKind::Nftables);
+        assert_eq!(
+            config.nft,
+            NftSettings {
+                binary: PathBuf::from("/usr/sbin/nft"),
+                table: "my_table".into(),
+                interface: Some("eth0".into()),
+            }
+        );
+        assert!(
+            load(&[("ALLOWLIST_FIREWALL", "iptables")])
+                .unwrap_err()
+                .contains("ALLOWLIST_FIREWALL")
+        );
+        assert!(load(&[("ALLOWLIST_NFT", "nft")]).unwrap_err().contains("ALLOWLIST_NFT"));
+        for bad in ["1table", "my-table", "t; flush ruleset", &"a".repeat(33)] {
+            assert!(
+                load(&[("ALLOWLIST_NFT_TABLE", bad)])
+                    .unwrap_err()
+                    .contains("ALLOWLIST_NFT_TABLE"),
+                "{bad}"
+            );
+        }
+        for bad in ["eth0\" accept", "a b", &"x".repeat(16), "../x"] {
+            assert!(
+                load(&[("ALLOWLIST_INTERFACE", bad)])
+                    .unwrap_err()
+                    .contains("ALLOWLIST_INTERFACE"),
+                "{bad}"
+            );
+        }
+    }
+
+    #[test]
+    fn reads_only_the_names_the_host_kit_writes() {
+        // An existing host's .env: the PowerShell path is accepted and has nothing to do
+        let config = load(&[(
+            "ALLOWLIST_POWERSHELL",
+            r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+        )])
+        .unwrap();
+        assert_eq!(config, load(&[]).unwrap());
+        // Dauntless Revived's names are not read
+        let ignored = load(&[
+            ("ALLOWLIST_FIREWALL", "nftables"),
+            ("DR_NFT_BINARY", "/opt/nft"),
+            ("DR_NFT_TABLE", "dauntless_revived"),
+            ("DR_FIREWALL_INTERFACE", "wg0"),
+        ])
+        .unwrap();
+        assert_eq!(ignored.nft.table, "reforged_revival");
+        assert_eq!(ignored.nft.interface, None);
+        assert_ne!(ignored.nft.binary, PathBuf::from("/opt/nft"));
     }
 }
