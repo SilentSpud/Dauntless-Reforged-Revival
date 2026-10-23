@@ -1,58 +1,359 @@
+# Checks every push and pull request, by code family (MIGRATION_PLAN.md RR3, from DR's R8): a pull request runs
+# only the jobs of the families it changes, and the "CI ok" job sums them up for branch protection. It is the one
+# required check. A push to main or plan, a manual run and any change to the workflows run every family.
+#  - Rust (rust/): fmt, clippy and tests on Linux and Windows, cargo-deny, a short run of every fuzz target
+#  - the launcher and its page (legacy/ReforgedLauncher): typecheck and tests on Linux, tests and the installer on
+#    Windows
+#  - the legacy Node services (legacy/ReforgedGateway, ReforgedContent, ReforgedHost): build and tests
+#  - Paradox (paradox/backend, paradox/director): npm ci and tests, once paradox/backend/package.json exists (RP3)
+#  - the Mystic Paradox patches (upstream/): applied to the pinned commit, built and tested, while upstream/ exists
+#
+# Automatic launcher releases: see the release job at the end. Actions are pinned by commit.
 name: CI
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+# One run at a time per branch or pull request; a newer push to a pull request cancels the older run.
+# Every run on main gets its own group, so none of them is ever cancelled or replaced.
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.run_id || 'latest' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  launcher:
-    name: Launcher (typecheck and tests)
+  # Which code families a change touches, and which of them exist in this commit. The filters are generous:
+  # a family's jobs also run when a folder they read from changes.
+  changes:
+    name: What changed
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      # paths-filter lists a pull request's files through the API
+      pull-requests: read
+    outputs:
+      rust: ${{ steps.pick.outputs.rust }}
+      rust-tauri: ${{ steps.pick.outputs.rust-tauri }}
+      launcher: ${{ steps.pick.outputs.launcher }}
+      legacy-services: ${{ steps.pick.outputs.legacy-services }}
+      paradox: ${{ steps.pick.outputs.paradox }}
+      upstream: ${{ steps.pick.outputs.upstream }}
+      docker: ${{ steps.pick.outputs.docker }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      # A pull request is compared with its base (paths-filter asks the API). A push to another branch is compared
+      # with the commit before the push, so pushing a pull request's branch doesn't run more than the pull request;
+      # a new branch, or a forced push whose old commit is gone, with the default branch.
+      - name: What a push is compared with
+        id: base
+        env:
+          BEFORE: ${{ github.event.before }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          base="$DEFAULT_BRANCH"
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ -n "${BEFORE//0/}" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            base="$BEFORE"
+          fi
+          echo "base=$base" | tee -a "$GITHUB_OUTPUT"
+
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          base: ${{ steps.base.outputs.base }}
+          filters: |
+            workflow:
+              - .github/workflows/**
+            rust:
+              - rust/**
+            launcher:
+              - legacy/ReforgedLauncher/**
+              # The icons come from brand/ (npm run icon)
+              - brand/**
+            legacy-services:
+              - legacy/ReforgedGateway/**
+              - legacy/ReforgedContent/**
+              - legacy/ReforgedHost/**
+              # ReforgedHost's tests import the launcher's invite and host kit code
+              - legacy/ReforgedLauncher/src/**
+              - preset/**
+            paradox:
+              - paradox/**
+            upstream:
+              - upstream/**
+            # The images build the Rust services, the Paradox backend and Director, and the host kit's files
+            docker:
+              - docker/**
+              - compose*.yaml
+              - .dockerignore
+              - .env.example
+              - rust/**
+              - paradox/**
+              - native/**
+              - preset/**
+              - legacy/ReforgedGateway/**
+              - legacy/ReforgedHost/**
+
+      # Paradox moves from upstream/ (patches on a pinned commit) to paradox/ (RP2 to RP4) in parallel with this
+      # file, so each of those jobs runs only while its folder exists, whichever lands first.
+      - name: Pick the families, run everything on main, plan, manual runs and workflow changes
+        id: pick
+        env:
+          ALL: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/plan')) || github.event_name == 'workflow_dispatch' || steps.filter.outputs.workflow == 'true' }}
+          RUST: ${{ steps.filter.outputs.rust }}
+          LAUNCHER: ${{ steps.filter.outputs.launcher }}
+          LEGACY_SERVICES: ${{ steps.filter.outputs.legacy-services }}
+          PARADOX: ${{ steps.filter.outputs.paradox }}
+          UPSTREAM: ${{ steps.filter.outputs.upstream }}
+          DOCKER: ${{ steps.filter.outputs.docker }}
+        run: |
+          set -euo pipefail
+          for family in rust launcher legacy-services paradox upstream docker; do
+            var="${family^^}"; var="${var//-/_}"
+            value="${!var}"
+            [ "$ALL" = true ] && value=true
+            case "$family" in
+              paradox) [ -f paradox/backend/package.json ] || value=false ;;
+              upstream) [ -f upstream/mystic-paradox.json ] || value=false ;;
+            esac
+            echo "$family=$value" | tee -a "$GITHUB_OUTPUT"
+          done
+          # The launcher crate is a stub until RA1 brings Tauri, which needs WebKitGTK and GTK3 to build on Linux.
+          tauri=false
+          if grep -qE '^tauri[[:space:]]*=' rust/launcher/src-tauri/Cargo.toml 2>/dev/null; then tauri=true; fi
+          echo "rust-tauri=$tauri" | tee -a "$GITHUB_OUTPUT"
+
+  rust:
+    # GitHub appends the OS (see the paradox job)
+    name: Rust workspace
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     defaults:
       run:
-        working-directory: ReforgedLauncher
+        shell: bash
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # rustup reads rust/rust-toolchain.toml and installs the pinned toolchain.
+      - name: Install the pinned toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+
+      # The cargo registry and the target folder
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: rust
+
+      - name: Install the launcher's Linux build dependencies
+        if: runner.os == 'Linux' && needs.changes.outputs.rust-tauri == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev libdbus-1-dev patchelf
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace --locked
+
+  rust-deny:
+    name: Rust licences and advisories
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          manifest-path: rust/Cargo.toml
+          command: check
+          arguments: --all-features
+
+  # Every parser of untrusted input, fuzzed for a short time on every change (MIGRATION_PLAN.md RD10, RX3). The
+  # 24-hour run before a cutover is the one in rust/fuzz/Cargo.toml. A crash keeps its input as an artifact.
+  fuzz:
+    name: Fuzz the untrusted-input parsers
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NIGHTLY: nightly-2026-10-20
+    defaults:
+      run:
+        working-directory: rust/fuzz
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: rust/fuzz
+          key: fuzz
+
+      - name: Install the pinned nightly and cargo-fuzz
+        run: |
+          rustup toolchain install "$NIGHTLY" --profile minimal
+          cargo "+$NIGHTLY" install cargo-fuzz --version 0.13.2 --locked
+
+      - name: Run every target for 45 seconds
+        run: |
+          set -euo pipefail
+          for target in $(cargo "+$NIGHTLY" fuzz list); do
+            echo "::group::$target"
+            mkdir -p "corpus/$target"
+            cargo "+$NIGHTLY" fuzz run "$target" "corpus/$target" -- -max_total_time=45 -max_len=4096
+            echo "::endgroup::"
+          done
+
+      - name: Keep the inputs that crashed
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-crashes
+          path: rust/fuzz/artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # The launcher and its page (src/renderer), until the page moves to rust/launcher/ui (RR5).
+  launcher:
+    name: Launcher and page (typecheck and tests)
+    needs: changes
+    if: needs.changes.outputs.launcher == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: legacy/ReforgedLauncher
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: ReforgedLauncher/package-lock.json
+          cache-dependency-path: legacy/ReforgedLauncher/package-lock.json
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
 
+  launcher-windows:
+    name: Launcher (Windows tests and installer)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs: launcher
+    defaults:
+      run:
+        working-directory: legacy/ReforgedLauncher
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: legacy/ReforgedLauncher/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run make
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ReforgedRevivalLauncher-windows
+          path: legacy/ReforgedLauncher/out/make/**
+          if-no-files-found: error
+
   services:
-    name: ${{ matrix.package }} (tests)
+    # GitHub appends the package (see the paradox job)
+    name: Legacy service tests
+    needs: changes
+    if: needs.changes.outputs.legacy-services == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         package: [ReforgedGateway, ReforgedContent, ReforgedHost]
     defaults:
       run:
-        working-directory: ${{ matrix.package }}
+        working-directory: legacy/${{ matrix.package }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: ${{ matrix.package }}/package-lock.json
+          cache-dependency-path: legacy/${{ matrix.package }}/package-lock.json
       - run: npm ci
       - run: npm run build
       - run: npm test
 
-  upstream:
-    name: Mystic Paradox patches (apply, build, tests)
+  # The Node backend and Director in this repository (RP3), until RB15 deletes them.
+  paradox:
+    # No matrix value in the name: GitHub appends it, and a skipped job would show the expression unexpanded.
+    name: Paradox tests
+    needs: changes
+    if: needs.changes.outputs.paradox == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [backend, director]
+    defaults:
+      run:
+        working-directory: paradox/${{ matrix.package }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+
+  # Until RP3 replaces upstream/ with paradox/.
+  upstream:
+    name: Mystic Paradox patches (apply, build, tests)
+    needs: changes
+    if: needs.changes.outputs.upstream == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -82,37 +383,55 @@ jobs:
           npm run build
           npm test
 
-  launcher-windows:
-    name: Launcher (Windows tests and installer)
-    runs-on: windows-latest
-    needs: launcher
-    defaults:
-      run:
-        working-directory: ReforgedLauncher
+  # The server's images (docs/hosting-docker.md), the full test run (docker/run-tests.sh): every server suite
+  # inside the test image (the server image plus the Rust toolchain; the allowlist's nftables test for real), then
+  # a public server set up on example game data in throwaway volumes, every service healthy, an invite made and a
+  # clean stop (docker/smoke-test.sh).
+  docker:
+    name: Docker images (build, tests in the image, smoke test)
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: ReforgedLauncher/package-lock.json
-      - run: npm ci
-      - run: npm test
-      - run: npm run make
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ReforgedRevivalLauncher-windows
-          path: ReforgedLauncher/out/make/**
-          if-no-files-found: error
+          persist-credentials: false
+      - name: Build the images and run the full test run
+        env:
+          REFORGED_COMMIT: ${{ github.sha }}
+        run: bash docker/run-tests.sh
 
-  # As in Dauntless Revived: once every check passed on main, a new ReforgedLauncher/package.json version
+  # The one check branch protection requires. Jobs skipped because their family didn't change (or doesn't exist
+  # yet) count as passed; a failed or cancelled job, or a failed change detection, fails it.
+  ci-ok:
+    name: CI ok
+    needs: [changes, rust, rust-deny, fuzz, launcher, launcher-windows, services, paradox, upstream, docker]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every selected job passed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          bad="$(echo "$RESULTS" | jq -r '[to_entries[] | select(.value.result != "success" and .value.result != "skipped") | .key] | join(", ")')"
+          if [ -n "$bad" ]; then
+            echo "::error::failed or cancelled: $bad"
+            exit 1
+          fi
+
+  # As in Dauntless Revived: once every check passed on main, a new legacy/ReforgedLauncher/package.json version
   # is released and installed launchers update to it (launcher-release.yml). A version that has a
   # release already publishes nothing. Set the repository variable LAUNCHER_AUTO_RELEASE to false to
-  # turn it off and only release by hand.
+  # turn it off and only release by hand. A push to main runs every family (see changes), so CI ok passing
+  # means all of them passed.
   release:
     name: Launcher release
-    needs: [launcher, services, upstream, launcher-windows]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.LAUNCHER_AUTO_RELEASE != 'false'
+    needs: ci-ok
+    if: needs.ci-ok.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.LAUNCHER_AUTO_RELEASE != 'false'
     permissions:
       contents: write
     uses: ./.github/workflows/launcher-release.yml

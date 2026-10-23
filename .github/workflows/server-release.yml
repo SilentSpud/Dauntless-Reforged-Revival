@@ -1,0 +1,389 @@
+# Builds the server release (MIGRATION_PLAN.md RD8, RH6; adapted from Dauntless Revived's server-release.yml, M38).
+# One archive per server platform, which `reforged-host setup` and `reforged-host update` download and check (RH5):
+#  - ReforgedRevivalServer-<version>-windows-x64.zip and -linux-x64.tar.gz hold reforged-revival-server-<version>/:
+#    the source of the commit (git archive, the corresponding source under the AGPL), with
+#      bin/              reforged-host, gateway, allowlist and content, built here for that platform
+#      paradox/backend   and paradox/director built with their node_modules (Node until RB14; hosts keep Node.js)
+#      legacy/ReforgedGateway and legacy/ReforgedContent built with their node_modules, for as long as `start`
+#                        still runs them (until RS2 and RS3 flip start's switch; RS5 removes them) and setup makes
+#                        the gateway's certificate with their make-cert tool
+#      release.json      the version, commit, platform and repository, and every file of the release with its SHA-256
+#  - SHA256SUMS.txt for the archives, covered by a signed build provenance attestation on a published release
+#    (gh attestation verify <file> --repo <owner>/<repo>; reforged-host update runs it when gh is there)
+#
+# Two ways to run it:
+#  - Pushing a tag server-v<version> (x.y.z or x.y.z-prerelease) publishes: the tagged commit must be on the default
+#    branch, the version must be new, and the release is a prerelease unless the repository variable
+#    SERVER_RELEASE_STABLE is true. It is never marked latest (that stays the launcher, which players download).
+#  - Run workflow (workflow_dispatch) is a dry run on any branch: it builds, smoke-tests and keeps the release files as
+#    a 7-day artifact (server-release) and publishes nothing, attests nothing and makes no tag.
+# Actions are pinned by commit.
+name: Server release
+
+on:
+  push:
+    tags:
+      - "server-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version for the dry run's archives (default 0.0.0-dryrun.<run number>)"
+        required: false
+        type: string
+
+permissions: {}
+
+jobs:
+  prepare:
+    name: Version and release state
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
+      publish: ${{ steps.plan.outputs.publish }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Work out the version and whether it is published
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          STABLE_ALLOWED: ${{ vars.SERVER_RELEASE_STABLE }}
+          INPUT_VERSION: ${{ inputs.version }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+          # A semantic version without build metadata: x.y.z or x.y.z-prerelease
+          semver='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
+          if [ "$GITHUB_EVENT_NAME" = push ] && [[ "$REF" == refs/tags/* ]]; then
+            publish=true
+            version="${REF_NAME#server-v}"
+          else
+            publish=false
+            version="${INPUT_VERSION:-0.0.0-dryrun.$RUN_NUMBER}"
+          fi
+          [[ "$version" =~ $semver ]] || fail "$version is not a version (x.y.z or x.y.z-prerelease)"
+          prerelease=false
+          case "$version" in *-*) prerelease=true ;; esac
+          tag="server-v$version"
+          if [ "$publish" = true ]; then
+            [ "$REF" = "refs/tags/$tag" ] || fail "a release is published from a tag server-v<version>, not $REF"
+            git fetch --quiet origin "refs/heads/$DEFAULT_BRANCH:refs/remotes/origin/$DEFAULT_BRANCH"
+            git merge-base --is-ancestor "$GITHUB_SHA" "origin/$DEFAULT_BRANCH" ||
+              fail "$tag is on ${GITHUB_SHA:0:12}, which is not on $DEFAULT_BRANCH: server releases are made from $DEFAULT_BRANCH only"
+            if [ "$prerelease" != true ] && [ "$STABLE_ALLOWED" != true ]; then
+              fail "$version is a full release: the Rust servers publish prereleases until the front-door cutover (set SERVER_RELEASE_STABLE=true then)"
+            fi
+            if out="$(gh api "repos/$GH_REPO/releases/tags/$tag" --jq .html_url 2>&1)"; then
+              fail "$tag is published already ($out): a release is never replaced, raise the version"
+            elif ! grep -q 'HTTP 404' <<<"$out"; then
+              fail "could not look up the release $tag: $out"
+            fi
+          fi
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "prerelease=$prerelease"
+            echo "publish=$publish"
+          } >> "$GITHUB_OUTPUT"
+          echo "servers $version, tag $tag, prerelease $prerelease, publish $publish"
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            platform: windows-x64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            platform: linux-x64
+    defaults:
+      run:
+        shell: bash
+    env:
+      TARGET: ${{ matrix.target }}
+      PLATFORM: ${{ matrix.platform }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      COMMIT: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The runner's temporary folder as bash and GNU tar take it on every runner (tar reads D: as a remote host)
+      - name: Work folder
+        run: |
+          work="$RUNNER_TEMP"
+          if [ "$RUNNER_OS" = Windows ]; then work="$(cygpath -u "$RUNNER_TEMP")"; fi
+          echo "WORK=$work" >> "$GITHUB_ENV"
+
+      - name: Install the pinned toolchain
+        working-directory: rust
+        run: |
+          rustup show active-toolchain || rustup toolchain install
+          rustup target add "$TARGET"
+
+      # No build cache in a release: every file is built from this commit alone.
+      # backend and director join this list once they are real (RB rows; RD8). Until RB14 the archive carries
+      # the Node backend and Director instead (the Node build step below).
+      # REFORGED_RELEASE_REPOSITORY: where reforged-host looks for newer releases (this repository)
+      - name: Build the release binaries
+        working-directory: rust
+        env:
+          REFORGED_RELEASE_REPOSITORY: ${{ github.repository }}
+        run: cargo build --release --locked --target "$TARGET" -p host -p gateway -p content --bins
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      # Every dependency, dev ones included: gamedata runs Mystic Paradox's generators, some of them with tsx.
+      # node_modules is installed on each platform, for the packages with a native build (@node-rs/argon2).
+      - name: Build the Node services (backend and Director until RB14; gateway and content until RS5)
+        run: |
+          set -euo pipefail
+          for dir in paradox/backend paradox/director legacy/ReforgedGateway legacy/ReforgedContent; do
+            echo "::group::$dir"
+            (cd "$dir" && npm ci --no-audit --no-fund && npm run build)
+            echo "::endgroup::"
+          done
+
+      - name: Assemble the release folder
+        run: |
+          set -euo pipefail
+          ext=""; [ "$RUNNER_OS" = Windows ] && ext=".exe"
+          name="reforged-revival-server-$VERSION"
+          out="$WORK/assemble/$name"
+          rm -rf "$WORK/assemble" && mkdir -p "$out"
+          # The commit's source, as git has it (no .workspace, nothing git ignores)
+          git archive --format=tar "$COMMIT" | tar -x -C "$out"
+          mkdir -p "$out/bin"
+          for bin in reforged-host gateway allowlist content; do
+            cp "rust/target/$TARGET/release/$bin$ext" "$out/bin/"
+          done
+          # backend and director: cp "rust/target/$TARGET/release/backend$ext" ... once they are real (RD8)
+          cp -R paradox/backend/build paradox/backend/node_modules "$out/paradox/backend/"
+          cp -R paradox/director/dist paradox/director/node_modules "$out/paradox/director/"
+          cp -R legacy/ReforgedGateway/dist legacy/ReforgedGateway/node_modules "$out/legacy/ReforgedGateway/"
+          cp -R legacy/ReforgedContent/dist "$out/legacy/ReforgedContent/"
+          if [ -d legacy/ReforgedContent/node_modules ]; then cp -R legacy/ReforgedContent/node_modules "$out/legacy/ReforgedContent/"; fi
+          # node_modules/.bin holds links to the packages' commands: nothing a host runs needs them
+          find "$out" -type d -name .bin -path '*/node_modules/*' -prune -exec rm -rf {} +
+          echo "$COMMIT" > "$out/COMMIT"
+          # release.json: what update reads, and every file with its SHA-256 (update removes the files an older
+          # release had and this one has not, and checks what it installed)
+          node - "$out" "$VERSION" "$COMMIT" "$TARGET" "$PLATFORM" "$GITHUB_REPOSITORY" <<'EOF'
+          const fs = require("fs"), path = require("path"), crypto = require("crypto");
+          const [root, version, commit, target, platform, repository] = process.argv.slice(2);
+          const files = [];
+          (function walk(dir) {
+            for (const e of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+              const full = path.join(dir, e.name);
+              if (e.isDirectory()) walk(full);
+              else if (e.isFile()) {
+                const data = fs.readFileSync(full);
+                files.push({ path: path.relative(root, full).split(path.sep).join("/"), sha256: crypto.createHash("sha256").update(data).digest("hex"), size: data.length });
+              } else if (e.isSymbolicLink()) throw new Error(`a symbolic link in the release: ${full}`);
+            }
+          })(root);
+          const manifest = { name: "reforged-revival-server", version, commit, target, platform, repository, files };
+          fs.writeFileSync(path.join(root, "release.json"), JSON.stringify(manifest, null, 2) + "\n");
+          console.log(`release.json: ${files.length} files`);
+          EOF
+
+      - name: Smoke test, the binaries start
+        run: |
+          set -euo pipefail
+          ext=""; [ "$RUNNER_OS" = Windows ] && ext=".exe"
+          bin="$WORK/assemble/reforged-revival-server-$VERSION/bin"
+          for b in reforged-host gateway allowlist content; do "$bin/$b$ext" --help > /dev/null; done
+          "$bin/reforged-host$ext" --help
+
+      - name: Make the archive
+        run: |
+          set -euo pipefail
+          name="reforged-revival-server-$VERSION"
+          mkdir -p "$WORK/release"
+          cd "$WORK/assemble"
+          if [ "$RUNNER_OS" = Windows ]; then
+            archive="ReforgedRevivalServer-$VERSION-$PLATFORM.zip"
+            7z a -tzip -mx=9 -bd "$WORK/release/$archive" "$name" > /dev/null
+          else
+            archive="ReforgedRevivalServer-$VERSION-$PLATFORM.tar.gz"
+            tar --sort=name --owner=0 --group=0 --numeric-owner -czf "$WORK/release/$archive" "$name"
+          fi
+          ls -l "$WORK/release"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: server-archive-${{ matrix.platform }}
+          path: ${{ runner.temp }}/release/
+          if-no-files-found: error
+          retention-days: 1
+
+  package:
+    name: Release files
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: server-archive-*
+          path: release
+          merge-multiple: true
+
+      - name: SHA256SUMS.txt
+        run: |
+          set -euo pipefail
+          cd release
+          expected="$(printf '%s\n' "ReforgedRevivalServer-$VERSION-linux-x64.tar.gz" "ReforgedRevivalServer-$VERSION-windows-x64.zip" | sort)"
+          actual="$(ls -A | sort)"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::these are not the archives of servers $VERSION"
+            diff <(echo "$expected") <(echo "$actual") || true
+            exit 1
+          fi
+          sha256sum -- * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: server-release
+          path: release/
+          if-no-files-found: error
+          retention-days: 7
+
+  # The archives install as setup and update install them: from the release files, checked against SHA256SUMS.txt.
+  try:
+    name: Install (${{ matrix.platform }})
+    needs: [prepare, package]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+          - os: ubuntu-latest
+            platform: linux-x64
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      PLATFORM: ${{ matrix.platform }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: server-release
+          path: ${{ runner.temp }}/release
+
+      - name: Extract, then check the install with reforged-host update --check
+        env:
+          REFORGED_SERVER_RELEASE: ${{ runner.temp }}/release
+        run: |
+          set -euo pipefail
+          ext=""; [ "$RUNNER_OS" = Windows ] && ext=".exe"
+          mkdir -p "$RUNNER_TEMP/host"
+          cd "$RUNNER_TEMP/host"
+          if [ "$RUNNER_OS" = Windows ]; then
+            7z x -bd "$REFORGED_SERVER_RELEASE/ReforgedRevivalServer-$VERSION-$PLATFORM.zip" > /dev/null
+          else
+            tar -xzf "$REFORGED_SERVER_RELEASE/ReforgedRevivalServer-$VERSION-$PLATFORM.tar.gz"
+          fi
+          root="$RUNNER_TEMP/host/reforged-revival-server-$VERSION"
+          "$root/bin/reforged-host$ext" update --check | tee check.txt
+          grep -q "Up to date" check.txt
+
+  publish:
+    name: Publish the release
+    needs: [prepare, package, try]
+    if: needs.prepare.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    concurrency:
+      group: server-release
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ needs.prepare.outputs.tag }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+      COMMIT: ${{ github.sha }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: server-release
+          path: release
+
+      - name: Check the release files
+        run: |
+          set -euo pipefail
+          cd release
+          expected="$(printf '%s\n' "ReforgedRevivalServer-$VERSION-linux-x64.tar.gz" "ReforgedRevivalServer-$VERSION-windows-x64.zip" SHA256SUMS.txt | sort)"
+          [ "$(ls -A | sort)" = "$expected" ] || { echo "::error::these are not the release files of servers $VERSION"; ls -A; exit 1; }
+          sha256sum --check --strict SHA256SUMS.txt
+
+      # Signed statements that the archives were built by this workflow from this commit:
+      # gh attestation verify <file> --repo <owner>/<repo>
+      - name: Attest the build provenance of the archives
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: release/SHA256SUMS.txt
+
+      - name: Create the release
+        run: |
+          set -euo pipefail
+          note=""
+          if [ "$PRERELEASE" = true ]; then
+            note="This is a test version (a prerelease) of the servers, for the canary."
+          fi
+          cat > notes.md <<EOF
+          Dauntless Reforged Revival servers ${VERSION}: reforged-host, the gateway, the allowlist helper and the content
+          server, with the Node backend and Director, built from ${COMMIT}. ${note}
+
+          - Windows x64: \`ReforgedRevivalServer-${VERSION}-windows-x64.zip\`
+          - Linux x86_64: \`ReforgedRevivalServer-${VERSION}-linux-x64.tar.gz\`
+
+          A server set up from a release moves to this one with \`reforged-host update\`, which downloads it, checks it
+          against \`SHA256SUMS.txt\` (and its attestation, when the GitHub CLI is there) and runs setup again. A new
+          server: see docs/hosting.md and docs/hosting-linux.md. Check a download by hand with
+          \`sha256sum --check --ignore-missing SHA256SUMS.txt\` or \`gh attestation verify <file> --repo ${GH_REPO}\`.
+          The Windows binaries are not code-signed. Node.js 22 or newer is still needed for the backend and Director.
+
+          Free software under the GNU AGPL-3.0; each archive holds the corresponding source. No game files are included.
+          EOF
+          # Never marked latest: the repository's latest release stays the launcher, which players download
+          gh release create "$TAG" release/* --verify-tag --title "Servers ${VERSION}" --notes-file notes.md \
+            --prerelease="$PRERELEASE" --latest=false
