@@ -1,0 +1,603 @@
+{
+  "about": "The content server with a published runtime: routes, methods, paths, account keys, conditions, ranges (ignored), a file changed under the list and back, branding and news (MIGRATION_PLAN.md RS2).",
+  "env": {},
+  "runtime": {
+    "files": {
+      "MysticParadox.dll": {
+        "pattern": 70000
+      },
+      "winmm.dll": {
+        "pattern": 3000
+      }
+    }
+  },
+  "branding": {
+    "files": {
+      "harbour.jpg": {
+        "hex": "ffd8ff0001020304"
+      },
+      "second.png": {
+        "hex": "89504e470d0a1a0a00"
+      },
+      "fake.png": {
+        "hex": "ffd8ff00"
+      },
+      "notes.txt": {
+        "text": "x"
+      }
+    },
+    "json": {
+      "accent": "#C8A24A",
+      "backgrounds": [
+        {
+          "file": "harbour.jpg",
+          "credit": " Photo\tby  a friend "
+        },
+        "second.png",
+        "fake.png",
+        "missing.jpg",
+        5
+      ]
+    }
+  },
+  "news": {
+    "items": [
+      {
+        "date": "2026-09-20",
+        "title": "Older",
+        "body": "line 1\r\nline 2"
+      },
+      {
+        "date": "2026-09-21T18:00:00Z",
+        "title": "Friends night"
+      },
+      {
+        "date": "never",
+        "title": "x"
+      }
+    ]
+  },
+  "keys": {
+    "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz": {
+      "status": 200,
+      "body": {
+        "UserId": "UID-A",
+        "Username": "alpha",
+        "IsAdmin": false
+      }
+    },
+    "RRK_refused": {
+      "status": 403,
+      "body": {}
+    },
+    "RRK_down": {
+      "status": 500,
+      "body": {
+        "error": "boom"
+      }
+    },
+    "RRK_junk": {
+      "status": 200,
+      "body": "{nope"
+    },
+    "RRK_noid": {
+      "status": 200,
+      "body": {
+        "Username": "x"
+      }
+    }
+  },
+  "requests": [
+    {
+      "path": "/"
+    },
+    {
+      "path": "/content/v1/runtime/manifest"
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "method": "HEAD"
+    },
+    {
+      "path": "/content/v1/runtime/manifest?x=1"
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "W/$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "\"x\", $etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "*"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "\"nope\""
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "\"nope\""
+        ],
+        [
+          "if-none-match",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "method": "POST"
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "method": "DELETE"
+    },
+    {
+      "path": "/nothing",
+      "method": "POST"
+    },
+    {
+      "path": "/content/v1/runtime/manifest/"
+    },
+    {
+      "path": "/CONTENT/v1/runtime/manifest"
+    },
+    {
+      "path": "/content/v1/runtime"
+    },
+    {
+      "path": "/content/v1/files/x",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/manifest"
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll"
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          ""
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-undaunted-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_refused"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_down"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_junk"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_noid"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_unknown"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "has space"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ],
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll",
+      "method": "HEAD",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll?download=1",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ],
+        [
+          "if-none-match",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "method": "HEAD",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ],
+        [
+          "if-none-match",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ],
+        [
+          "range",
+          "bytes=0-9"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ],
+        [
+          "range",
+          "bytes=0-9"
+        ],
+        [
+          "if-range",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ],
+        [
+          "range",
+          "bytes=999999-"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/mysticparadox.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/WINMM.DLL",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/runtime.json",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/../runtime.json",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/%2e%2e/runtime.json",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/MysticParadox.dll/x",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/?name=winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm%2Edll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll%00",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "method": "POST",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/branding"
+    },
+    {
+      "path": "/content/v1/branding",
+      "method": "HEAD"
+    },
+    {
+      "path": "/content/v1/branding/harbour.jpg"
+    },
+    {
+      "path": "/content/v1/branding/harbour.jpg",
+      "headers": [
+        [
+          "if-none-match",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/branding/harbour.jpg",
+      "method": "HEAD"
+    },
+    {
+      "path": "/content/v1/branding/second.png"
+    },
+    {
+      "path": "/content/v1/branding/fake.png"
+    },
+    {
+      "path": "/content/v1/branding/missing.jpg"
+    },
+    {
+      "path": "/content/v1/branding/..%2fsecret.jpg"
+    },
+    {
+      "path": "/content/v1/branding/notes.txt"
+    },
+    {
+      "path": "/content/v1/branding/harbour.jpg",
+      "method": "PUT"
+    },
+    {
+      "path": "/content/v1/branding/"
+    },
+    {
+      "path": "/content/v1/news"
+    },
+    {
+      "path": "/content/v1/news",
+      "method": "HEAD"
+    },
+    {
+      "path": "/content/v1/news?x"
+    },
+    {
+      "path": "/content/v1/news/"
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "x-forwarded-for",
+          "203.0.113.9"
+        ]
+      ]
+    },
+    {
+      "write": "winmm.dll",
+      "spec": {
+        "pattern": 2999
+      }
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/manifest"
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    },
+    {
+      "write": "winmm.dll",
+      "spec": {
+        "pattern": 3000
+      }
+    },
+    {
+      "path": "/content/v1/runtime/manifest"
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+reforged-revival://join?v=2&mode=public&host=play.example.org&port=443&fp=baabcf171ee456714997c6308e776f647b5e4cbd6e0ff79c41782f8303720c10&code=ABCD-EFGH-JKMN&name=Parity%20Test

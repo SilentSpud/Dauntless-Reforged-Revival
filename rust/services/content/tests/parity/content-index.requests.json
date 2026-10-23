@@ -1,0 +1,68 @@
+{
+  "about": "A runtime.json written the way a host might: a BOM, keys out of order, a build name, files reversed, spaces around the version (MIGRATION_PLAN.md RS2).",
+  "env": {},
+  "runtime": {
+    "files": {
+      "MysticParadox.dll": {
+        "text": "mystic paradox\n"
+      },
+      "winmm.dll": {
+        "text": "winmm loader\n"
+      }
+    },
+    "index": "﻿{\n  \"files\": [\n    {\"sha256\": \"$sha:winmm.dll\", \"size\": 13, \"name\": \"winmm.dll\"},\n    {\"name\": \"MysticParadox.dll\", \"size\": 15.0, \"sha256\": \"$sha:MysticParadox.dll\"}\n  ],\n  \"build\": {\"name\": \"ignored by the server\", \"changelist\": 651234},\n  \"version\": \"  1.0+rr_2  \"\n}\n"
+  },
+  "keys": {
+    "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz": {
+      "status": 200,
+      "body": {
+        "UserId": "UID-A",
+        "Username": "alpha",
+        "IsAdmin": false
+      }
+    },
+    "RRK_refused": {
+      "status": 403,
+      "body": {}
+    },
+    "RRK_down": {
+      "status": 500,
+      "body": {
+        "error": "boom"
+      }
+    },
+    "RRK_junk": {
+      "status": 200,
+      "body": "{nope"
+    },
+    "RRK_noid": {
+      "status": 200,
+      "body": {
+        "Username": "x"
+      }
+    }
+  },
+  "requests": [
+    {
+      "path": "/content/v1/runtime/manifest"
+    },
+    {
+      "path": "/content/v1/runtime/manifest",
+      "headers": [
+        [
+          "if-none-match",
+          "$etag"
+        ]
+      ]
+    },
+    {
+      "path": "/content/v1/runtime/files/winmm.dll",
+      "headers": [
+        [
+          "x-reforged-user-api-key",
+          "RRK_good_key_0123456789abcdefghijklmnopqrstuvwxyz"
+        ]
+      ]
+    }
+  ]
+}

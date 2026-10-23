@@ -1,0 +1,1640 @@
+{
+ "results": [
+  {
+   "request": "GET /party/invites",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "319",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "backend",
+    "method": "GET",
+    "url": "/party/invites",
+    "headers": {
+     "host": "127.0.0.1",
+     "x-forwarded-for": "127.0.0.1",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef"
+    },
+    "bodyLength": 0,
+    "bodySha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/party/invites",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 319
+    }
+   ]
+  },
+  {
+   "request": "GET /entitlementsv2?accountId=UID-1&x=%20y",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "343",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "backend",
+    "method": "GET",
+    "url": "/entitlementsv2?accountId=UID-1&x=%20y",
+    "headers": {
+     "host": "127.0.0.1",
+     "x-forwarded-for": "127.0.0.1",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef"
+    },
+    "bodyLength": 0,
+    "bodySha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/entitlementsv2?accountId=UID-1&x=%20y",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 343
+    }
+   ]
+  },
+  {
+   "request": "GET /content/v1/manifest",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "426",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "content",
+    "method": "GET",
+    "url": "/content/v1/manifest",
+    "headers": {
+     "host": "127.0.0.1",
+     "range": "bytes=0-9",
+     "x-forwarded-for": "127.0.0.1",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef",
+     "x-reforged-user-api-key": "RRK_fedcba9876543210fedcba9876543210fedcba9876543210"
+    },
+    "bodyLength": 0,
+    "bodySha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/content/v1/manifest",
+     "route": "content",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 426
+    }
+   ]
+  },
+  {
+   "request": "POST /character",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "377",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "backend",
+    "method": "POST",
+    "url": "/character",
+    "headers": {
+     "content-length": "1032",
+     "content-type": "application/json",
+     "host": "127.0.0.1",
+     "x-forwarded-for": "127.0.0.1",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef"
+    },
+    "bodyLength": 1032,
+    "bodySha": "4b2f4f8b4c5fd519156fba3cb26dab479ccd6eef5775298ead2b733076f1f91e"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "POST",
+     "target": "/character",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 1032,
+     "bytesOut": 377
+    }
+   ]
+  },
+  {
+   "request": "POST /character over the cap",
+   "status": 413,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "26",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "body_too_large"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "POST",
+     "target": "/character",
+     "route": "gateway",
+     "status": 413,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "body_too_large"
+    }
+   ]
+  },
+  {
+   "request": "POST /character chunked under the cap",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "349",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "backend",
+    "method": "POST",
+    "url": "/character",
+    "headers": {
+     "host": "127.0.0.1",
+     "transfer-encoding": "chunked",
+     "x-forwarded-for": "127.0.0.1",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef"
+    },
+    "bodyLength": 3000,
+    "bodySha": "556ac82f23f64d2f41b3fb3b9a171791364021aa95c0af6df9e2b5e1d88c8038"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "POST",
+     "target": "/character",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 3000,
+     "bytesOut": 349
+    }
+   ]
+  },
+  {
+   "request": "POST /character chunked over the cap",
+   "status": 413,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "26",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "body_too_large"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "POST",
+     "target": "/character",
+     "route": "gateway",
+     "status": 413,
+     "bytesIn": 5120,
+     "bytesOut": 0,
+     "reason": "body_too_large"
+    }
+   ]
+  },
+  {
+   "request": "POST /character expect over the cap",
+   "status": 413,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "26",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "body_too_large"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "POST",
+     "target": "/character",
+     "route": "gateway",
+     "status": 413,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "body_too_large"
+    }
+   ]
+  },
+  {
+   "request": "GET /party",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "361",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "backend",
+    "method": "GET",
+    "url": "/party",
+    "headers": {
+     "host": "127.0.0.1",
+     "x-custom": "kept",
+     "x-dauntless-gateway": "forged",
+     "x-forwarded-for": "127.0.0.53",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef"
+    },
+    "bodyLength": 0,
+    "bodySha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.53",
+     "method": "GET",
+     "target": "/party",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 361
+    }
+   ]
+  },
+  {
+   "request": "GET /reforged/api/ServerStatus",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "381",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "backend",
+    "method": "GET",
+    "url": "/reforged/api/ServerStatus",
+    "headers": {
+     "host": "127.0.0.1",
+     "x-forwarded-for": "127.0.0.1",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef",
+     "x-undaunted-user-api-key": "k3y-0123456789abcdef"
+    },
+    "bodyLength": 0,
+    "bodySha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/reforged/api/ServerStatus",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 381
+    }
+   ]
+  },
+  {
+   "request": "HEAD /reforged/api/ServerStatus",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "332",
+    "connection": "close"
+   },
+   "body": "",
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "HEAD",
+     "target": "/reforged/api/ServerStatus",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 0
+    }
+   ]
+  },
+  {
+   "request": "POST /reforged/api/Register",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "351",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "backend",
+    "method": "POST",
+    "url": "/reforged/api/Register",
+    "headers": {
+     "content-length": "22",
+     "host": "127.0.0.1",
+     "x-forwarded-for": "127.0.0.1",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef"
+    },
+    "bodyLength": 22,
+    "bodySha": "8b31e26e0ce94d4c3a4044fb573d745163d935a44dcf5e4e29cbf42140508c5b"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "POST",
+     "target": "/reforged/api/Register",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 22,
+     "bytesOut": 351
+    }
+   ]
+  },
+  {
+   "request": "POST /reforged/api/CreateInvite",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "POST",
+     "target": "/reforged/api/CreateInvite",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "admin_route"
+    }
+   ]
+  },
+  {
+   "request": "GET /REFORGED/API/CREATEINVITE",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/REFORGED/API/CREATEINVITE",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "admin_route"
+    }
+   ]
+  },
+  {
+   "request": "POST /reforged/api/RegistrationStatus",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "POST",
+     "target": "/reforged/api/RegistrationStatus",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "admin_route"
+    }
+   ]
+  },
+  {
+   "request": "POST /reforged/api/Register/../CreateInvite",
+   "status": 400,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "20",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "bad_path"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "POST",
+     "target": "/reforged/api/Register/../CreateInvite",
+     "route": "gateway",
+     "status": 400,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "bad_path"
+    }
+   ]
+  },
+  {
+   "request": "GET /reforged%2Fapi/CreateInvite",
+   "status": 400,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "20",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "bad_path"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/reforged%2Fapi/CreateInvite",
+     "route": "gateway",
+     "status": 400,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "bad_path"
+    }
+   ]
+  },
+  {
+   "request": "GET /%zz",
+   "status": 400,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "20",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "bad_path"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/%zz",
+     "route": "gateway",
+     "status": 400,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "bad_percent_encoding"
+    }
+   ]
+  },
+  {
+   "request": "GET /a/./b",
+   "status": 400,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "20",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "bad_path"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/a/./b",
+     "route": "gateway",
+     "status": 400,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "bad_path"
+    }
+   ]
+  },
+  {
+   "request": "TRACE /heartbeat",
+   "status": 405,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "30",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "method_not_allowed"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "TRACE",
+     "target": "/heartbeat",
+     "route": "gateway",
+     "status": 405,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "method"
+    }
+   ]
+  },
+  {
+   "request": "GET http://evil.example/reforged/api/CreateInvite",
+   "status": 400,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "23",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "bad_request"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "http://evil.example/reforged/api/CreateInvite",
+     "route": "gateway",
+     "status": 400,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "target_not_origin_form"
+    }
+   ]
+  },
+  {
+   "request": "OPTIONS *",
+   "status": 400,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "23",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "bad_request"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "OPTIONS",
+     "target": "*",
+     "route": "gateway",
+     "status": 400,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "target_not_origin_form"
+    }
+   ]
+  },
+  {
+   "request": "GET /party",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/party",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "gameserver_key_header"
+    }
+   ]
+  },
+  {
+   "request": "GET /status/404",
+   "status": 404,
+   "headers": {
+    "content-type": "text/plain",
+    "transfer-encoding": "chunked",
+    "connection": "close",
+    "set-cookie": "a=1, b=2"
+   },
+   "body": "status 404",
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/status/404",
+     "route": "backend",
+     "status": 404,
+     "bytesIn": 0,
+     "bytesOut": 10
+    }
+   ]
+  },
+  {
+   "request": "GET /status/500",
+   "status": 500,
+   "headers": {
+    "content-type": "text/plain",
+    "transfer-encoding": "chunked",
+    "connection": "close",
+    "set-cookie": "a=1, b=2"
+   },
+   "body": "status 500",
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/status/500",
+     "route": "backend",
+     "status": 500,
+     "bytesIn": 0,
+     "bytesOut": 10
+    }
+   ]
+  },
+  {
+   "request": "DELETE /status/204",
+   "status": 204,
+   "headers": {
+    "content-type": "text/plain",
+    "connection": "close",
+    "set-cookie": "a=1, b=2"
+   },
+   "body": "",
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "DELETE",
+     "target": "/status/204",
+     "route": "backend",
+     "status": 204,
+     "bytesIn": 0,
+     "bytesOut": 0
+    }
+   ]
+  },
+  {
+   "request": "POST /heartbeat",
+   "status": 200,
+   "headers": {
+    "content-type": "text/plain",
+    "content-length": "5",
+    "connection": "close"
+   },
+   "body": 20000,
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.52",
+     "method": "POST",
+     "target": "/heartbeat",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 2,
+     "bytesOut": 5
+    }
+   ]
+  },
+  {
+   "request": "POST /heartbeat without a token",
+   "status": 401,
+   "headers": {
+    "content-type": "text/plain",
+    "content-length": "0",
+    "connection": "close"
+   },
+   "body": "",
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.52",
+     "method": "POST",
+     "target": "/heartbeat",
+     "route": "backend",
+     "status": 401,
+     "bytesIn": 2,
+     "bytesOut": 0
+    }
+   ]
+  },
+  {
+   "request": "token 1",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "20",
+    "connection": "close"
+   },
+   "body": {
+    "access_token": "x"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.51",
+     "method": "POST",
+     "target": "/account/api/oauth/token",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 40,
+     "bytesOut": 20
+    }
+   ]
+  },
+  {
+   "request": "token 2",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "20",
+    "connection": "close"
+   },
+   "body": {
+    "access_token": "x"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.51",
+     "method": "POST",
+     "target": "/account/api/oauth/token",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 40,
+     "bytesOut": 20
+    }
+   ]
+  },
+  {
+   "request": "token 3 (limited)",
+   "status": 429,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "24",
+    "cache-control": "no-store",
+    "connection": "close",
+    "retry-after": "60"
+   },
+   "body": {
+    "error": "rate_limited"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.51",
+     "method": "POST",
+     "target": "/account/api/oauth/token",
+     "route": "gateway",
+     "status": 429,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "rate_limited:token"
+    }
+   ]
+  },
+  {
+   "request": "DELETE /account/api/oauth/sessions/kill/eyJhbGciOiJSUzI1NiJ9.eyJ1c2VySWQiOiJVSUQtdGVzdCJ9.c2lnbmF0dXJlLW5vdC1yZWFsLXNpZ25hdHVyZS1ub3QtcmVhbA",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "687",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "backend",
+    "method": "DELETE",
+    "url": "/account/api/oauth/sessions/kill/eyJhbGciOiJSUzI1NiJ9.eyJ1c2VySWQiOiJVSUQtdGVzdCJ9.c2lnbmF0dXJlLW5vdC1yZWFsLXNpZ25hdHVyZS1ub3QtcmVhbA",
+    "headers": {
+     "authorization": "Bearer eyJhbGciOiJSUzI1NiJ9.eyJ1c2VySWQiOiJVSUQtdGVzdCJ9.c2lnbmF0dXJlLW5vdC1yZWFsLXNpZ25hdHVyZS1ub3QtcmVhbA",
+     "host": "127.0.0.1",
+     "user-agent": "UE4 eyJhbGciOiJSUzI1NiJ9.eyJ1c2VySWQiOiJVSUQtdGVzdCJ9.c2lnbmF0dXJlLW5vdC1yZWFsLXNpZ25hdHVyZS1ub3QtcmVhbA",
+     "x-forwarded-for": "127.0.0.1",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef"
+    },
+    "bodyLength": 0,
+    "bodySha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "DELETE",
+     "target": "/account/api/oauth/sessions/kill/<token>",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 687,
+     "ua": "UE4 <token>"
+    }
+   ]
+  },
+  {
+   "request": "GET /entitlementsv2?accountId=UID-1&token=eyJhbGciOiJSUzI1NiJ9.eyJ1c2VySWQiOiJVSUQtdGVzdCJ9.c2lnbmF0dXJlLW5vdC1yZWFsLXNpZ25hdHVyZS1ub3QtcmVhbA",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "443",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "backend",
+    "method": "GET",
+    "url": "/entitlementsv2?accountId=UID-1&token=eyJhbGciOiJSUzI1NiJ9.eyJ1c2VySWQiOiJVSUQtdGVzdCJ9.c2lnbmF0dXJlLW5vdC1yZWFsLXNpZ25hdHVyZS1ub3QtcmVhbA",
+    "headers": {
+     "host": "127.0.0.1",
+     "x-forwarded-for": "127.0.0.1",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef"
+    },
+    "bodyLength": 0,
+    "bodySha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/entitlementsv2?accountId=UID-1&token=<redacted>",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 443
+    }
+   ]
+  },
+  {
+   "request": "GET /__origin/gamedev-prod.steelyard.ca/party/invites",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "354",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "backend",
+    "method": "GET",
+    "url": "/__origin/gamedev-prod.steelyard.ca/party/invites",
+    "headers": {
+     "host": "127.0.0.1",
+     "x-forwarded-for": "127.0.0.1",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef"
+    },
+    "bodyLength": 0,
+    "bodySha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/__origin/gamedev-prod.steelyard.ca/party/invites",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 354
+    }
+   ]
+  },
+  {
+   "request": "GET /__origin/gamedev-prod.steelyard.ca/content/v1/runtime/manifest",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "368",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "backend",
+    "method": "GET",
+    "url": "/__origin/gamedev-prod.steelyard.ca/content/v1/runtime/manifest",
+    "headers": {
+     "host": "127.0.0.1",
+     "x-forwarded-for": "127.0.0.1",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef"
+    },
+    "bodyLength": 0,
+    "bodySha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/__origin/gamedev-prod.steelyard.ca/content/v1/runtime/manifest",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 368
+    }
+   ]
+  },
+  {
+   "request": "POST /__origin/gamedev-prod.steelyard.ca/heartbeat",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "409",
+    "connection": "close"
+   },
+   "body": {
+    "upstream": "backend",
+    "method": "POST",
+    "url": "/__origin/gamedev-prod.steelyard.ca/heartbeat",
+    "headers": {
+     "authorization": "Bearer good-token",
+     "content-length": "0",
+     "host": "127.0.0.1",
+     "x-forwarded-for": "127.0.0.54",
+     "x-forwarded-proto": "https",
+     "x-reforged-gateway": "parity-gateway-secret-0123456789abcdef0123456789abcdef"
+    },
+    "bodyLength": 0,
+    "bodySha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.54",
+     "method": "POST",
+     "target": "/__origin/gamedev-prod.steelyard.ca/heartbeat",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 409
+    }
+   ]
+  },
+  {
+   "request": "POST /game/login (not a feed)",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "2",
+    "connection": "close"
+   },
+   "body": {},
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.55",
+     "method": "POST",
+     "target": "/game/login",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 2
+    }
+   ]
+  },
+  {
+   "request": "POST /login (not a feed)",
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "2",
+    "connection": "close"
+   },
+   "body": {},
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.56",
+     "method": "POST",
+     "target": "/login",
+     "route": "backend",
+     "status": 200,
+     "bytesIn": 0,
+     "bytesOut": 2
+    }
+   ]
+  },
+  {
+   "request": "POST /__origin/gamedev-prod.steelyard.ca/reforged/api/CreateInvite",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "POST",
+     "target": "/__origin/gamedev-prod.steelyard.ca/reforged/api/CreateInvite",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "admin_route"
+    }
+   ]
+  },
+  {
+   "request": "GET /admin/v1/players",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/admin/v1/players",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "host_only_route"
+    }
+   ]
+  },
+  {
+   "request": "POST /launcher/v1/auth/register",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "POST",
+     "target": "/launcher/v1/auth/register",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "host_only_route"
+    }
+   ]
+  },
+  {
+   "request": "GET //internal//v1/metrics",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "//internal//v1/metrics",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "host_only_route"
+    }
+   ]
+  },
+  {
+   "request": "GET /health/ready",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/health/ready",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "host_only_route"
+    }
+   ]
+  },
+  {
+   "request": "GET /reforged/api/ServerStatus with the admin key",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/reforged/api/ServerStatus",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "host_only_header"
+    }
+   ]
+  },
+  {
+   "request": "GET /party with the metrics token",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/party",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "host_only_header"
+    }
+   ]
+  },
+  {
+   "request": "GET /party with the game-server key",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/party",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "gameserver_key_header"
+    }
+   ]
+  },
+  {
+   "request": "GET /__origin/a..b/x",
+   "status": 400,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "20",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "bad_path"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/__origin/a..b/x",
+     "route": "gateway",
+     "status": 400,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "bad_origin"
+    }
+   ]
+  },
+  {
+   "request": "GET /__origin/gamedev-prod.steelyard.ca/__origin/other/x",
+   "status": 400,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "20",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "bad_path"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/__origin/gamedev-prod.steelyard.ca/__origin/other/x",
+     "route": "gateway",
+     "status": 400,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "bad_origin"
+    }
+   ]
+  },
+  {
+   "request": "GET /__origin",
+   "status": 400,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "20",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "bad_path"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/__origin",
+     "route": "gateway",
+     "status": 400,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "bad_origin"
+    }
+   ]
+  },
+  {
+   "request": "upgrade GET //",
+   "status": 101,
+   "headers": {
+    "connection": "upgrade",
+    "upgrade": "websocket",
+    "sec-websocket-accept": "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=",
+    "sec-websocket-protocol": "xmpp"
+   },
+   "body": "echo:hello",
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "//",
+     "route": "ws",
+     "status": 101,
+     "bytesIn": 0,
+     "bytesOut": 0
+    },
+    {
+     "level": "info",
+     "msg": "websocket closed",
+     "ip": "127.0.0.1",
+     "target": "//",
+     "bytesIn": 5,
+     "bytesOut": 10
+    }
+   ]
+  },
+  {
+   "request": "upgrade GET /refuse",
+   "status": 404,
+   "headers": {
+    "content-type": "text/plain",
+    "content-length": "7",
+    "connection": "close"
+   },
+   "body": "no room",
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/refuse",
+     "route": "ws",
+     "status": 404,
+     "bytesIn": 0,
+     "bytesOut": 7
+    }
+   ]
+  },
+  {
+   "request": "upgrade GET /reforged/api/ServerStatus",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/reforged/api/ServerStatus",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "admin_route"
+    }
+   ]
+  },
+  {
+   "request": "upgrade GET /xmpp",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/xmpp",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "gameserver_key_header"
+    }
+   ]
+  },
+  {
+   "request": "upgrade GET /a/../xmpp",
+   "status": 400,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "20",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "bad_path"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/a/../xmpp",
+     "route": "gateway",
+     "status": 400,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "bad_path"
+    }
+   ]
+  },
+  {
+   "request": "upgrade POST /xmpp",
+   "status": 400,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "23",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "bad_request"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "POST",
+     "target": "/xmpp",
+     "route": "gateway",
+     "status": 400,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "unsupported_upgrade"
+    }
+   ]
+  },
+  {
+   "request": "upgrade GET /xmpp h2c",
+   "status": 400,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "23",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "bad_request"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/xmpp",
+     "route": "gateway",
+     "status": 400,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "unsupported_upgrade"
+    }
+   ]
+  },
+  {
+   "request": "upgrade GET /health/live",
+   "status": 403,
+   "headers": {
+    "content-type": "application/json",
+    "content-length": "21",
+    "cache-control": "no-store",
+    "connection": "close"
+   },
+   "body": {
+    "error": "forbidden"
+   },
+   "log": [
+    {
+     "level": "info",
+     "msg": "request",
+     "ip": "127.0.0.1",
+     "method": "GET",
+     "target": "/health/live",
+     "route": "gateway",
+     "status": 403,
+     "bytesIn": 0,
+     "bytesOut": 0,
+     "reason": "host_only_route"
+    }
+   ]
+  },
+  {
+   "request": "allowlist feed",
+   "status": 0,
+   "headers": {},
+   "body": [
+    "127.0.0.51",
+    "127.0.0.52",
+    "127.0.0.54"
+   ],
+   "log": []
+  }
+ ]
+}

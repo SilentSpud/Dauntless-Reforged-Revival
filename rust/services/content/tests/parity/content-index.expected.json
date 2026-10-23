@@ -1,0 +1,38 @@
+{
+  "about": "A runtime.json written the way a host might: a BOM, keys out of order, a build name, files reversed, spaces around the version (MIGRATION_PLAN.md RS2).",
+  "results": [
+    {
+      "request": "GET /content/v1/runtime/manifest",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "311",
+        "etag": "\"30a92d40766fe6ab413b58fc24704d0babf28d99f5dc345fe482294ddbf2b609\"",
+        "cache-control": "no-cache",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "{\"version\":\"1.0+rr_2\",\"build\":{\"name\":\"rel-1.14.7-Archon\",\"changelist\":651234},\"files\":[{\"name\":\"MysticParadox.dll\",\"size\":15,\"sha256\":\"0ddf63983e7e1794485fdf7b7e1d2f0234d211a1f1b12399079e46643d0b4100\"},{\"name\":\"winmm.dll\",\"size\":13,\"sha256\":\"a66c4f4a964f5b32c2de27c7dc39865ce8a4ed2427200425f1b2656c3c3e7734\"}]}"
+    },
+    {
+      "request": "GET /content/v1/runtime/manifest",
+      "status": 304,
+      "headers": {
+        "etag": "\"30a92d40766fe6ab413b58fc24704d0babf28d99f5dc345fe482294ddbf2b609\"",
+        "x-content-type-options": "nosniff"
+      },
+      "body": ""
+    },
+    {
+      "request": "GET /content/v1/runtime/files/winmm.dll",
+      "status": 200,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "13",
+        "etag": "\"a66c4f4a964f5b32c2de27c7dc39865ce8a4ed2427200425f1b2656c3c3e7734\"",
+        "cache-control": "private, no-transform",
+        "x-content-type-options": "nosniff"
+      },
+      "body": "winmm loader\n"
+    }
+  ]
+}
