@@ -1,10 +1,10 @@
 {
   "_comment": [
-    "Server preset \"Freeza\": the game data every server set up from this project starts from (ReforgedHost/src/preset.ts).",
+    "Server preset \"Freeza\": the game data every server set up from this project starts from (legacy/ReforgedHost/src/preset.ts).",
     "Read from an installed Dauntless 1.14.7 (647472) client for interoperability: identifiers and tuning values (item catalogue, store, progression and hunt tables), no game assets.",
     "Sources: CatalogExporter's export from the running game, converted by Mystic Paradox's game-data generators and the host kit (npm run gamedata).",
     "Game executable SHA-256 f3f95fbf22709ef077a11632ed95d675b7209b7e0172d9ecb9ba7d02a1fbb66b.",
-    "Lady Luck's Store and the platinum store are not in it: npm run gamedata builds them on each server from the live store captures (upstream/store-captures.json).",
+    "Lady Luck's Store and the platinum store are not in it: npm run gamedata builds them on each server from the live store captures (paradox/backend/store-captures.json).",
     "A host's own generated game data takes precedence over this preset. Regenerate it with npm run preset -- --create; do not edit the files by hand."
   ],
   "format": "dauntless-reforged-revival-preset",
@@ -14,7 +14,7 @@
   "executableSha256": "f3f95fbf22709ef077a11632ed95d675b7209b7e0172d9ecb9ba7d02a1fbb66b",
   "created": "2026-10-15T14:52:05.055Z",
   "sources": [
-    "CatalogExporter (tools/CatalogExporter in Mystic Paradox)",
+    "CatalogExporter (native/catalog-exporter, from Mystic Paradox)",
     "Mystic Paradox game-data generators",
     "Dauntless Reforged Revival host kit"
   ],

@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "Captures of the live Dauntless store service, which Mystic Paradox's store generators read from paradox/DauntlessEndpointDocumentation/Store/Product/Skus/ (paradox/backend/scripts/enrich_ladyluck_store.ts and generate_platinum_store.ts).",
+    "They are published by their author for academic and informational purposes and carry no license, so this project does not copy them: npm run gamedata fetches exactly these files at this commit from that repository on the host's own machine and checks each one's SHA-256 (legacy/ReforgedHost/src/captures.ts)."
+  ],
+  "name": "DauntlessEndpointDocumentation",
+  "repository": "https://github.com/EisigesEis/DauntlessEndpointDocumentation",
+  "commit": "c0b5355ba870d0ec59ae1a06a1463d4536530e2b",
+  "files": {
+    "Store/Product/Skus/ladyluckstore.json": "130a7e21b7e6c1e9e72a7a8d4e581b9b17f5c65ead619db5b2ff077651c0f15e",
+    "Store/Product/Skus/awakening_webstore.json": "e314a1e72b78e339e31104fbe49f18fe6783574618ed771328a5fd28465f5828",
+    "Store/Product/Skus/dyes.json": "91d11504a5bcd996f61715742e938f0602f56c026523bba073630b1528be1b9a",
+    "Store/Product/Skus/hp_level_skip_rank.json": "01bcff5dca6fdb3c17a5d09e796fef93cf65b5a5394881953d92eb539f91543b",
+    "Store/Product/Skus/huntpass_store.json": "00d1f0b5a49915a1929833daa020d797885fea17794af1b28ec1c04070b7e646"
+  }
+}
