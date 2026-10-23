@@ -1,0 +1,592 @@
+{
+  "gus": [
+    {
+      "lines": [
+        "[ScalabilityGroups]",
+        "sg.ShadowQuality=3",
+        "SG.TEXTUREQUALITY=1",
+        "sg.ResolutionQuality=100",
+        "other=1"
+      ],
+      "graphics": 2,
+      "out": [
+        "[ScalabilityGroups]",
+        "sg.ShadowQuality=2",
+        "sg.TextureQuality=2",
+        "sg.ResolutionQuality=100",
+        "other=1"
+      ]
+    },
+    {
+      "lines": [
+        "sg.ShadowQuality=3"
+      ],
+      "graphics": -1,
+      "out": [
+        "sg.ShadowQuality=3"
+      ]
+    }
+  ],
+  "split": [
+    {
+      "text": "",
+      "lines": []
+    },
+    {
+      "text": "a",
+      "lines": [
+        "a"
+      ]
+    },
+    {
+      "text": "a\r\n",
+      "lines": [
+        "a"
+      ]
+    },
+    {
+      "text": "a\nb\rc\r\nd",
+      "lines": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ]
+    },
+    {
+      "text": "a\n\n",
+      "lines": [
+        "a",
+        ""
+      ]
+    },
+    {
+      "text": "\n",
+      "lines": [
+        ""
+      ]
+    }
+  ],
+  "encode": [
+    {
+      "lines": [
+        "a",
+        "b"
+      ],
+      "bytes": [
+        97,
+        13,
+        10,
+        98,
+        13,
+        10
+      ]
+    },
+    {
+      "lines": [
+        "ä"
+      ],
+      "bytes": [
+        255,
+        254,
+        228,
+        0,
+        13,
+        0,
+        10,
+        0
+      ]
+    },
+    {
+      "lines": [],
+      "bytes": []
+    },
+    {
+      "lines": [
+        "x😀"
+      ],
+      "bytes": [
+        255,
+        254,
+        120,
+        0,
+        61,
+        216,
+        0,
+        222,
+        13,
+        0,
+        10,
+        0
+      ]
+    }
+  ],
+  "decode": [
+    {
+      "bytes": [
+        255,
+        254,
+        97,
+        0,
+        13,
+        0,
+        10,
+        0
+      ],
+      "text": "a\r\n"
+    },
+    {
+      "bytes": [
+        239,
+        187,
+        191,
+        97,
+        98
+      ],
+      "text": "ab"
+    },
+    {
+      "bytes": [
+        97,
+        195,
+        164
+      ],
+      "text": "aä"
+    },
+    {
+      "bytes": [
+        97,
+        255
+      ],
+      "text": "a�"
+    }
+  ],
+  "display": [
+    {
+      "lines": [
+        "[/Script/Engine.GameUserSettings]",
+        "ResolutionSizeX=1920",
+        "ResolutionSizeY=1080"
+      ],
+      "force": false,
+      "out": {
+        "lines": [
+          "[/Script/Engine.GameUserSettings]",
+          "ResolutionSizeX=1920",
+          "ResolutionSizeY=1080"
+        ],
+        "repaired": false
+      }
+    },
+    {
+      "lines": [
+        "[/Script/Engine.GameUserSettings]",
+        "ResolutionSizeX=32768",
+        "ResolutionSizeY=1080",
+        "FullscreenMode=0",
+        "WindowPosX=100",
+        "Other=1",
+        "[Other]",
+        "ResolutionSizeX=99999"
+      ],
+      "force": false,
+      "out": {
+        "lines": [
+          "[/Script/Engine.GameUserSettings]",
+          "ResolutionSizeX=1280",
+          "ResolutionSizeY=720",
+          "LastUserConfirmedResolutionSizeX=1280",
+          "LastUserConfirmedResolutionSizeY=720",
+          "FullscreenMode=2",
+          "LastConfirmedFullscreenMode=2",
+          "PreferredFullscreenMode=2",
+          "WindowPosX=-1",
+          "WindowPosY=-1",
+          "Other=1",
+          "[Other]",
+          "ResolutionSizeX=99999"
+        ],
+        "repaired": true
+      }
+    },
+    {
+      "lines": [
+        "[/Script/Archon.ArchonGameUserSettings]",
+        "DesiredScreenWidth=",
+        "x=1"
+      ],
+      "force": false,
+      "out": {
+        "lines": [
+          "[/Script/Archon.ArchonGameUserSettings]",
+          "ResolutionSizeX=1280",
+          "ResolutionSizeY=720",
+          "LastUserConfirmedResolutionSizeX=1280",
+          "LastUserConfirmedResolutionSizeY=720",
+          "FullscreenMode=2",
+          "LastConfirmedFullscreenMode=2",
+          "PreferredFullscreenMode=2",
+          "WindowPosX=-1",
+          "WindowPosY=-1",
+          "x=1"
+        ],
+        "repaired": true
+      }
+    },
+    {
+      "lines": [
+        "[/Script/Engine.GameUserSettings]",
+        " LastUserConfirmedResolutionSizeX = 0 ; comment"
+      ],
+      "force": false,
+      "out": {
+        "lines": [
+          "[/Script/Engine.GameUserSettings]",
+          "ResolutionSizeX=1280",
+          "ResolutionSizeY=720",
+          "LastUserConfirmedResolutionSizeX=1280",
+          "LastUserConfirmedResolutionSizeY=720",
+          "FullscreenMode=2",
+          "LastConfirmedFullscreenMode=2",
+          "PreferredFullscreenMode=2",
+          "WindowPosX=-1",
+          "WindowPosY=-1"
+        ],
+        "repaired": true
+      }
+    },
+    {
+      "lines": [],
+      "force": true,
+      "out": {
+        "lines": [
+          "[/Script/Engine.GameUserSettings]",
+          "ResolutionSizeX=1280",
+          "ResolutionSizeY=720",
+          "LastUserConfirmedResolutionSizeX=1280",
+          "LastUserConfirmedResolutionSizeY=720",
+          "FullscreenMode=2",
+          "LastConfirmedFullscreenMode=2",
+          "PreferredFullscreenMode=2",
+          "WindowPosX=-1",
+          "WindowPosY=-1",
+          "[/Script/Archon.ArchonGameUserSettings]",
+          "ResolutionSizeX=1280",
+          "ResolutionSizeY=720",
+          "LastUserConfirmedResolutionSizeX=1280",
+          "LastUserConfirmedResolutionSizeY=720",
+          "FullscreenMode=2",
+          "LastConfirmedFullscreenMode=2",
+          "PreferredFullscreenMode=2",
+          "WindowPosX=-1",
+          "WindowPosY=-1"
+        ],
+        "repaired": true
+      }
+    },
+    {
+      "lines": [
+        "[Something]",
+        "a=1"
+      ],
+      "force": true,
+      "out": {
+        "lines": [
+          "[Something]",
+          "a=1",
+          "[/Script/Engine.GameUserSettings]",
+          "ResolutionSizeX=1280",
+          "ResolutionSizeY=720",
+          "LastUserConfirmedResolutionSizeX=1280",
+          "LastUserConfirmedResolutionSizeY=720",
+          "FullscreenMode=2",
+          "LastConfirmedFullscreenMode=2",
+          "PreferredFullscreenMode=2",
+          "WindowPosX=-1",
+          "WindowPosY=-1",
+          "[/Script/Archon.ArchonGameUserSettings]",
+          "ResolutionSizeX=1280",
+          "ResolutionSizeY=720",
+          "LastUserConfirmedResolutionSizeX=1280",
+          "LastUserConfirmedResolutionSizeY=720",
+          "FullscreenMode=2",
+          "LastConfirmedFullscreenMode=2",
+          "PreferredFullscreenMode=2",
+          "WindowPosX=-1",
+          "WindowPosY=-1"
+        ],
+        "repaired": true
+      }
+    },
+    {
+      "lines": [
+        "[/Script/Engine.GameUserSettings]",
+        "ResolutionSizeX=1280",
+        "ResolutionSizeY=720",
+        "LastUserConfirmedResolutionSizeX=1280",
+        "LastUserConfirmedResolutionSizeY=720",
+        "FullscreenMode=2",
+        "LastConfirmedFullscreenMode=2",
+        "PreferredFullscreenMode=2",
+        "WindowPosX=-1",
+        "WindowPosY=-1"
+      ],
+      "force": true,
+      "out": {
+        "lines": [
+          "[/Script/Engine.GameUserSettings]",
+          "ResolutionSizeX=1280",
+          "ResolutionSizeY=720",
+          "LastUserConfirmedResolutionSizeX=1280",
+          "LastUserConfirmedResolutionSizeY=720",
+          "FullscreenMode=2",
+          "LastConfirmedFullscreenMode=2",
+          "PreferredFullscreenMode=2",
+          "WindowPosX=-1",
+          "WindowPosY=-1"
+        ],
+        "repaired": false
+      }
+    },
+    {
+      "lines": [
+        "[/Script/Engine.GameUserSettings]",
+        "ResolutionSizeX=1e3",
+        "ResolutionSizeY= 720 "
+      ],
+      "force": false,
+      "out": {
+        "lines": [
+          "[/Script/Engine.GameUserSettings]",
+          "ResolutionSizeX=1e3",
+          "ResolutionSizeY= 720 "
+        ],
+        "repaired": false
+      }
+    }
+  ],
+  "folders": [
+    {
+      "platform": "win32",
+      "input": "C:\\Games\\Dauntless",
+      "clean": "C:\\Games\\Dauntless",
+      "candidates": [
+        "C:\\Games\\Dauntless",
+        "C:\\Games\\Dauntless\\Dauntless"
+      ]
+    },
+    {
+      "platform": "win32",
+      "input": "\"C:\\Games\\Dauntless\"",
+      "clean": "C:\\Games\\Dauntless",
+      "candidates": [
+        "C:\\Games\\Dauntless",
+        "C:\\Games\\Dauntless\\Dauntless"
+      ]
+    },
+    {
+      "platform": "win32",
+      "input": "  c:/games//dauntless/  ",
+      "clean": "c:\\games\\dauntless",
+      "candidates": [
+        "c:\\games\\dauntless",
+        "c:\\games\\dauntless\\Dauntless"
+      ]
+    },
+    {
+      "platform": "win32",
+      "input": "C:\\Games\\Dauntless\\Archon",
+      "clean": "C:\\Games\\Dauntless\\Archon",
+      "candidates": [
+        "C:\\Games\\Dauntless\\Archon",
+        "C:\\Games\\Dauntless\\Archon\\Dauntless",
+        "C:\\Games\\Dauntless"
+      ]
+    },
+    {
+      "platform": "win32",
+      "input": "C:\\Games\\Dauntless\\Archon\\Binaries\\Win64",
+      "clean": "C:\\Games\\Dauntless\\Archon\\Binaries\\Win64",
+      "candidates": [
+        "C:\\Games\\Dauntless\\Archon\\Binaries\\Win64",
+        "C:\\Games\\Dauntless\\Archon\\Binaries\\Win64\\Dauntless",
+        "C:\\Games\\Dauntless"
+      ]
+    },
+    {
+      "platform": "win32",
+      "input": "D:\\a\\..\\b\\.\\c",
+      "clean": "D:\\b\\c",
+      "candidates": [
+        "D:\\b\\c",
+        "D:\\b\\c\\Dauntless"
+      ]
+    },
+    {
+      "platform": "win32",
+      "input": "\\\\server\\share",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "win32",
+      "input": "\\Games",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "win32",
+      "input": "relative",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "win32",
+      "input": "",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "win32",
+      "input": "C:",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "win32",
+      "input": "/home/x/Games/Dauntless",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "win32",
+      "input": "/home/x/Games/Dauntless/Archon/",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "win32",
+      "input": "/a/../b//c",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "win32",
+      "input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "win32",
+      "input": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "C:\\Games\\Dauntless",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "\"C:\\Games\\Dauntless\"",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "  c:/games//dauntless/  ",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "C:\\Games\\Dauntless\\Archon",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "C:\\Games\\Dauntless\\Archon\\Binaries\\Win64",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "D:\\a\\..\\b\\.\\c",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "\\\\server\\share",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "\\Games",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "relative",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "C:",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "/home/x/Games/Dauntless",
+      "clean": "/home/x/Games/Dauntless",
+      "candidates": [
+        "/home/x/Games/Dauntless",
+        "/home/x/Games/Dauntless/Dauntless"
+      ]
+    },
+    {
+      "platform": "linux",
+      "input": "/home/x/Games/Dauntless/Archon/",
+      "clean": "/home/x/Games/Dauntless/Archon",
+      "candidates": [
+        "/home/x/Games/Dauntless/Archon",
+        "/home/x/Games/Dauntless/Archon/Dauntless",
+        "/home/x/Games/Dauntless"
+      ]
+    },
+    {
+      "platform": "linux",
+      "input": "/a/../b//c",
+      "clean": "/b/c",
+      "candidates": [
+        "/b/c",
+        "/b/c/Dauntless"
+      ]
+    },
+    {
+      "platform": "linux",
+      "input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "clean": null,
+      "candidates": null
+    },
+    {
+      "platform": "linux",
+      "input": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "clean": null,
+      "candidates": null
+    }
+  ]
+}

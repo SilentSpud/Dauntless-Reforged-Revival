@@ -1,0 +1,86 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Dauntless Reforged Revival Launcher",
+  "mainBinaryName": "reforged-revival-launcher",
+  "version": "../package.json",
+  "identifier": "io.github.freezamotoqueiro.dauntlessreforgedrevival",
+  "build": {
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist-page",
+    "beforeDevCommand": "npm run page:dev",
+    "beforeBuildCommand": "npm run page:build"
+  },
+  "app": {
+    "windows": [],
+    "withGlobalTauri": false,
+    "security": {
+      "csp": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' rr-art: http://rr-art.localhost data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'",
+      "freezePrototype": true,
+      "pattern": {
+        "use": "isolation",
+        "options": {
+          "dir": "../isolation"
+        }
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis",
+      "appimage",
+      "deb",
+      "rpm"
+    ],
+    "icon": [
+      "../../../brand/launcher/icon.png",
+      "../../../brand/launcher/icon.ico"
+    ],
+    "publisher": "Dauntless Reforged Revival contributors",
+    "homepage": "https://github.com/FreezaMotoqueiro/Dauntless-Reforged-Revival",
+    "license": "AGPL-3.0-only",
+    "category": "Game",
+    "shortDescription": "Launcher for the Dauntless Reforged Revival community servers",
+    "longDescription": "Join Dauntless Reforged Revival community servers from an invite, check your Dauntless 1.14.7 install, install the host's game runtime and play, on Windows or on Linux through Proton.",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "installerIcon": "../../../brand/launcher/icon.ico"
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0"
+        ],
+        "recommends": [
+          "gnome-keyring",
+          "pkexec"
+        ],
+        "section": "games",
+        "desktopTemplate": "linux/launcher.desktop"
+      },
+      "rpm": {
+        "depends": [
+          "webkit2gtk4.1"
+        ],
+        "desktopTemplate": "linux/launcher.desktop"
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": [],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

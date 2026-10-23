@@ -1,0 +1,14 @@
+# A stand-in the Host page's tests build and run (RA12): a fake `reforged-host`. Its own workspace with
+# no dependencies, built by the launcher's tests (`platform::hostkit::fixtures`) into
+# rust/target/host-fixtures; never shipped.
+[package]
+name = "host-fixtures"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "fake-host-kit"
+path = "src/fake_host_kit.rs"
+
+[workspace]

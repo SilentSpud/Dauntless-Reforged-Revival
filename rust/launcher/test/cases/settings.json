@@ -1,0 +1,2800 @@
+[
+  {
+    "platform": "win32",
+    "input": null,
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": "x",
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": [],
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {},
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "version": 1,
+      "server": {
+        "mode": "private",
+        "host": "100.64.0.1",
+        "port": 61000,
+        "name": "Ramsgate",
+        "share": "https://login.tailscale.com/x",
+        "fp": null,
+        "code": "ABCD-1234"
+      },
+      "savedServers": [
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 443,
+          "name": "Hunts",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": null
+        }
+      ],
+      "installDir": "C:\\Games\\DR",
+      "verifiedDir": "C:\\Games\\DR",
+      "graphics": 2,
+      "exposure": "basic",
+      "windowed": true,
+      "streamerMode": true,
+      "language": "fi",
+      "gameLanguage": "de-DE",
+      "showConsole": true,
+      "usernames": {
+        "aaaaaaaaaaaaaaaaaaaaaaaa": "Slayer"
+      },
+      "backupOffered": {
+        "aaaaaaaaaaaaaaaaaaaaaaaa": true
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"private\",\n    \"host\": \"100.64.0.1\",\n    \"port\": 61000,\n    \"name\": \"Ramsgate\",\n    \"share\": \"https://login.tailscale.com/x\",\n    \"fp\": null,\n    \"code\": \"ABCD-1234\"\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": 2,\n  \"windowed\": true,\n  \"streamerMode\": true,\n  \"language\": \"en\",\n  \"gameLanguage\": \"de-DE\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": \"Slayer\"\n  },\n  \"backupOffered\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": true\n  },\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "code": null
+      },
+      "savedServers": [
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 443,
+          "name": "Old name",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": null
+        }
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"public\",\n    \"host\": \"play.example.org\",\n    \"port\": 443,\n    \"name\": \"Hunts\",\n    \"share\": null,\n    \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n    \"code\": null\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "server": {
+        "mode": "private",
+        "host": "203.0.113.9",
+        "port": 61000,
+        "name": "Ramsgate",
+        "share": "https://login.tailscale.com/x",
+        "fp": null,
+        "code": "ABCD-1234"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "bad",
+        "code": null
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "server": {
+        "mode": "weird",
+        "host": "100.64.0.1",
+        "port": 61000,
+        "name": "Ramsgate",
+        "share": "https://evil.example/",
+        "fp": null,
+        "code": "ABCD-1234"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"private\",\n    \"host\": \"100.64.0.1\",\n    \"port\": 61000,\n    \"name\": \"Ramsgate\",\n    \"share\": null,\n    \"fp\": null,\n    \"code\": \"ABCD-1234\"\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": null,\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "server": {
+        "mode": "private",
+        "host": "100.64.0.1",
+        "port": 61000,
+        "name": "  Spaced　name  ",
+        "share": "https://login.tailscale.com/x",
+        "fp": null,
+        "code": "a+b"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"private\",\n    \"host\": \"100.64.0.1\",\n    \"port\": 61000,\n    \"name\": \"Spaced name\",\n    \"share\": \"https://login.tailscale.com/x\",\n    \"fp\": null,\n    \"code\": null\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Spaced name\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "server": {
+        "mode": "private",
+        "host": "100.64.0.1",
+        "port": 0,
+        "name": "Ramsgate",
+        "share": "https://login.tailscale.com/x",
+        "fp": null,
+        "code": "ABCD-1234"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "savedServers": [
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61001,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61002,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61003,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61004,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61005,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61006,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61007,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61008,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61009,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61010,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61011,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61012,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61013,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61014,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61015,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61016,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61017,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61018,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61019,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61020,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61021,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61022,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61023,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61024,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        }
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61001,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61002,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61003,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61004,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61005,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61006,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61007,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61008,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61009,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61010,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61011,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61012,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61013,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61014,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61015,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61016,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61017,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61018,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61019,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "server": {
+        "mode": "private",
+        "host": "100.64.0.1",
+        "port": 62000,
+        "name": "Ramsgate",
+        "share": "https://login.tailscale.com/x",
+        "fp": null,
+        "code": "ABCD-1234"
+      },
+      "savedServers": [
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61001,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61002,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61003,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61004,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61005,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61006,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61007,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61008,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61009,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61010,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61011,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61012,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61013,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61014,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61015,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61016,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61017,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61018,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61019,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        }
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"private\",\n    \"host\": \"100.64.0.1\",\n    \"port\": 62000,\n    \"name\": \"Ramsgate\",\n    \"share\": \"https://login.tailscale.com/x\",\n    \"fp\": null,\n    \"code\": \"ABCD-1234\"\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 62000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61001,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61002,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61003,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61004,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61005,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61006,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61007,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61008,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61009,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61010,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61011,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61012,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61013,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61014,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61015,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61016,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61017,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61018,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "savedServers": [
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        "junk",
+        null
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "installDir": "/home/x/Games",
+      "verifiedDir": "C:/Games"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "installDir": "C:",
+      "verifiedDir": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "installDir": "D:/Games/DR",
+      "verifiedDir": "\\\\server\\share\\x"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "installDir": "relative/dir",
+      "verifiedDir": "/ok/dir"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "installDir": "C:\\a\u0000b"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "graphics": -1
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "graphics": 5
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "graphics": "4"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "exposure": "x"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "windowed": 1,
+      "streamerMode": "true",
+      "showConsole": false
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "huntRegion": "aus"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "huntRegion": "ger"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "huntRegion": "auto"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "huntRegion": "nope"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "language": "ru",
+      "gameLanguage": "auto"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "language": "xx",
+      "gameLanguage": "xx-XX"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "usernames": {
+        "aaaaaaaaaaaaaaaaaaaaaaaa": "MiauStyleZzツ",
+        "0123456789abcdef01234567": " padded ",
+        "AAAAAAAAAAAAAAAAAAAAAAAA": "Upper",
+        "bbbbbbbbbbbbbbbbbbbbbbbb": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "cccccccccccccccccccccccc": "Bell\u0007",
+        "dddddddddddddddddddddddd": 5
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "backupOffered": {
+        "aaaaaaaaaaaaaaaaaaaaaaaa": true,
+        "0123456789abcdef01234567": "yes",
+        "short": true
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": true\n  },\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "huntRegion": "us",
+      "usernames": {
+        "0123456789abcdef01234567": "Second",
+        "aaaaaaaaaaaaaaaaaaaaaaaa": "First"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {\n    \"0123456789abcdef01234567\": \"Second\",\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": \"First\"\n  },\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "gameRoot": "C:\\Games\\DR",
+      "localRuntimeDir": "C:\\Games\\DR",
+      "hostWorkspace": "C:\\Games\\DR"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": \"C:\\\\Games\\\\DR\",\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": \"C:\\\\Games\\\\DR\",\n  \"hostWorkspace\": \"C:\\\\Games\\\\DR\",\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "gameRoot": "/home/x/Games",
+      "localRuntimeDir": "C:/Games",
+      "hostWorkspace": "/home/x/Games"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": \"C:/Games\",\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "gameRoot": "C:",
+      "localRuntimeDir": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "hostWorkspace": "C:"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": \"C:\\\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "gameRoot": "D:/Games/DR",
+      "localRuntimeDir": "\\\\server\\share\\x",
+      "hostWorkspace": "D:/Games/DR"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": \"D:/Games/DR\",\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": \"D:/Games/DR\",\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "gameRoot": "relative/dir",
+      "localRuntimeDir": "/ok/dir",
+      "hostWorkspace": "relative/dir"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "gameRoot": "C:\\a\u0000b",
+      "hostWorkspace": "C:\\a\u0000b"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "code": null,
+        "game": "reforged"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"public\",\n    \"host\": \"play.example.org\",\n    \"port\": 443,\n    \"name\": \"Hunts\",\n    \"share\": null,\n    \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n    \"code\": null\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "code": null,
+        "game": "revived"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [\n    {\n      \"game\": \"revived\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "code": null,
+        "game": "other"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"public\",\n    \"host\": \"play.example.org\",\n    \"port\": 443,\n    \"name\": \"Hunts\",\n    \"share\": null,\n    \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n    \"code\": null\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "server": {
+        "mode": "private",
+        "host": "100.64.0.1",
+        "port": 61000,
+        "name": "Ramsgate",
+        "share": "https://login.tailscale.com/x",
+        "fp": null,
+        "code": "ABCD-1234",
+        "game": "revived"
+      },
+      "savedServers": [
+        {
+          "mode": "public",
+          "host": "old.example.org",
+          "port": 443,
+          "name": "Hunts",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": null,
+          "game": "revived"
+        },
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 443,
+          "name": "Hunts",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": null
+        }
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [\n    {\n      \"game\": \"revived\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"revived\",\n      \"mode\": \"public\",\n      \"host\": \"old.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "code": null
+      },
+      "savedServers": [
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234",
+          "game": "revived"
+        },
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 443,
+          "name": "Older name",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": null,
+          "game": "revived"
+        }
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"public\",\n    \"host\": \"play.example.org\",\n    \"port\": 443,\n    \"name\": \"Hunts\",\n    \"share\": null,\n    \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n    \"code\": null\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"revived\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "savedServers": [
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 443,
+          "name": "Hunts",
+          "share": null,
+          "fp": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "code": null,
+          "game": "revived"
+        },
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 444,
+          "name": "Hunts",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": null,
+          "game": "reforged"
+        }
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [\n    {\n      \"game\": \"revived\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\n      \"code\": null\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 444,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "gameRoot": "C:\\Games\\Dauntless",
+      "revivedRoot": "D:\\Dauntless144",
+      "revivedVerified": "D:\\Dauntless144"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": \"C:\\\\Games\\\\Dauntless\",\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "gameRoot": "/home/sam/Games/Dauntless",
+      "revivedRoot": "/home/sam/144",
+      "revivedVerified": 7
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "runtimeProfile": "development",
+      "hostTools": true
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"development\",\n  \"hostTools\": true,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "runtimeProfile": "Development",
+      "hostTools": "true"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "runtimeProfile": null,
+      "hostTools": 1
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "graphics": 0
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": 0,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "graphics": 4
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": 4,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "graphics": -2
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "graphics": 2.5
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "graphics": null
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "usernames": {
+        "0123456789abcdef01234567": "Slayer_01",
+        "aaaaaaaaaaaaaaaaaaaaaaaa": "Sam Smith",
+        "bbbbbbbbbbbbbbbbbbbbbbbb": "ab",
+        "cccccccccccccccccccccccc": "abcdefghijklmnopq",
+        "dddddddddddddddddddddddd": "abcdefghijklmnop",
+        "eeeeeeeeeeeeeeeeeeeeeeee": "Bjørn",
+        "ffffffffffffffffffffffff": 12
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {\n    \"0123456789abcdef01234567\": \"Slayer_01\",\n    \"dddddddddddddddddddddddd\": \"abcdefghijklmnop\"\n  },\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "usernames": {
+        "0123456789abcdef01234567": "abc",
+        "0123456789ABCDEF01234567": "Upper",
+        "short": "Short"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {\n    \"0123456789abcdef01234567\": \"abc\"\n  },\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "usernames": []
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "trustedRuntimes": {
+        "0123456789abcdef01234567": [
+          "0000000000000000000000000000000000000000000000000000000000000001",
+          "0000000000000000000000000000000000000000000000000000000000000002",
+          "0000000000000000000000000000000000000000000000000000000000000001",
+          "nothex",
+          "0000000000000000000000000000000000000000000000000000000000000003",
+          5
+        ]
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {\n    \"0123456789abcdef01234567\": [\n      \"0000000000000000000000000000000000000000000000000000000000000001\",\n      \"0000000000000000000000000000000000000000000000000000000000000002\",\n      \"0000000000000000000000000000000000000000000000000000000000000003\"\n    ]\n  },\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "trustedRuntimes": {
+        "0123456789abcdef01234567": [
+          "0000000000000000000000000000000000000000000000000000000000000001",
+          "0000000000000000000000000000000000000000000000000000000000000002",
+          "0000000000000000000000000000000000000000000000000000000000000003",
+          "0000000000000000000000000000000000000000000000000000000000000004",
+          "0000000000000000000000000000000000000000000000000000000000000005",
+          "0000000000000000000000000000000000000000000000000000000000000006",
+          "0000000000000000000000000000000000000000000000000000000000000007",
+          "0000000000000000000000000000000000000000000000000000000000000008",
+          "0000000000000000000000000000000000000000000000000000000000000009",
+          "000000000000000000000000000000000000000000000000000000000000000a",
+          "000000000000000000000000000000000000000000000000000000000000000b",
+          "000000000000000000000000000000000000000000000000000000000000000c"
+        ],
+        "aaaaaaaaaaaaaaaaaaaaaaaa": [],
+        "bad": [
+          "0000000000000000000000000000000000000000000000000000000000000001"
+        ],
+        "cccccccccccccccccccccccc": "x"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {\n    \"0123456789abcdef01234567\": [\n      \"0000000000000000000000000000000000000000000000000000000000000005\",\n      \"0000000000000000000000000000000000000000000000000000000000000006\",\n      \"0000000000000000000000000000000000000000000000000000000000000007\",\n      \"0000000000000000000000000000000000000000000000000000000000000008\",\n      \"0000000000000000000000000000000000000000000000000000000000000009\",\n      \"000000000000000000000000000000000000000000000000000000000000000a\",\n      \"000000000000000000000000000000000000000000000000000000000000000b\",\n      \"000000000000000000000000000000000000000000000000000000000000000c\"\n    ]\n  },\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "trustedRuntimes": {
+        "0123456789abcdef01234567": [
+          "0000000000000000000000000000000000000000000000000000000000000009",
+          "0000000000000000000000000000000000000000000000000000000000000008",
+          "0000000000000000000000000000000000000000000000000000000000000009",
+          "0000000000000000000000000000000000000000000000000000000000000007",
+          "0000000000000000000000000000000000000000000000000000000000000008"
+        ]
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {\n    \"0123456789abcdef01234567\": [\n      \"0000000000000000000000000000000000000000000000000000000000000009\",\n      \"0000000000000000000000000000000000000000000000000000000000000008\",\n      \"0000000000000000000000000000000000000000000000000000000000000007\"\n    ]\n  },\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "trustedRuntimes": [
+        "0000000000000000000000000000000000000000000000000000000000000001"
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "localRuntimeDir": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "hostWorkspace": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "dumperDll": "C:\\Tools\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.dll"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": \"C:\\\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\n  \"hostWorkspace\": \"C:\\\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\n  \"dumperDll\": \"C:\\\\Tools\\\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.dll\"\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "localRuntimeDir": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "hostWorkspace": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "dumperDll": "C:\\Tools\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.dll"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": \"C:\\\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\n  \"hostWorkspace\": \"C:\\\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\",\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "dumperDll": "C:\\Tools\\Dumper-7.DLL"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": \"C:\\\\Tools\\\\Dumper-7.DLL\"\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "dumperDll": "C:\\Tools\\Dumper-7.dll.txt"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "dumperDll": "/opt/tools/dumper.dll"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "dumperDll": "C:\\Tools\\é.dll",
+      "localRuntimeDir": "/srv/runtime",
+      "hostWorkspace": "D:/Reforged"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": \"D:/Reforged\",\n  \"dumperDll\": \"C:\\\\Tools\\\\é.dll\"\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "gameRoot": "C:\\Spiele\\Dauntlessé😀",
+      "localRuntimeDir": "relative"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": \"C:\\\\Spiele\\\\Dauntlessé😀\",\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "gameRoot": "😀😀"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "language": "pt-BR",
+      "gameLanguage": "pt-BR"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"pt-BR\",\n  \"gameLanguage\": \"pt-BR\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "language": "pt",
+      "gameLanguage": "ru-RU"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"ru-RU\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "language": "fi"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "language": "en",
+      "gameLanguage": "en-US",
+      "runtimeProfile": "production"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"en-US\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "win32",
+    "input": {
+      "version": 1,
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "code": "WXYZ-0001",
+        "game": "reforged"
+      },
+      "savedServers": [
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 443,
+          "name": "Hunts",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": "WXYZ-0001",
+          "game": "reforged"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234",
+          "game": "revived"
+        }
+      ],
+      "gameRoot": "C:\\Program Files\\Epic Games\\Dauntless",
+      "revivedRoot": null,
+      "revivedVerified": null,
+      "graphics": -1,
+      "windowed": true,
+      "streamerMode": false,
+      "language": "en",
+      "gameLanguage": "auto",
+      "runtimeProfile": "production",
+      "hostTools": false,
+      "usernames": {
+        "0123456789abcdef01234567": "Hunter"
+      },
+      "backupOffered": {
+        "0123456789abcdef01234567": true
+      },
+      "trustedRuntimes": {
+        "0123456789abcdef01234567": [
+          "000000000000000000000000000000000000000000000000000000000000002a"
+        ]
+      },
+      "localRuntimeDir": null,
+      "hostWorkspace": null,
+      "dumperDll": null
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"public\",\n    \"host\": \"play.example.org\",\n    \"port\": 443,\n    \"name\": \"Hunts\",\n    \"share\": null,\n    \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n    \"code\": \"WXYZ-0001\"\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": \"WXYZ-0001\"\n    },\n    {\n      \"game\": \"revived\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    }\n  ],\n  \"gameRoot\": \"C:\\\\Program Files\\\\Epic Games\\\\Dauntless\",\n  \"graphics\": -1,\n  \"windowed\": true,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {\n    \"0123456789abcdef01234567\": \"Hunter\"\n  },\n  \"backupOffered\": {\n    \"0123456789abcdef01234567\": true\n  },\n  \"trustedRuntimes\": {\n    \"0123456789abcdef01234567\": [\n      \"000000000000000000000000000000000000000000000000000000000000002a\"\n    ]\n  },\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": null,
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": "x",
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": [],
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {},
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "version": 1,
+      "server": {
+        "mode": "private",
+        "host": "100.64.0.1",
+        "port": 61000,
+        "name": "Ramsgate",
+        "share": "https://login.tailscale.com/x",
+        "fp": null,
+        "code": "ABCD-1234"
+      },
+      "savedServers": [
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 443,
+          "name": "Hunts",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": null
+        }
+      ],
+      "installDir": "C:\\Games\\DR",
+      "verifiedDir": "C:\\Games\\DR",
+      "graphics": 2,
+      "exposure": "basic",
+      "windowed": true,
+      "streamerMode": true,
+      "language": "fi",
+      "gameLanguage": "de-DE",
+      "showConsole": true,
+      "usernames": {
+        "aaaaaaaaaaaaaaaaaaaaaaaa": "Slayer"
+      },
+      "backupOffered": {
+        "aaaaaaaaaaaaaaaaaaaaaaaa": true
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"private\",\n    \"host\": \"100.64.0.1\",\n    \"port\": 61000,\n    \"name\": \"Ramsgate\",\n    \"share\": \"https://login.tailscale.com/x\",\n    \"fp\": null,\n    \"code\": \"ABCD-1234\"\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": 2,\n  \"windowed\": true,\n  \"streamerMode\": true,\n  \"language\": \"en\",\n  \"gameLanguage\": \"de-DE\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": \"Slayer\"\n  },\n  \"backupOffered\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": true\n  },\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "code": null
+      },
+      "savedServers": [
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 443,
+          "name": "Old name",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": null
+        }
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"public\",\n    \"host\": \"play.example.org\",\n    \"port\": 443,\n    \"name\": \"Hunts\",\n    \"share\": null,\n    \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n    \"code\": null\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "server": {
+        "mode": "private",
+        "host": "203.0.113.9",
+        "port": 61000,
+        "name": "Ramsgate",
+        "share": "https://login.tailscale.com/x",
+        "fp": null,
+        "code": "ABCD-1234"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "bad",
+        "code": null
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "server": {
+        "mode": "weird",
+        "host": "100.64.0.1",
+        "port": 61000,
+        "name": "Ramsgate",
+        "share": "https://evil.example/",
+        "fp": null,
+        "code": "ABCD-1234"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"private\",\n    \"host\": \"100.64.0.1\",\n    \"port\": 61000,\n    \"name\": \"Ramsgate\",\n    \"share\": null,\n    \"fp\": null,\n    \"code\": \"ABCD-1234\"\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": null,\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "server": {
+        "mode": "private",
+        "host": "100.64.0.1",
+        "port": 61000,
+        "name": "  Spaced　name  ",
+        "share": "https://login.tailscale.com/x",
+        "fp": null,
+        "code": "a+b"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"private\",\n    \"host\": \"100.64.0.1\",\n    \"port\": 61000,\n    \"name\": \"Spaced name\",\n    \"share\": \"https://login.tailscale.com/x\",\n    \"fp\": null,\n    \"code\": null\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Spaced name\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "server": {
+        "mode": "private",
+        "host": "100.64.0.1",
+        "port": 0,
+        "name": "Ramsgate",
+        "share": "https://login.tailscale.com/x",
+        "fp": null,
+        "code": "ABCD-1234"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "savedServers": [
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61001,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61002,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61003,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61004,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61005,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61006,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61007,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61008,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61009,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61010,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61011,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61012,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61013,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61014,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61015,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61016,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61017,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61018,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61019,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61020,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61021,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61022,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61023,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61024,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        }
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61001,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61002,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61003,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61004,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61005,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61006,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61007,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61008,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61009,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61010,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61011,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61012,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61013,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61014,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61015,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61016,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61017,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61018,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61019,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "server": {
+        "mode": "private",
+        "host": "100.64.0.1",
+        "port": 62000,
+        "name": "Ramsgate",
+        "share": "https://login.tailscale.com/x",
+        "fp": null,
+        "code": "ABCD-1234"
+      },
+      "savedServers": [
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61001,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61002,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61003,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61004,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61005,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61006,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61007,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61008,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61009,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61010,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61011,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61012,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61013,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61014,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61015,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61016,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61017,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61018,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61019,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        }
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"private\",\n    \"host\": \"100.64.0.1\",\n    \"port\": 62000,\n    \"name\": \"Ramsgate\",\n    \"share\": \"https://login.tailscale.com/x\",\n    \"fp\": null,\n    \"code\": \"ABCD-1234\"\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 62000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61001,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61002,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61003,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61004,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61005,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61006,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61007,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61008,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61009,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61010,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61011,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61012,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61013,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61014,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61015,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61016,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61017,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61018,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "savedServers": [
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234"
+        },
+        "junk",
+        null
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "installDir": "/home/x/Games",
+      "verifiedDir": "C:/Games"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "installDir": "C:",
+      "verifiedDir": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "installDir": "D:/Games/DR",
+      "verifiedDir": "\\\\server\\share\\x"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "installDir": "relative/dir",
+      "verifiedDir": "/ok/dir"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "installDir": "C:\\a\u0000b"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "graphics": -1
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "graphics": 5
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "graphics": "4"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "exposure": "x"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "windowed": 1,
+      "streamerMode": "true",
+      "showConsole": false
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "huntRegion": "aus"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "huntRegion": "ger"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "huntRegion": "auto"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "huntRegion": "nope"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "language": "ru",
+      "gameLanguage": "auto"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "language": "xx",
+      "gameLanguage": "xx-XX"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "usernames": {
+        "aaaaaaaaaaaaaaaaaaaaaaaa": "MiauStyleZzツ",
+        "0123456789abcdef01234567": " padded ",
+        "AAAAAAAAAAAAAAAAAAAAAAAA": "Upper",
+        "bbbbbbbbbbbbbbbbbbbbbbbb": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "cccccccccccccccccccccccc": "Bell\u0007",
+        "dddddddddddddddddddddddd": 5
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "backupOffered": {
+        "aaaaaaaaaaaaaaaaaaaaaaaa": true,
+        "0123456789abcdef01234567": "yes",
+        "short": true
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": true\n  },\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "huntRegion": "us",
+      "usernames": {
+        "0123456789abcdef01234567": "Second",
+        "aaaaaaaaaaaaaaaaaaaaaaaa": "First"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {\n    \"0123456789abcdef01234567\": \"Second\",\n    \"aaaaaaaaaaaaaaaaaaaaaaaa\": \"First\"\n  },\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "gameRoot": "C:\\Games\\DR",
+      "localRuntimeDir": "C:\\Games\\DR",
+      "hostWorkspace": "C:\\Games\\DR"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "gameRoot": "/home/x/Games",
+      "localRuntimeDir": "C:/Games",
+      "hostWorkspace": "/home/x/Games"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": \"/home/x/Games\",\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": \"/home/x/Games\",\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "gameRoot": "C:",
+      "localRuntimeDir": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "hostWorkspace": "C:"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "gameRoot": "D:/Games/DR",
+      "localRuntimeDir": "\\\\server\\share\\x",
+      "hostWorkspace": "D:/Games/DR"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "gameRoot": "relative/dir",
+      "localRuntimeDir": "/ok/dir",
+      "hostWorkspace": "relative/dir"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": \"/ok/dir\",\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "gameRoot": "C:\\a\u0000b",
+      "hostWorkspace": "C:\\a\u0000b"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "code": null,
+        "game": "reforged"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"public\",\n    \"host\": \"play.example.org\",\n    \"port\": 443,\n    \"name\": \"Hunts\",\n    \"share\": null,\n    \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n    \"code\": null\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "code": null,
+        "game": "revived"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [\n    {\n      \"game\": \"revived\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "code": null,
+        "game": "other"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"public\",\n    \"host\": \"play.example.org\",\n    \"port\": 443,\n    \"name\": \"Hunts\",\n    \"share\": null,\n    \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n    \"code\": null\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "server": {
+        "mode": "private",
+        "host": "100.64.0.1",
+        "port": 61000,
+        "name": "Ramsgate",
+        "share": "https://login.tailscale.com/x",
+        "fp": null,
+        "code": "ABCD-1234",
+        "game": "revived"
+      },
+      "savedServers": [
+        {
+          "mode": "public",
+          "host": "old.example.org",
+          "port": 443,
+          "name": "Hunts",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": null,
+          "game": "revived"
+        },
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 443,
+          "name": "Hunts",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": null
+        }
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [\n    {\n      \"game\": \"revived\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"revived\",\n      \"mode\": \"public\",\n      \"host\": \"old.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "code": null
+      },
+      "savedServers": [
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234",
+          "game": "revived"
+        },
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 443,
+          "name": "Older name",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": null,
+          "game": "revived"
+        }
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"public\",\n    \"host\": \"play.example.org\",\n    \"port\": 443,\n    \"name\": \"Hunts\",\n    \"share\": null,\n    \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n    \"code\": null\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"revived\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "savedServers": [
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 443,
+          "name": "Hunts",
+          "share": null,
+          "fp": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "code": null,
+          "game": "revived"
+        },
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 444,
+          "name": "Hunts",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": null,
+          "game": "reforged"
+        }
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [\n    {\n      \"game\": \"revived\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\n      \"code\": null\n    },\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 444,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": null\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "gameRoot": "C:\\Games\\Dauntless",
+      "revivedRoot": "D:\\Dauntless144",
+      "revivedVerified": "D:\\Dauntless144"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "gameRoot": "/home/sam/Games/Dauntless",
+      "revivedRoot": "/home/sam/144",
+      "revivedVerified": 7
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": \"/home/sam/Games/Dauntless\",\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "runtimeProfile": "development",
+      "hostTools": true
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"development\",\n  \"hostTools\": true,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "runtimeProfile": "Development",
+      "hostTools": "true"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "runtimeProfile": null,
+      "hostTools": 1
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "graphics": 0
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": 0,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "graphics": 4
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": 4,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "graphics": -2
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "graphics": 2.5
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "graphics": null
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "usernames": {
+        "0123456789abcdef01234567": "Slayer_01",
+        "aaaaaaaaaaaaaaaaaaaaaaaa": "Sam Smith",
+        "bbbbbbbbbbbbbbbbbbbbbbbb": "ab",
+        "cccccccccccccccccccccccc": "abcdefghijklmnopq",
+        "dddddddddddddddddddddddd": "abcdefghijklmnop",
+        "eeeeeeeeeeeeeeeeeeeeeeee": "Bjørn",
+        "ffffffffffffffffffffffff": 12
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {\n    \"0123456789abcdef01234567\": \"Slayer_01\",\n    \"dddddddddddddddddddddddd\": \"abcdefghijklmnop\"\n  },\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "usernames": {
+        "0123456789abcdef01234567": "abc",
+        "0123456789ABCDEF01234567": "Upper",
+        "short": "Short"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {\n    \"0123456789abcdef01234567\": \"abc\"\n  },\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "usernames": []
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "trustedRuntimes": {
+        "0123456789abcdef01234567": [
+          "0000000000000000000000000000000000000000000000000000000000000001",
+          "0000000000000000000000000000000000000000000000000000000000000002",
+          "0000000000000000000000000000000000000000000000000000000000000001",
+          "nothex",
+          "0000000000000000000000000000000000000000000000000000000000000003",
+          5
+        ]
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {\n    \"0123456789abcdef01234567\": [\n      \"0000000000000000000000000000000000000000000000000000000000000001\",\n      \"0000000000000000000000000000000000000000000000000000000000000002\",\n      \"0000000000000000000000000000000000000000000000000000000000000003\"\n    ]\n  },\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "trustedRuntimes": {
+        "0123456789abcdef01234567": [
+          "0000000000000000000000000000000000000000000000000000000000000001",
+          "0000000000000000000000000000000000000000000000000000000000000002",
+          "0000000000000000000000000000000000000000000000000000000000000003",
+          "0000000000000000000000000000000000000000000000000000000000000004",
+          "0000000000000000000000000000000000000000000000000000000000000005",
+          "0000000000000000000000000000000000000000000000000000000000000006",
+          "0000000000000000000000000000000000000000000000000000000000000007",
+          "0000000000000000000000000000000000000000000000000000000000000008",
+          "0000000000000000000000000000000000000000000000000000000000000009",
+          "000000000000000000000000000000000000000000000000000000000000000a",
+          "000000000000000000000000000000000000000000000000000000000000000b",
+          "000000000000000000000000000000000000000000000000000000000000000c"
+        ],
+        "aaaaaaaaaaaaaaaaaaaaaaaa": [],
+        "bad": [
+          "0000000000000000000000000000000000000000000000000000000000000001"
+        ],
+        "cccccccccccccccccccccccc": "x"
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {\n    \"0123456789abcdef01234567\": [\n      \"0000000000000000000000000000000000000000000000000000000000000005\",\n      \"0000000000000000000000000000000000000000000000000000000000000006\",\n      \"0000000000000000000000000000000000000000000000000000000000000007\",\n      \"0000000000000000000000000000000000000000000000000000000000000008\",\n      \"0000000000000000000000000000000000000000000000000000000000000009\",\n      \"000000000000000000000000000000000000000000000000000000000000000a\",\n      \"000000000000000000000000000000000000000000000000000000000000000b\",\n      \"000000000000000000000000000000000000000000000000000000000000000c\"\n    ]\n  },\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "trustedRuntimes": {
+        "0123456789abcdef01234567": [
+          "0000000000000000000000000000000000000000000000000000000000000009",
+          "0000000000000000000000000000000000000000000000000000000000000008",
+          "0000000000000000000000000000000000000000000000000000000000000009",
+          "0000000000000000000000000000000000000000000000000000000000000007",
+          "0000000000000000000000000000000000000000000000000000000000000008"
+        ]
+      }
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {\n    \"0123456789abcdef01234567\": [\n      \"0000000000000000000000000000000000000000000000000000000000000009\",\n      \"0000000000000000000000000000000000000000000000000000000000000008\",\n      \"0000000000000000000000000000000000000000000000000000000000000007\"\n    ]\n  },\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "trustedRuntimes": [
+        "0000000000000000000000000000000000000000000000000000000000000001"
+      ]
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "localRuntimeDir": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "hostWorkspace": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "dumperDll": "C:\\Tools\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.dll"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "localRuntimeDir": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "hostWorkspace": "C:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "dumperDll": "C:\\Tools\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.dll"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "dumperDll": "C:\\Tools\\Dumper-7.DLL"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "dumperDll": "C:\\Tools\\Dumper-7.dll.txt"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "dumperDll": "/opt/tools/dumper.dll"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": \"/opt/tools/dumper.dll\"\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "dumperDll": "C:\\Tools\\é.dll",
+      "localRuntimeDir": "/srv/runtime",
+      "hostWorkspace": "D:/Reforged"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": \"/srv/runtime\",\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "gameRoot": "C:\\Spiele\\Dauntlessé😀",
+      "localRuntimeDir": "relative"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "gameRoot": "😀😀"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "language": "pt-BR",
+      "gameLanguage": "pt-BR"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"pt-BR\",\n  \"gameLanguage\": \"pt-BR\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "language": "pt",
+      "gameLanguage": "ru-RU"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"ru-RU\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "language": "fi"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "language": "en",
+      "gameLanguage": "en-US",
+      "runtimeProfile": "production"
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": null,\n  \"savedServers\": [],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": false,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"en-US\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {},\n  \"backupOffered\": {},\n  \"trustedRuntimes\": {},\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  },
+  {
+    "platform": "linux",
+    "input": {
+      "version": 1,
+      "server": {
+        "mode": "public",
+        "host": "play.example.org",
+        "port": 443,
+        "name": "Hunts",
+        "share": null,
+        "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+        "code": "WXYZ-0001",
+        "game": "reforged"
+      },
+      "savedServers": [
+        {
+          "mode": "public",
+          "host": "play.example.org",
+          "port": 443,
+          "name": "Hunts",
+          "share": null,
+          "fp": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
+          "code": "WXYZ-0001",
+          "game": "reforged"
+        },
+        {
+          "mode": "private",
+          "host": "100.64.0.1",
+          "port": 61000,
+          "name": "Ramsgate",
+          "share": "https://login.tailscale.com/x",
+          "fp": null,
+          "code": "ABCD-1234",
+          "game": "revived"
+        }
+      ],
+      "gameRoot": "C:\\Program Files\\Epic Games\\Dauntless",
+      "revivedRoot": null,
+      "revivedVerified": null,
+      "graphics": -1,
+      "windowed": true,
+      "streamerMode": false,
+      "language": "en",
+      "gameLanguage": "auto",
+      "runtimeProfile": "production",
+      "hostTools": false,
+      "usernames": {
+        "0123456789abcdef01234567": "Hunter"
+      },
+      "backupOffered": {
+        "0123456789abcdef01234567": true
+      },
+      "trustedRuntimes": {
+        "0123456789abcdef01234567": [
+          "000000000000000000000000000000000000000000000000000000000000002a"
+        ]
+      },
+      "localRuntimeDir": null,
+      "hostWorkspace": null,
+      "dumperDll": null
+    },
+    "language": "en",
+    "text": "{\n  \"version\": 1,\n  \"server\": {\n    \"game\": \"reforged\",\n    \"mode\": \"public\",\n    \"host\": \"play.example.org\",\n    \"port\": 443,\n    \"name\": \"Hunts\",\n    \"share\": null,\n    \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n    \"code\": \"WXYZ-0001\"\n  },\n  \"savedServers\": [\n    {\n      \"game\": \"reforged\",\n      \"mode\": \"public\",\n      \"host\": \"play.example.org\",\n      \"port\": 443,\n      \"name\": \"Hunts\",\n      \"share\": null,\n      \"fp\": \"3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f\",\n      \"code\": \"WXYZ-0001\"\n    },\n    {\n      \"game\": \"revived\",\n      \"mode\": \"private\",\n      \"host\": \"100.64.0.1\",\n      \"port\": 61000,\n      \"name\": \"Ramsgate\",\n      \"share\": \"https://login.tailscale.com/x\",\n      \"fp\": null,\n      \"code\": \"ABCD-1234\"\n    }\n  ],\n  \"gameRoot\": null,\n  \"graphics\": -1,\n  \"windowed\": true,\n  \"streamerMode\": false,\n  \"language\": \"en\",\n  \"gameLanguage\": \"auto\",\n  \"runtimeProfile\": \"production\",\n  \"hostTools\": false,\n  \"usernames\": {\n    \"0123456789abcdef01234567\": \"Hunter\"\n  },\n  \"backupOffered\": {\n    \"0123456789abcdef01234567\": true\n  },\n  \"trustedRuntimes\": {\n    \"0123456789abcdef01234567\": [\n      \"000000000000000000000000000000000000000000000000000000000000002a\"\n    ]\n  },\n  \"localRuntimeDir\": null,\n  \"hostWorkspace\": null,\n  \"dumperDll\": null\n}"
+  }
+]

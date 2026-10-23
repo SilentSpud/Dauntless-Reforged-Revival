@@ -1,0 +1,80 @@
+{
+  "secrets": [
+    "RRK_0123456789abcdef0123456789abcdef0123456789abcdef",
+    "hunter2secret",
+    "short",
+    "RRK_xxxxxxxxxxxxxxx",
+    "RRK_yyyyyyyyyyyyyyyy"
+  ],
+  "removed": "RRK_0123456789abcdef0123456789abcdef0123456789abcdef",
+  "cases": [
+    {
+      "line": "raw RRK_0123456789abcdef0123456789abcdef0123456789abcdef end",
+      "redacted": "raw <hidden> end"
+    },
+    {
+      "line": "bare 0123456789abcdef0123456789abcdef0123456789abcdef end",
+      "redacted": "bare <hidden> end"
+    },
+    {
+      "line": "password hunter2secret!",
+      "redacted": "password <hidden>!"
+    },
+    {
+      "line": "short is not a secret",
+      "redacted": "short is not a secret"
+    },
+    {
+      "line": "RRK_xxxxxxxxxxxxxxx and yyyyyyyyyyyyyyyy",
+      "redacted": "<hidden> and <hidden>"
+    },
+    {
+      "line": "game.exe 100.64.0.7:61000 -AUTH_PASSWORD=abc-def\"quoted -auth_password='x y'",
+      "redacted": "game.exe 100.64.0.7:61000 -AUTH_PASSWORD=<hidden>\"quoted -auth_password=<hidden>'x y'"
+    },
+    {
+      "line": "-Auth_Password=",
+      "redacted": "-Auth_Password=<hidden>"
+    },
+    {
+      "line": "headers {\"x-reforged-user-api-key\":\"secret-value\",\"other\":1}",
+      "redacted": "headers {\"x-reforged-user-api-key\":\"<hidden>\",\"other\":1}"
+    },
+    {
+      "line": "X-Reforged-User-Api-Key = abc123, next",
+      "redacted": "X-Reforged-User-Api-Key = <hidden>, next"
+    },
+    {
+      "line": "x-reforged-user-api-key:﻿abc",
+      "redacted": "x-reforged-user-api-key:﻿<hidden>"
+    },
+    {
+      "line": "x-reforged-user-api-key: abc",
+      "redacted": "x-reforged-user-api-key: <hidden>"
+    },
+    {
+      "line": "-AUTH_PASSWORD=a　b",
+      "redacted": "-AUTH_PASSWORD=<hidden>　b"
+    },
+    {
+      "line": "RRK_ab-_cd!rest",
+      "redacted": "RRK_<hidden>!rest"
+    },
+    {
+      "line": "nothing here",
+      "redacted": "nothing here"
+    },
+    {
+      "line": "legacy UUK_0123456789abcdef0123456789abcdef0123456789abcdef stays",
+      "redacted": "legacy UUK_<hidden> stays"
+    },
+    {
+      "line": "x-undaunted-user-api-key: not-ours",
+      "redacted": "x-undaunted-user-api-key: not-ours"
+    },
+    {
+      "line": "after removal 0123456789abcdef0123456789abcdef0123456789abcdef RRK_0123456789abcdef0123456789abcdef0123456789abcdef",
+      "redacted": "after removal 0123456789abcdef0123456789abcdef0123456789abcdef RRK_<hidden>"
+    }
+  ]
+}

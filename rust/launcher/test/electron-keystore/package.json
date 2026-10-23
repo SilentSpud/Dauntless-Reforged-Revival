@@ -1,0 +1,8 @@
+{
+  "name": "electron-keystore-harness",
+  "private": true,
+  "description": "Writes a test profile with the Electron launcher's own keystore.ts and safeStorage, for the Rust legacy key reader (MIGRATION_PLAN.md RA8). See README.md.",
+  "type": "commonjs",
+  "main": "harness.cjs",
+  "license": "AGPL-3.0-only"
+}
