@@ -34,3 +34,6 @@ Thumbs.db
 *.log
 .idea/
 .vscode/
+
+# The host kit's Node fixtures: fake values from tests/fixtures/node/gen.ts (RH1)
+!rust/services/host/tests/fixtures/node/*/secrets/

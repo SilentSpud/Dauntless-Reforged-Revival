@@ -1,0 +1,65 @@
+[package]
+name = "host"
+description = "The host kit: the reforged-host command line (MIGRATION_PLAN.md RH rows)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "reforged-host"
+path = "src/main.rs"
+
+[dependencies]
+# The backend's token keys, RSA 4096 (D10: aws-lc-rs; already in the tree through rustls and rcgen).
+aws-lc-rs = "1.18"
+base64.workspace = true
+# `update` and setup's install step: the server release over HTTPS (D10: rustls with aws-lc-rs, as the content server)
+bytes = "1"
+# The supervisor's log lines (`===== <ISO time> starting ...`, as the Node kit's)
+chrono.workspace = true
+clap.workspace = true
+# RH4: game data packs are gzip-compressed JSON.
+flate2.workspace = true
+http-body-util.workspace = true
+hyper.workspace = true
+hyper-rustls.workspace = true
+hyper-util = { workspace = true, features = ["client-legacy", "http1"] }
+# The invite links (section 6).
+protocol.workspace = true
+# Reading the certificate a port serves (doctor), and the release downloads.
+rustls.workspace = true
+# host.json in JavaScript's key order and number text (service-kit turns on preserve_order).
+serde_json.workspace = true
+service-kit.workspace = true
+sha2.workspace = true
+# The Linux release is a .tar.gz, the Windows one a .zip.
+tar = { version = "0.4.46", default-features = false }
+thiserror.workspace = true
+# `start`: Ctrl+C, Ctrl+Break and closing the console on Windows; SIGINT, SIGTERM and SIGHUP elsewhere
+tokio = { workspace = true, features = ["signal", "time", "net"] }
+url.workspace = true
+zip = { version = "9.0.5", default-features = false, features = ["deflate"] }
+
+[target."cfg(windows)".dependencies]
+# `start`: one job object per service, so its whole process tree stops with it (RD3)
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_Console"] }
+
+[target."cfg(unix)".dependencies]
+# `start`: the services' process groups (kill(2)) and, on Linux, PR_SET_PDEATHSIG
+libc = "0.2.191"
+
+[dev-dependencies]
+# Test certificates, as the gateway makes them.
+rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem", "crypto"] }
+tempfile.workspace = true
+
+# Fake services in child processes: the test binary runs itself in their roles (RH2)
+[[test]]
+name = "start"
+harness = false
+
+[lints]
+workspace = true

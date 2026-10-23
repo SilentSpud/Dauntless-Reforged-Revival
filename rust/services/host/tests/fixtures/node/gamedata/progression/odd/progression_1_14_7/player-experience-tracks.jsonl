@@ -1,0 +1,8 @@
+﻿{"rowName":"PlayerLevel","base":{"progressionTrack":"ExperienceTrack_PlayerLevel","premiumGatingEntitlement":"ent_\u00e9lite \"x\"\t","progressionMultiplier":1.5,"requirements":[{"rankId":2,"requiredXP":2.5e2},{"rankId":0,"requiredXP":0},{"rankId":1.0,"requiredXP":1E2},{"rankId":-1,"requiredXP":5},{"rankId":3.5,"requiredXP":5},{"rankId":4}],"freeRewards":[{"rankId":1,"customRewardString":"Reward \u2014 one\n","stackedItems":[{"catalogId":"CURRENCY_RAMS"},{"catalogId":""},{"quantity":3}],"instancedItems":["A","",7,"B"],"orderedInstancedItems":[{"catalogId":"O1","priority":2.0},{"priority":1}],"entitlements":[{"entitlementId":"E1","duration":1e3},{"duration":5}]},{}],"premiumRewards":[{"rankId":9007199254740993}]}}
+{"rowName":"NoBase","base":null}
+{"rowName":"ExperienceTrack_Weapon_Hammer","base":{"requirements":[{"rankId":0,"requiredXP":0},{"rankId":1,"requiredXP":80}],"progressionMultiplier":0}}
+not json {
+[1,2,3]
+
+   
+status: 3 rows

@@ -1,0 +1,18 @@
+{
+  "version": "20261015-6847b800",
+  "build": {
+    "changelist": 647472
+  },
+  "files": [
+    {
+      "name": "MysticParadox.dll",
+      "size": 6000,
+      "sha256": "aadf98f215dbcef11659450e75b82328a77c41d06db8c37d56e8542ef2b155bc"
+    },
+    {
+      "name": "winmm.dll",
+      "size": 2000,
+      "sha256": "d4ae114b609c929f4775159519280f241e69f8fea0a230ecf5d857270c85d5ca"
+    }
+  ]
+}
