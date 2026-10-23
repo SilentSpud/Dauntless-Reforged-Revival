@@ -1,0 +1,39 @@
+# The build context for docker/Dockerfile: the source only, never a host's own files or build output.
+.git
+.github
+.claude
+.workspace
+**/node_modules
+**/dist
+**/build
+**/target
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/*.key
+**/*.pfx
+**/*.log
+# The Rust tests' fixtures hold fake env files and certificates (the test image runs them)
+!rust/**/tests/fixtures/**
+
+# A host's own game data and exports (paradox/.gitignore): mounted as volumes, never baked in
+paradox/backend/game-data/*.json
+paradox/director/game-data/*.json
+!paradox/backend/game-data/*.example.json
+!paradox/director/game-data/*.example.json
+paradox/backend/game-data/raw
+paradox/director/game-data/raw
+paradox/Items_Analysis
+paradox/DauntlessEndpointDocumentation
+native/paradox-runtime/SDK
+native/paradox-runtime/SDK.hpp
+native/paradox-runtime/x64
+native/catalog-exporter/x64
+
+# Not used by any image
+rust/launcher/node_modules
+rust/launcher/dist-page
+brand
+docs

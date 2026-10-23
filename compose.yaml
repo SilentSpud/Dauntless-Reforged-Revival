@@ -1,0 +1,235 @@
+# Dauntless Reforged Revival server in Docker (docs/hosting-docker.md). The same services `reforged-host start`
+# runs (rust/services/host/src/services.rs), one container each, with compose doing the supervision: start order,
+# health checks, restarts, logs, one clean stop.
+#
+#   cp .env.example .env               then edit it
+#   docker compose build
+#   docker compose run --rm host setup --mode public --host play.example.org --name "Friday Hunts"
+#   docker compose up -d
+#   docker compose run --rm host invite --for "Alex"
+#
+# Every service shares one network namespace, the net service's: they reach each other on 127.0.0.1 exactly as
+# the env files setup writes say, nothing but the gateway and the game ports is published, and the allowlist's
+# nftables table filters the game servers' traffic inside that namespace without touching the host's firewall.
+# Every container mounts the volumes at the paths the env files name (/opt/reforged, as the server release).
+
+name: reforged-revival
+
+x-front: &front
+  image: ${REFORGED_IMAGE:-reforged-revival}-front:${REFORGED_TAG:-local}
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+    target: front
+  network_mode: service:net
+  restart: unless-stopped
+  init: true
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+
+x-server: &server
+  image: ${REFORGED_IMAGE:-reforged-revival}-server:${REFORGED_TAG:-local}
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+    target: server
+    args:
+      REFORGED_COMMIT: ${REFORGED_COMMIT:-}
+  network_mode: service:net
+  restart: unless-stopped
+  volumes:
+    - workspace:/opt/reforged/.workspace
+    - backend-game-data:/opt/reforged/paradox/backend/game-data
+    - director-game-data:/opt/reforged/paradox/director/game-data
+    - exports:/opt/reforged/paradox/Items_Analysis
+    - captures:/opt/reforged/paradox/DauntlessEndpointDocumentation
+    - ${REFORGED_GAME_DIR:-./game}:/game
+
+services:
+  # Holds the network namespace and the published ports, so a service restarting never drops the others'.
+  # compose.tailscale.yaml replaces it with Tailscale for a private server.
+  net:
+    image: ${REFORGED_IMAGE:-reforged-revival}-front:${REFORGED_TAG:-local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: front
+    command: ["sleep", "infinity"]
+    init: true
+    restart: unless-stopped
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    # The public gateway listens on 443 (or setup's --public-port) as an ordinary user
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: "0"
+    ports:
+      # TCP: the gateway, on the port setup chose (443, or --public-port; the invites name it)
+      - "${REFORGED_GATEWAY_PUBLISH:-443}:${REFORGED_GATEWAY_PORT:-443}/tcp"
+      # UDP: the game servers. 8770-8777 up to 6 hunts; one more below 8770 per hunt above 6 (--max-hunts)
+      - "${REFORGED_GAME_PUBLISH_ADDRESS:-0.0.0.0}:${REFORGED_GAME_PORTS:-8770-8777}:${REFORGED_GAME_PORTS:-8770-8777}/udp"
+    healthcheck:
+      test: ["CMD", "true"]
+      interval: 30s
+
+  # MongoDB with the one-member replica set the backend needs (until RB14 moves the data to Postgres)
+  mongo:
+    image: ${MONGO_IMAGE:-mongo:8.0}
+    network_mode: service:net
+    restart: unless-stopped
+    command:
+      [
+        "mongod",
+        "--replSet", "rs0",
+        "--bind_ip", "127.0.0.1",
+        "--port", "27017",
+        # A friends' server's database is a few megabytes; the game servers need the memory (mongo.rs)
+        "--wiredTigerCacheSizeGB", "1",
+      ]
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    healthcheck:
+      # Initiates the replica set the first time, as `reforged-host start` does; healthy once it is primary
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: '127.0.0.1:27017' }] }) } quit(db.hello().isWritablePrimary ? 0 : 1)"
+      interval: 5s
+      timeout: 10s
+      start_period: 60s
+      retries: 12
+    depends_on:
+      net:
+        condition: service_started
+
+  backend:
+    <<: *server
+    working_dir: /opt/reforged/paradox/backend
+    command: ["node", "--env-file=/opt/reforged/.workspace/config/backend.env", "build/server.js"]
+    healthcheck:
+      test: ["CMD", "reforged-healthcheck", "backend"]
+      interval: 5s
+      start_period: 120s
+      retries: 6
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  # Starts Ramsgate, the Training Grounds and the hunts as its children (Wine on a virtual display)
+  director:
+    <<: *server
+    command: ["reforged-director"]
+    healthcheck:
+      test: ["CMD", "reforged-healthcheck", "director"]
+      interval: 5s
+      start_period: 120s
+      retries: 6
+    depends_on:
+      backend:
+        condition: service_healthy
+      # A public server's game ports are closed before the first game server starts
+      allowlist:
+        condition: service_healthy
+        required: false
+
+  content:
+    <<: *front
+    command: ["content", "serve", "--env-file", "/opt/reforged/.workspace/config/content.env"]
+    volumes:
+      - workspace:/opt/reforged/.workspace:ro
+    healthcheck:
+      test: ["CMD", "reforged-healthcheck", "content"]
+      interval: 5s
+      start_period: 30s
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Public servers only: opens the game ports to players who logged in (nftables, in the shared namespace)
+  allowlist:
+    <<: *front
+    profiles: [public]
+    command: ["allowlist", "--env-file", "/opt/reforged/.workspace/config/allowlist.env"]
+    # nft's file capability: the helper itself runs unprivileged (Dockerfile, front)
+    security_opt: []
+    cap_add: [NET_ADMIN]
+    volumes:
+      - workspace:/opt/reforged/.workspace
+    healthcheck:
+      test: ["CMD", "reforged-healthcheck", "allowlist"]
+      interval: 5s
+      start_period: 30s
+    depends_on:
+      net:
+        condition: service_started
+
+  # Started last, as by the host kit: no player request reaches a service that is not up yet
+  gateway:
+    <<: *front
+    command: ["gateway", "serve", "--env-file", "/opt/reforged/.workspace/config/gateway.env"]
+    volumes:
+      - workspace:/opt/reforged/.workspace:ro
+    healthcheck:
+      test: ["CMD", "reforged-healthcheck", "gateway"]
+      interval: 5s
+      start_period: 30s
+    depends_on:
+      net:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      content:
+        condition: service_healthy
+      allowlist:
+        condition: service_healthy
+        required: false
+
+  # The host kit's commands: docker compose run --rm host setup|invite|doctor|gamedata|publish-runtime|...
+  host:
+    <<: *server
+    profiles: [tools]
+    restart: "no"
+    entrypoint: ["/usr/bin/tini", "--", "reforged-host-docker"]
+    command: ["doctor"]
+    volumes:
+      - workspace:/opt/reforged/.workspace
+      - backend-game-data:/opt/reforged/paradox/backend/game-data
+      - director-game-data:/opt/reforged/paradox/director/game-data
+      - exports:/opt/reforged/paradox/Items_Analysis
+      - captures:/opt/reforged/paradox/DauntlessEndpointDocumentation
+      - ${REFORGED_GAME_DIR:-./game}:/game
+      # Files to bring in: the runtime's DLLs (publish-runtime --from /import/...), game data packs
+      - ${REFORGED_IMPORT_DIR:-./import}:/import:ro
+
+  # Every server test suite on the server image (docker/test-in-image.sh): docker compose run --rm test
+  # [rust] [backend] [director]. Its own network; the game-data volumes read-only, so the game-data tests check
+  # this server's real data. docker/run-tests.sh is the full run, the smoke test included.
+  test:
+    image: ${REFORGED_IMAGE:-reforged-revival}-test:${REFORGED_TAG:-local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: test
+      args:
+        REFORGED_COMMIT: ${REFORGED_COMMIT:-}
+    profiles: [test]
+    restart: "no"
+    # The allowlist's nftables test, in this container's own network namespace
+    cap_add: [NET_ADMIN]
+    volumes:
+      - backend-game-data:/opt/reforged/paradox/backend/game-data:ro
+      - director-game-data:/opt/reforged/paradox/director/game-data:ro
+
+volumes:
+  workspace:
+  backend-game-data:
+  director-game-data:
+  exports:
+  captures:
+  mongo-data:
+  mongo-config:

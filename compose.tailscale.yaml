@@ -1,0 +1,39 @@
+# A private server (friends over Tailscale) in Docker: docker compose -f compose.yaml -f compose.tailscale.yaml ...
+# (or COMPOSE_FILE=compose.yaml:compose.tailscale.yaml in .env; on Windows the separator is ;).
+#
+# The shared network namespace (compose.yaml's net service) becomes a Tailscale node of its own, so the server's
+# Tailscale address is inside it: the gateway and the game servers listen on it as setup's env files say, and
+# nothing is published on the host at all. Give that address to setup:
+#   docker compose up -d net
+#   docker compose exec net tailscale ip -4
+#   docker compose run --rm host setup --mode private --host <that address> --name "Friday Hunts"
+# The node is a machine of its own in your tailnet: share that one with your friends (setup --share <link>).
+
+services:
+  net:
+    image: ${TAILSCALE_IMAGE:-tailscale/tailscale:stable}
+    build: !reset null
+    command: !reset null
+    read_only: !reset false
+    security_opt: !reset []
+    cap_drop: !reset []
+    cap_add: [NET_ADMIN, NET_RAW]
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports: !reset []
+    environment:
+      # A reusable auth key (https://login.tailscale.com/admin/settings/keys), needed for the first start only
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_HOSTNAME: ${TS_HOSTNAME:-reforged-revival}
+      TS_STATE_DIR: /var/lib/tailscale
+      # A kernel network interface: the game servers' UDP and the gateway's TCP on the Tailscale address
+      TS_USERSPACE: "false"
+    volumes:
+      - tailscale:/var/lib/tailscale
+    healthcheck:
+      test: ["CMD", "tailscale", "ip", "-4"]
+      interval: 5s
+      start_period: 60s
+
+volumes:
+  tailscale:
