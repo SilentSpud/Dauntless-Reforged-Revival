@@ -20,7 +20,7 @@ Steps 2 to 7 below, done for you from the Windows PC that has your game, with th
 with Windows. You need the VPS's public IPv4 address and its `root` password (Hostinger: hPanel > VPS >
 Overview), and step 1 (the provider's firewall) done.
 
-1. Download [`Deploy-FromWindows.ps1`](../ReforgedHost/linux/Deploy-FromWindows.ps1) (on GitHub:
+1. Download [`Deploy-FromWindows.ps1`](../legacy/ReforgedHost/linux/Deploy-FromWindows.ps1) (on GitHub:
    **Download raw file**), for example into `Downloads`.
 2. In PowerShell:
 
@@ -31,7 +31,7 @@ Overview), and step 1 (the provider's firewall) done.
 
 It checks that `C:\Dauntless` is Dauntless 1.14.7 (the folder with `Archon` inside, or the folder
 holding it), asks the VPS password once (it adds an SSH key for this PC), installs everything on the
-VPS with [`setup-vps.sh`](../ReforgedHost/linux/setup-vps.sh), sends the game (about 15 GB: keep the
+VPS with [`setup-vps.sh`](../legacy/ReforgedHost/linux/setup-vps.sh), sends the game (about 15 GB: keep the
 window open; a second run skips it when the VPS already has the same files), sends the runtime and the
 newest game data pack when this PC has a Reforged project (`C:\Reforged`, or `-Runtime <folder>` and
 `-GameData <pack>`), starts the server and prints your first invite. Run it again whenever you like:
@@ -46,8 +46,8 @@ Without a runtime yet, players can join but not play: send it later with
 `-Runtime <folder> -SkipGame` (step 6 says where it comes from).
 
 On the VPS itself, without Windows: as root, `sh setup-vps.sh --name "Friday Hunts"` (the script is
-in `ReforgedHost/linux/`), copy the game to `/home/reforged/games/Dauntless`, then
-`sh /home/reforged/Reforged/ReforgedHost/linux/setup-vps.sh --finish [--runtime <folder>] [--gamedata <pack>]`.
+in `legacy/ReforgedHost/linux/`), copy the game to `/home/reforged/games/Dauntless`, then
+`sh /home/reforged/Reforged/legacy/ReforgedHost/linux/setup-vps.sh --finish [--runtime <folder>] [--gamedata <pack>]`.
 
 The rest of this page is the same thing by hand, and what to do when something goes wrong.
 
@@ -63,13 +63,13 @@ are still `Dauntless-Win64-Shipping.exe`, a Windows program: the Director starts
 | Game servers | the game executable | the same executable through Wine (or Proton) on `xvfb-run` |
 | Game-port allowlist | one Windows Firewall rule | one nftables table, `reforged_revival` |
 | Privileges | the terminal runs as administrator | two systemd units, each with only the privilege it needs (no root) |
-| Starts at boot | no (`npm run start`) | yes (systemd) |
+| Starts at boot | no (`reforged-host start`) | yes (systemd) |
 | SDK, runtime, game data | made on this PC | made **once on a Windows PC** with your game, then copied over |
 
 The two systemd units run as an ordinary user:
 
 - `reforged-allowlist.service`: the allowlist helper, with `CAP_NET_ADMIN` only (it changes nftables).
-- `reforged.service`: `npm run start` (MongoDB, backend, Director and its game servers, content
+- `reforged.service`: `reforged-host start` (MongoDB, backend, Director and its game servers, content
   server, gateway), with `CAP_NET_BIND_SERVICE` only (the gateway listens on port 443).
 
 ## What you need
@@ -102,8 +102,8 @@ Sign in to the VPS over SSH (Hostinger gives you `root`), then:
 
 ```sh
 apt update && apt upgrade -y
-apt install -y git nodejs npm wine wine64 xvfb xauth nftables sudo curl gnupg
-node --version      # 20.19 or newer
+apt install -y nodejs wine wine64 xvfb xauth nftables sudo curl gnupg
+node --version      # 20.19 or newer (the backend and the Director still run on Node.js)
 wine --version
 ```
 
@@ -149,18 +149,32 @@ legendary verify Jackal
 The game is then in `/home/reforged/games/Dauntless` (the folder with `Archon` inside). Never run
 `legendary update Jackal`: it would turn it into 2.1.1.
 
-## 5. Get the project and set up the server
+## 5. Get the server release and set up the server
+
+The server comes built, as a release on GitHub
+(<https://github.com/SilentSpud/Dauntless-Reforged-Revival/releases>, the `server-v<version>` ones):
+`ReforgedRevivalServer-<version>-linux-x64.tar.gz` and `SHA256SUMS.txt`. No Rust, git or npm on the VPS.
+Pick the version (the newest `server-v` release), then:
 
 ```sh
-git clone https://github.com/FreezaMotoqueiro/Dauntless-Reforged-Revival ~/Reforged
-cd ~/Reforged/ReforgedHost
-npm install
+v=<version>             # for example 0.3.0
+cd ~
+curl -fLO "https://github.com/SilentSpud/Dauntless-Reforged-Revival/releases/download/server-v$v/SHA256SUMS.txt"
+curl -fLO "https://github.com/SilentSpud/Dauntless-Reforged-Revival/releases/download/server-v$v/ReforgedRevivalServer-$v-linux-x64.tar.gz"
+grep " ReforgedRevivalServer-$v-linux-x64.tar.gz\$" SHA256SUMS.txt | sha256sum --check    # must say OK
+tar -xzf "ReforgedRevivalServer-$v-linux-x64.tar.gz" && mv "reforged-revival-server-$v" ~/Reforged
+rm "ReforgedRevivalServer-$v-linux-x64.tar.gz" SHA256SUMS.txt
+cd ~/Reforged
 ip -br addr             # the network interface with the public IP, usually eth0
-npm run setup -- --mode public --host <VPS public IPv4> --name "Friday Hunts" --game /home/reforged/games/Dauntless --firewall-interface eth0
+bin/reforged-host setup --mode public --host <VPS public IPv4> --name "Friday Hunts" --game /home/reforged/games/Dauntless --firewall-interface eth0
 ```
 
+With the [GitHub CLI](https://cli.github.com/) signed in, `gh attestation verify ReforgedRevivalServer-$v-linux-x64.tar.gz --repo SilentSpud/Dauntless-Reforged-Revival`
+also checks that GitHub's release workflow built it from the project's source (`reforged-host update` does
+this by itself when `gh` is there).
+
 With a DNS name, add `--game-address <VPS public IPv4>` (the game servers announce an address).
-Setup downloads Mystic Paradox, applies the patches, builds the services, writes the configuration
+Setup checks every file of the release against its `release.json` (and downloads it again if some are missing), writes the configuration
 and the gateway certificate (it prints the fingerprint that goes into every invite), writes the
 Wine launcher and the systemd units, and makes the Wine prefix. The server preset in `preset/` fills
 most of the game data.
@@ -181,22 +195,22 @@ Linux options (each is kept in `host.json` until you change it):
 On the Windows PC with your 1.14.7, follow [hosting.md](hosting.md) up to a server that plays
 (the launcher's Host tools page does most of it), then:
 
-1. **Runtime.** After `npm run publish-runtime` there, `D:\Reforged\.workspace\runtime\` holds
+1. **Runtime.** After publishing the runtime there (`reforged-host publish-runtime`, or `npm run publish-runtime` on a Node-kit host), `D:\Reforged\.workspace\runtime\` holds
    `MysticParadox.dll` and `winmm.dll`. Copy that folder to the VPS, for example
    `scp -r D:\Reforged\.workspace\runtime reforged@<VPS IP>:~/runtime`.
-2. **Game data.** `npm run gamedata -- --export` there writes a game data pack
+2. **Game data.** `reforged-host gamedata --export` (Node kit: `npm run gamedata -- --export`) there writes a game data pack
    (`.workspace\gamedata-packs\reforged-gamedata-1.14.7-<date>.json.gz`). Copy it to the VPS too.
 
 On the VPS:
 
 ```sh
-cd ~/Reforged/ReforgedHost
-npm run publish-runtime -- --from ~/runtime
-npm run gamedata -- --import ~/reforged-gamedata-1.14.7-<date>.json.gz
+cd ~/Reforged
+bin/reforged-host publish-runtime --from ~/runtime
+bin/reforged-host gamedata --import ~/reforged-gamedata-1.14.7-<date>.json.gz
 ```
 
 The pack carries what the preset cannot (Lady Luck's Store and the platinum store, built from your
-CatalogExporter export). For a first start-up test without it, `npm run gamedata -- --examples`
+CatalogExporter export). For a first start-up test without it, `bin/reforged-host gamedata --examples`
 fills the two store files with examples: the server starts, but those stores are empty.
 
 ## 7. Firewall, services, invites
@@ -205,8 +219,8 @@ fills the two store files with examples: the server starts, but those stores are
 sudo sh ~/Reforged/.workspace/config/firewall.sh            # opens 443 and the game ports in ufw, if ufw is active
 sudo sh ~/Reforged/.workspace/config/systemd/install.sh     # installs and starts both units; they start at boot from now on
 journalctl -u reforged -f                                   # the server's output (Ctrl+C leaves it running)
-npm run doctor                                              # checks every part
-npm run invite -- --for "Alex"                              # one invite per friend
+~/Reforged/bin/reforged-host doctor                         # checks every part
+~/Reforged/bin/reforged-host invite --for "Alex"            # one invite per friend
 ```
 
 The first game servers take longer than on Windows (Wine loads the game): the Director waits up to
@@ -219,15 +233,24 @@ The first game servers take longer than on Windows (Wine loads the game): the Di
   the game data or the multipliers).
 - **Logs:** `journalctl -u reforged -f`, `journalctl -u reforged-allowlist -f`, and
   `~/Reforged/.workspace/logs/` (one file per service; the game servers in `gameservers/`).
-- **Updating:** `npm run update`, then `sudo sh ~/Reforged/.workspace/config/systemd/install.sh`
-  (it installs the units again and restarts the server). When the update says the runtime changed,
-  build it again on the Windows PC and publish it with `--from`.
+- **Updating:** `~/Reforged/bin/reforged-host update` (`--check` only compares). It downloads the
+  newest server release, checks it against `SHA256SUMS.txt` (and its attestation with `gh`, when it
+  is installed and signed in), installs it over `~/Reforged` (`.workspace/` and your own files stay)
+  and runs setup again. Then `sudo sh ~/Reforged/.workspace/config/systemd/install.sh` (it installs
+  the units again and restarts the server). When the update says the runtime changed, build it again
+  on the Windows PC and publish it with `--from`. `sh ~/Reforged/legacy/ReforgedHost/linux/setup-vps.sh`
+  as root does the same.
+- **A server set up before the release** (a `git clone` with `legacy/ReforgedHost` and `npm run`):
+  as root, `sh setup-vps.sh` (the newest one, from GitHub) moves it over, or by hand as `reforged`:
+  download and check the archive as in step 5, put its `bin/reforged-host` in `~/Reforged`, run
+  `cd ~/Reforged && ./reforged-host update`, then `rm ~/Reforged/reforged-host` and use
+  `~/Reforged/bin/reforged-host` from then on. `.workspace/`, `host.json` and the env files stay as they are.
 - **Bans, registration, news, backups:** as on Windows ([hosting.md](hosting.md#running-it)).
   Back up MongoDB with `mongodump`, and keep `.workspace/config/` and `.workspace/tls/` private.
 - **Supplies refilled at every login:** list per account, in `~/Reforged/.workspace/config/session-supplies.json`,
   the stacked items (tonics, pylons, grenades...) that go back to a fixed quantity each time that player
   logs in: `{"accounts": {"<user id>": {"QI_GRENADE_ICE": 1000}}}`. It is read at every login, so no restart
-  is needed; see [upstream patch 0023](../upstream/README.md#0023-supplies-refilled-at-every-game-login).
+  is needed; see [patch 0023](paradox-patches.md#0023-supplies-refilled-at-every-game-login).
 - **The allowlist table:** `sudo nft list table inet reforged_revival` shows who can reach the
   game ports right now.
 
@@ -235,7 +258,7 @@ The first game servers take longer than on Windows (Wine loads the game): the Di
 
 Almost all of the server's CPU and RAM goes to the game servers: Ramsgate, the Training Grounds and one
 per hunt, each a whole Dauntless process under Wine. Before patches 0019 to 0021 (see
-[upstream/README.md](../upstream/README.md)) every one of them, empty or not, walked all ~208,000 game
+[paradox-patches.md](paradox-patches.md)) every one of them, empty or not, walked all ~208,000 game
 objects on every frame, built a function name and ran about 90 text searches for every reflected call (tens
 of thousands a second with players), asked the disk for flag files several times a frame (a whole folder
 scan under Wine), and ran its frames as fast as the CPU allowed. A 4 vCPU VPS sat near 40% with nobody
@@ -243,7 +266,7 @@ online and above 80% with two players.
 
 What the server does now (each part can be changed):
 
-| | Default | Change it with `npm run setup -- ...` |
+| | Default | Change it with `bin/reforged-host setup ...` |
 |---|---|---|
 | Frames per second of a game server with players (runtime patch 0020) | 30 (the network rate) | `--server-fps 10-240`, `0` for no cap |
 | Frames per second after 15 s without players | 10 | `--idle-fps 1-240`, `0` for the same as above |
@@ -285,26 +308,26 @@ download a GE-Proton release from <https://github.com/GloriousEggroll/proton-ge-
 `~/.local/share/Steam/compatibilitytools.d/`, then
 
 ```sh
-cd ~/Reforged/ReforgedHost
-npm run setup -- --proton ~/.local/share/Steam/compatibilitytools.d/<GE-Proton folder>/proton
+cd ~/Reforged
+bin/reforged-host setup --proton ~/.local/share/Steam/compatibilitytools.d/<GE-Proton folder>/proton
 sudo systemctl restart reforged
 ```
 
-and compare `top` with players on. `npm run setup -- --no-proton` goes back to Wine.
+and compare `top` with players on. `bin/reforged-host setup --no-proton` goes back to Wine.
 
 ## When something goes wrong
 
 | What you see | What to do |
 |---|---|
 | `do not run the server as root` | sign in as the server's user (`sudo -iu reforged`) and run it there |
-| `port 443 ... needs a privilege` / `the allowlist changes the firewall` | run it through the systemd units (step 7), not `npm run start` in a terminal |
+| `port 443 ... needs a privilege` / `the allowlist changes the firewall` | run it through the systemd units (step 7), not `reforged-host start` in a terminal |
 | a game server never becomes ready | its log in `.workspace/logs/gameservers/`; `.workspace/logs/wine.log`; for Wine's own messages, `sudo systemctl edit reforged` and add `Environment=WINEDEBUG=err+all`, then restart |
 | `wine: ... is not owned by you` | the Wine prefix belongs to another user: `sudo chown -R reforged: ~/Reforged/.workspace/wine` |
-| `xvfb-run was not found` / `Wine was not found` | `sudo apt install xvfb xauth wine wine64`, then `npm run setup` |
+| `xvfb-run was not found` / `Wine was not found` | `sudo apt install xvfb xauth wine wine64`, then `~/Reforged/bin/reforged-host setup` |
 | players log in but cannot reach Ramsgate | UDP 8770-8777 in the provider's firewall (step 1), and `--firewall-interface` naming the right interface (`ip -br addr`) |
 | a hunt does not start ("matchmaking failed") while others run | the hunt cap or the memory guard: `journalctl -u reforged \| grep -i "MemoryGuard\|capacity"` says which; `free -h` shows the RAM left |
 | players reach Ramsgate but some hunts never load (more than 6 hunts) | the extra game ports: UDP 8768-8777 (8 hunts) or 8766-8777 (10) in the provider's firewall |
-| the launcher says the certificate does not match | another program holds the gateway's port (a hosting panel on 443): `npm run doctor` names it; give the server another port with `npm run setup -- --public-port 4443` (or `Deploy-FromWindows.ps1 -PublicPort 4443 -SkipGame`), allow TCP 4443 in the provider's firewall, restart, and send new invites |
+| the launcher says the certificate does not match | another program holds the gateway's port (a hosting panel on 443): `bin/reforged-host doctor` names it; give the server another port with `bin/reforged-host setup --public-port 4443` (or `Deploy-FromWindows.ps1 -PublicPort 4443 -SkipGame`), allow TCP 4443 in the provider's firewall, restart, and send new invites |
 | `port 27017 is already taken` | MongoDB's own service: `sudo systemctl disable --now mongod` |
 
 The Director passes the game-server key on each game server's command line, as on Windows; on a
@@ -313,7 +336,7 @@ VPS that only the server's user signs in to, nobody else can read it.
 ## Resumo em português
 
 **O jeito rápido (um comando no Windows):** libere TCP 443 e UDP 8770-8777 no firewall da VPS na
-Hostinger, baixe o [`Deploy-FromWindows.ps1`](../ReforgedHost/linux/Deploy-FromWindows.ps1) e rode no
+Hostinger, baixe o [`Deploy-FromWindows.ps1`](../legacy/ReforgedHost/linux/Deploy-FromWindows.ps1) e rode no
 PowerShell:
 
 ```powershell
@@ -331,18 +354,19 @@ certificado dele ("o certificado de segurança não confere").
 **Passo a passo à mão:**
 
 1. **Firewall da Hostinger:** libere TCP 443 e UDP 8770-8777 (e mantenha o SSH, TCP 22).
-2. **Pacotes, como root:** `apt install -y git nodejs npm wine wine64 xvfb xauth nftables sudo curl gnupg`
+2. **Pacotes, como root:** `apt install -y nodejs wine wine64 xvfb xauth nftables sudo curl gnupg`
    e o MongoDB (passo 2 acima).
 3. **Usuário:** `adduser reforged`, `usermod -aG sudo reforged`, `sudo -iu reforged`. O servidor
    nunca roda como root.
 4. **Jogo 1.14.7:** copie a pasta `Dauntless` do seu PC ou instale com o Legendary em `~/games`.
-5. **Projeto:** `git clone` em `~/Reforged`, `cd ReforgedHost`, `npm install` e
-   `npm run setup -- --mode public --host <IP da VPS> --name "Seu Servidor" --game /home/reforged/games/Dauntless --firewall-interface eth0`.
+5. **Servidor:** baixe `ReforgedRevivalServer-<versão>-linux-x64.tar.gz` e `SHA256SUMS.txt` da release
+   `server-v<versão>` mais nova, confira com `sha256sum --check` e extraia em `~/Reforged` (passo 5 em inglês acima); depois
+   `cd ~/Reforged && bin/reforged-host setup --mode public --host <IP da VPS> --name "Seu Servidor" --game /home/reforged/games/Dauntless --firewall-interface eth0`.
 6. **No PC com Windows (uma vez):** gere o runtime e os dados do jogo, copie a pasta
    `.workspace\runtime` e o pacote de dados para a VPS, e rode
-   `npm run publish-runtime -- --from ~/runtime` e `npm run gamedata -- --import <pacote>`.
+   `bin/reforged-host publish-runtime --from ~/runtime` e `bin/reforged-host gamedata --import <pacote>`.
 7. **Ligar:** `sudo sh ~/Reforged/.workspace/config/firewall.sh` e
-   `sudo sh ~/Reforged/.workspace/config/systemd/install.sh`. Depois, `npm run invite -- --for "Nome"`.
+   `sudo sh ~/Reforged/.workspace/config/systemd/install.sh`. Depois, `~/Reforged/bin/reforged-host invite --for "Nome"`.
 
 **Suprimentos reabastecidos a cada login:** em `~/Reforged/.workspace/config/session-supplies.json`,
 liste por conta os itens empilháveis (tônicos, pilões, granadas...) que voltam para uma quantidade fixa
@@ -350,7 +374,7 @@ toda vez que o jogador entra: `{"accounts": {"<id da conta>": {"QI_GRENADE_ICE":
 lido a cada login, sem reiniciar nada.
 
 É experimental: o jogo 1.14.7 de verdade ainda não foi rodado no Wine. Se algo falhar, veja
-`journalctl -u reforged -f` e `npm run doctor`.
+`journalctl -u reforged -f` e `~/Reforged/bin/reforged-host doctor`.
 
 **CPU e RAM** ([detalhes](#cpu-and-ram)): quase todo o consumo vem dos servidores de jogo (Ramsgate, Training
 Grounds e um por caçada), cada um um processo inteiro do Dauntless no Wine. Agora:
@@ -370,7 +394,7 @@ cada caçada usa uma porta a mais abaixo de 8770 (UDP 8768-8777 para 8, 8766-877
 estar liberada no firewall da Hostinger. Por exemplo, para 8, como root:
 
 ```sh
-sudo -iu reforged bash -c 'cd ~/Reforged/ReforgedHost && npm run update && npm run setup -- --max-hunts 8 --skip-install'
+sudo -iu reforged bash -c 'cd ~/Reforged && bin/reforged-host update --no-setup && bin/reforged-host setup --max-hunts 8 --skip-install'
 sh /home/reforged/Reforged/.workspace/config/systemd/install.sh
 ```
 
@@ -379,4 +403,4 @@ compilado no PC com Windows: lá, `npm run update`, compile o runtime de novo (p
 `npm run publish-runtime`, e envie para a VPS (`Deploy-FromWindows.ps1 ... -SkipGame`). Depois
 `sudo systemctl restart reforged`. Os jogadores aceitam o runtime novo uma vez no launcher. `npm run doctor`
 diz se o runtime publicado já tem os patches. Para ver quem usa a CPU: `top -o %CPU`. Se o `wineserver`
-aparecer alto, experimente o GE-Proton (`npm run setup -- --proton <pasta>/proton`, seção em inglês acima).
+aparecer alto, experimente o GE-Proton (`bin/reforged-host setup --proton <pasta>/proton`, seção em inglês acima).

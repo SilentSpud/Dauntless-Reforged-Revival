@@ -13,5 +13,5 @@ Labs' artwork.
 | `launcher/icon.png`, `icon-512.png`, `icon-1024.png` | PNG renders |
 | `launcher/logo-384.png`, `logo-64.png` | the launcher page's logo (the rail) and its title-bar mark |
 
-`npm run icon` in `ReforgedLauncher/` copies the icons and the two logo sizes into the launcher. Same
+`npm run icon` in `legacy/ReforgedLauncher/` copies the icons and the two logo sizes into the launcher. Same
 license as the repository (AGPL-3.0-only).

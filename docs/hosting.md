@@ -39,7 +39,7 @@ your game, for the runtime and the game data.
 
 ```powershell
 git clone https://github.com/FreezaMotoqueiro/Dauntless-Reforged-Revival D:\Reforged
-cd D:\Reforged\ReforgedHost
+cd D:\Reforged\legacy\ReforgedHost
 npm install
 ```
 
@@ -64,9 +64,9 @@ npm run setup -- --mode public --host 203.0.113.7 --name "Friday Hunts" --game "
 npm run setup -- --mode public --host hunts.example.net --game-address 203.0.113.7 --name "Friday Hunts" --game "D:\Games\Dauntless"
 ```
 
-Setup downloads Mystic Paradox at the pinned commit into `.workspace\Mystic-Paradox`, applies the
-Reforged patches, installs and builds the services, makes the secrets and writes the
-configuration in `.workspace\config\` (see [ReforgedHost/README.md](../ReforgedHost/README.md)).
+Setup builds Mystic Paradox's backend and Director from `paradox\` (they are part of the project; nothing
+is downloaded from Mystic Paradox's repository), installs and builds the other services, makes the secrets and writes the
+configuration in `.workspace\config\` (see [legacy/ReforgedHost/README.md](../legacy/ReforgedHost/README.md)).
 In public mode it also makes the gateway certificate and prints its fingerprint.
 
 Then, once, in PowerShell **as administrator**, add the firewall rules it wrote:
@@ -98,8 +98,8 @@ page (Settings > Launcher > Advanced > Host tools), choosing `D:\Reforged` as th
 Everything below can also be done from the launcher's Host page (Settings > Launcher > Advanced >
 Host tools), without opening a terminal. Its tabs are in the order a new host goes through them:
 Requirements, Build, Game data, Server. Importing the SDK, building winmm.dll and the game data
-steps download Mystic Paradox first (`npm run upstream`, setup's first step) when the server is not
-set up yet, so they can be done before it; **Choose the SDK folder** imports a Dumper-7 output that is
+steps work on the project's own `native\` and `paradox\` folders, so they can be done before the server
+is set up; **Choose the SDK folder** imports a Dumper-7 output that is
 not under `C:\Dumper-7`.
 
 - **Requirements** tab: what this PC needs (Git, Node.js, MongoDB, Tailscale, Visual Studio, Rust,
@@ -154,7 +154,7 @@ button for it.
   server, multiplies the XP and the hunt loot (Crowns, materials, part breaks, gathering, patrol chests, quest
   Crowns) so you can reach late-game content quickly while testing. `npm run multipliers -- --off` turns them off,
   and `npm run multipliers` alone says what is set. A public server refuses them. Details: the 0007 patch in
-  [upstream/README.md](../upstream/README.md).
+  [paradox-patches.md](paradox-patches.md#0007-xp-and-reward-multipliers-for-private-test-servers).
 - **Bans**: from this PC only, `POST http://127.0.0.1:61000/reforged/api/SetAccountStatus` with the
   header `x-reforged-admin-key` (from `.workspace\config\secrets.env`) and
   `{"Username": "...", "Status": "banned", "Reason": "..."}` (`active` lifts it). The player sees
@@ -162,7 +162,7 @@ button for it.
 - **Registration**: `--registration OPEN` lets anyone who can reach the server register without a
   code; `NONE` closes registration.
 - **News and art**: `.workspace\config\news.json` (`{"items": [{"date", "title", "body"}]}`) and
-  images in `.workspace\branding\` show in the launcher; see [ReforgedContent/README.md](../ReforgedContent/README.md).
+  images in `.workspace\branding\` show in the launcher; see [legacy/ReforgedContent/README.md](../legacy/ReforgedContent/README.md).
 - **Backups**: back up MongoDB (`mongodump`), and keep `.workspace\config\` (secrets) and
   `.workspace\tls\` (public: the certificate) safe and private.
 - **Updating**: `npm run update` (or **Update setup** on the launcher's Host page) compares
@@ -171,6 +171,15 @@ button for it.
   in the project, and says so. When it says the game runtime changed, build the runtime again and
   `npm run publish-runtime`; players are asked to accept a new runtime. `git pull` then `npm run setup`
   does the same by hand.
+- **Moving to the server release** (no Rust, git or npm builds on this PC; the backend and Director
+  still need Node.js): from the `server-v<version>` release on GitHub, download
+  `ReforgedRevivalServer-<version>-windows-x64.zip` and `SHA256SUMS.txt`, check the zip
+  (`Get-FileHash <zip>` against its line), take `bin\reforged-host.exe` out of it, put it in
+  `D:\Reforged` and run `.\reforged-host.exe update` there. It downloads the release again, checks it,
+  installs it over `D:\Reforged` (your `.workspace`, SDK and game data stay) and runs setup again.
+  From then on `D:\Reforged\bin\reforged-host.exe update` updates the server (delete the copy in
+  `D:\Reforged`); a new server can also start from the zip: extract it and run
+  `bin\reforged-host.exe setup` in the folder. See [hosting-linux.md](hosting-linux.md#running-it).
 - **A new certificate** (public) changes the fingerprint: send new invites. Players keep their
   accounts; the launcher asks them to confirm the new certificate first.
 - **CPU and RAM**: each game server is capped at 30 frames per second, and at 10 once nobody has been
@@ -178,7 +187,7 @@ button for it.
   5 min without players; the game servers log warnings and errors only. Change it with
   `npm run setup -- --server-fps 30 --idle-fps 10`, `--training-idle-minutes 5` (0 keeps them running),
   `--training-at-boot` and `--verbose-game-logs` (then restart). The frame cap and the runtime's CPU
-  fixes are in the runtime (patches 0019 and 0020 in [upstream/README.md](../upstream/README.md)): after
+  fixes are in the runtime (patches 0019 and 0020 in [paradox-patches.md](paradox-patches.md)): after
   `npm run update`, build it again and `npm run publish-runtime`. `npm run doctor` says whether the
   published runtime has them. More in [hosting-linux.md](hosting-linux.md#cpu-and-ram).
 
