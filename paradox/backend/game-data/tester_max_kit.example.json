@@ -1,0 +1,9 @@
+{
+  "comment": "Synthetic placeholder: the shape of tester_max_kit.json for POST /admin/v1/players/:userId/tester-max. Copy it to tester_max_kit.json and set your own targets. progression: targetProgress is the XP the track is set to (never lowered), or \"max\" for the top regular rank; the track must be an approved XP track in progression_config.json. inventory (optional): stacked adds by catalog id; every id must be in inventory_storage_policy.json. currencies: CURRENCY_* ids; the CURRENCY_PLATINUM aggregate is refused (grant a CURRENCY_PLATINUM_* bucket for Platinum). Every grant carries the economy source OPERATOR_TEST, which the activity and economy monitors do not count.",
+  "progression": [
+    { "progressionId": "ExperienceTrack_PlayerLevel", "targetProgress": "max" }
+  ],
+  "currencies": [
+    { "catalogId": "CURRENCY_NOTES", "quantity": 1000 }
+  ]
+}

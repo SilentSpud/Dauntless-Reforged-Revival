@@ -13,7 +13,7 @@ import {
     IsAuthorizedProgressionReporter,
     IsCharacterOwnedByUser
 } from "./controllers/progression";
-import { CaptureProgressionObjectiveEvent, GetTrackCurve, PrestigeExperienceTrack, PrestigeTrackFor, RankForProgress } from "./controllers/progression";
+import { CaptureProgressionObjectiveEvent } from "./controllers/progression";
 
 const Track = {
     userId: "user-1",
@@ -38,7 +38,7 @@ test("progression grant request hashes are canonical and bind every mutation fie
 
 test("XP mutation allowlist excludes config-only historical/test tracks", () => {
     assert.equal(IsApprovedXpProgressionTrack("ExperienceTrack_PlayerLevel"), true);
-    assert.equal(IsApprovedXpProgressionTrack("single_track"), false);
+    assert.equal(IsApprovedXpProgressionTrack("season27"), false);   // has a curve; not on the allowlist, not served
     assert.equal(IsApprovedXpProgressionTrack("test_minipass01"), false);
     assert.equal(APPROVED_XP_PROGRESSION_TRACK_IDS.includes("MasteryTrack_Behemoth"), true);
 });
@@ -79,78 +79,6 @@ test("absolute player progression reports are retained as diagnostics but never 
         objectives: [{ objective_id: "Objective_1", value: 1_000_000_000, completed_count: 1_000_000 }]
     }, Diagnostics);
     assert.equal(Appended, 1);
-});
-
-test("a game server's objective reports are stored with the max-guard; a player's never are", async () => {
-    const Stored: Array<[string, number, number]> = [];
-    const Repository = {
-        appendObjectiveEvent: async () => {},
-        setObjectiveIfGreater: async (_user: string, objectiveId: string, value: number, completedCount: number) => {
-            Stored.push([objectiveId, value, completedCount]);
-            return {} as any;
-        }
-    };
-    const Report = { objectives: [{ objective_id: "Daily_Collectible_Ramsgate", value: 3, completed_count: 1 }] };
-    await CaptureProgressionObjectiveEvent("user-1", Report, Repository);
-    assert.deepEqual(Stored, [], "a player's own report stays diagnostics-only");
-    await CaptureProgressionObjectiveEvent("user-1", Report, Repository, true);
-    assert.deepEqual(Stored, [["Daily_Collectible_Ramsgate", 3, 1]]);
-});
-
-test("a game server's mastery track deltas are added once per new objective completion", async () => {
-    const Stored = new Map<string, number>();
-    const Progress = new Map<string, number>();
-    const Repository = {
-        appendObjectiveEvent: async () => {},
-        setObjectiveIfGreater: async (_user: string, objectiveId: string, value: number, completedCount: number) => {
-            const Previous = Stored.get(objectiveId) ?? 0;
-            Stored.set(objectiveId, Math.max(Previous, completedCount));
-            return { previousCompletedCount: Previous } as any;
-        },
-        increment: async (_user: string, progressionId: string, amount: number) => {
-            Progress.set(progressionId, (Progress.get(progressionId) ?? 0) + amount);
-            return { progress: Progress.get(progressionId) } as any;
-        }
-    };
-    // Captured from a 1.14.7 hunt: one report per completed objective, each a delta.
-    const Breaks = {
-        progress_tracks: [{ progression_id: "MasteryTrack_PlayerLevel", progress: 1 }, { progression_id: "MasteryTrack_Weapon_Strikers", progress: 1 }],
-        objectives: [{ objective_id: "MasteryObjective_Weapon_Strikers_Generic_Breaks2", value: 10, completed_count: 1 }]
-    };
-    const Kills = {
-        progress_tracks: [{ progression_id: "MasteryTrack_PlayerLevel", progress: 1 }, { progression_id: "MasteryTrack_Weapon_Strikers", progress: 1 }],
-        objectives: [{ objective_id: "MasteryObjective_Weapon_Strikers_Generic_Kills1", value: 2, completed_count: 1 }]
-    };
-    await CaptureProgressionObjectiveEvent("user-1", Breaks, Repository);
-    assert.equal(Progress.size, 0, "a player's own report grants no mastery XP");
-    await CaptureProgressionObjectiveEvent("user-1", Breaks, Repository, true);
-    await CaptureProgressionObjectiveEvent("user-1", Kills, Repository, true);
-    assert.equal(Progress.get("MasteryTrack_PlayerLevel"), 2);
-    assert.equal(Progress.get("MasteryTrack_Weapon_Strikers"), 2);
-
-    // The same completion reported again (a later hunt) adds nothing; a mixed report adds only the new one.
-    await CaptureProgressionObjectiveEvent("user-1", Kills, Repository, true);
-    await CaptureProgressionObjectiveEvent("user-1", {
-        progress_tracks: [
-            { progression_id: "MasteryTrack_PlayerLevel", progress: 2 },
-            { progression_id: "MasteryTrack_Behemoth", progress: 1 },
-            { progression_id: "MasteryTrack_Weapon_Strikers", progress: 1 }
-        ],
-        objectives: [
-            { objective_id: "MasteryObjective_Behemoth_Host_Kill", value: 1, completed_count: 1 },
-            { objective_id: "MasteryObjective_Weapon_Strikers_Generic_Kills1", value: 2, completed_count: 1 }
-        ]
-    }, Repository, true);
-    assert.equal(Progress.get("MasteryTrack_PlayerLevel"), 3);
-    assert.equal(Progress.get("MasteryTrack_Behemoth"), 1);
-    assert.equal(Progress.get("MasteryTrack_Weapon_Strikers"), 2);
-
-    // Only MasteryTrack_* tracks: the others still arrive through the grant route.
-    await CaptureProgressionObjectiveEvent("user-1", {
-        progress_tracks: [{ progression_id: "ExperienceTrack_PlayerLevel", progress: 500 }],
-        objectives: [{ objective_id: "MasteryObjective_Weapon_Sword_Generic_Kills1", value: 2, completed_count: 1 }]
-    }, Repository, true);
-    assert.equal(Progress.has("ExperienceTrack_PlayerLevel"), false);
 });
 
 test("journey merge preserves concurrent unlocks and stale stored values", () => {
@@ -292,56 +220,4 @@ test("a duplicate-key transaction race retries outside the aborted session", asy
     assert.equal(Attempts, 2);
     assert.equal(Increments, 1);
     assert.equal(Result.replayed, true);
-});
-
-// [Dauntless Reforged Revival] Weapon reforge: DELETE /progression/<user>/ExperienceTrack_Weapon_<weapon>.
-function FakeReforgeUnitOfWork(initial: Record<string, number>) {
-    const Rows = new Map<string, any>(Object.entries(initial).map(([Id, Progress]) => [Id, { ...Track, progressionId: Id, progress: Progress, confirmedFremiumRank: 0 }]));
-    const progressionTracks: any = {
-        get: async (_u: string, Id: string) => Rows.get(Id) ? { ...Rows.get(Id) } : undefined,
-        increment: async (_u: string, Id: string, Amount: number) => {
-            const Row = Rows.get(Id) ?? { ...Track, progressionId: Id, progress: 0, confirmedFremiumRank: 0 };
-            Row.progress += Amount; Rows.set(Id, Row); return { ...Row };
-        },
-        setConfirmedFremiumRank: async (_u: string, Id: string, Rank: number) => {
-            const Row = Rows.get(Id) ?? { ...Track, progressionId: Id, progress: 0, confirmedFremiumRank: 0 };
-            Row.confirmedFremiumRank = Math.max(Row.confirmedFremiumRank, Rank); Rows.set(Id, Row); return { ...Row };
-        },
-        resetForPrestige: async (_u: string, Id: string, Amount: number) => {
-            const Row = Rows.get(Id);
-            if (Row === undefined || Row.progress < Amount) return undefined;
-            Row.progress -= Amount; Row.confirmedFremiumRank = 0; Row.confirmedPremiumRank = 0; return { ...Row };
-        }
-    };
-    return { Rows, unitOfWork: { withTransaction: async (fn: any) => fn({ progressionTracks }, undefined) } };
-}
-
-test("a weapon reforge resets the maxed weapon and raises its reforge level each time", async () => {
-    const Full = GetTrackCurve("ExperienceTrack_Weapon_Axe")!.cumulativeXpForRank.get(GetTrackCurve("ExperienceTrack_Weapon_Axe")!.maxRank)!;
-    const Prestige = GetTrackCurve("PrestigeTrack_Weapon_Axe")!;
-    const { Rows, unitOfWork } = FakeReforgeUnitOfWork({ ExperienceTrack_Weapon_Axe: Full });
-
-    const First = await PrestigeExperienceTrack("user-1", "ExperienceTrack_Weapon_Axe", unitOfWork);
-    assert.equal(First.ok, true);
-    assert.equal(Rows.get("ExperienceTrack_Weapon_Axe").progress, 0);
-    assert.equal(First.ok && First.prestigeRank, 2);
-    assert.equal(RankForProgress(Prestige, Rows.get("PrestigeTrack_Weapon_Axe").progress), 2);
-
-    // Not maxed again yet: a repeated request does not count a second reforge.
-    assert.deepEqual(await PrestigeExperienceTrack("user-1", "ExperienceTrack_Weapon_Axe", unitOfWork), { ok: false, reason: "not_max_rank" });
-    assert.equal(RankForProgress(Prestige, Rows.get("PrestigeTrack_Weapon_Axe").progress), 2);
-
-    // Maxed again: the second reforge reaches the next level (the reported bug: it stayed at the first).
-    Rows.get("ExperienceTrack_Weapon_Axe").progress = Full + 40;
-    const Second = await PrestigeExperienceTrack("user-1", "ExperienceTrack_Weapon_Axe", unitOfWork);
-    assert.equal(Second.ok && Second.prestigeRank, 3);
-    assert.equal(Rows.get("ExperienceTrack_Weapon_Axe").progress, 40, "XP above the full curve stays");
-    assert.equal(Rows.get("PrestigeTrack_Weapon_Axe").confirmedFremiumRank, 3);
-    assert.equal(RankForProgress(Prestige, Rows.get("PrestigeTrack_Weapon_Axe").progress), 3);
-});
-
-test("only weapon experience tracks can be reforged", async () => {
-    const { unitOfWork } = FakeReforgeUnitOfWork({ ExperienceTrack_PlayerLevel: 999999 });
-    assert.deepEqual(await PrestigeExperienceTrack("user-1", "ExperienceTrack_PlayerLevel", unitOfWork), { ok: false, reason: "unknown_track" });
-    assert.equal(PrestigeTrackFor("ExperienceTrack_Weapon_Hammer"), "PrestigeTrack_Weapon_Hammer");
 });

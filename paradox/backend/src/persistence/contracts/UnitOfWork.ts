@@ -33,8 +33,12 @@ import { EscalationProgressRepository } from "./EscalationProgressRepository";
 import { BountyStateRepository } from "./BountyStateRepository";
 import { CooldownStateRepository } from "./CooldownStateRepository";
 import { EntitlementRepository } from "./EntitlementRepository";
+import { EmailCodeRepository } from "./EmailCodeRepository";
 import { PartyRepository } from "./PartyRepository";
 import { LauncherGuardRepository } from "./LauncherGuardRepository";
+import { EconomyRollupRepository } from "./EconomyRollupRepository";
+import { ActivityRepository } from "./ActivityRepository";
+import { LauncherNoticesRepository } from "./LauncherNoticesRepository";
 
 // The set of repositories the MongoDB provider supplies. This is the
 // "composition root" surface — controllers/services obtain repositories
@@ -55,6 +59,11 @@ export interface RepositoryProvider {
     bountyStates: BountyStateRepository;
     cooldownStates: CooldownStateRepository;
 
+    // [2026-10-14] Daily economy rollups for the monitors (diagnostics/economyLedgerMonitor.ts). Never read by a grant.
+    economyRollups: EconomyRollupRepository;
+    // [2026-10-14] Activity monitor (src/activity): counters, hunt rows, unlock history, flags. Monitoring only.
+    activity: ActivityRepository;
+
     // Launcher auth (Plans/LAUNCHER_BACKEND_AUTH_REQUIREMENTS.md) — additive,
     // does not change any existing game route's behavior.
     launcherAccounts: LauncherAccountRepository;
@@ -62,6 +71,11 @@ export interface RepositoryProvider {
     refreshSessions: RefreshSessionRepository;
     gameExchangeCodes: GameExchangeCodeRepository;
     discordOAuthTransactions: DiscordOAuthTransactionRepository;
+    // [2026-10-15] The live one-time codes of email verification and password reset (contracts/EmailCodeRepository.ts).
+    emailCodes: EmailCodeRepository;
+
+    // [2026-10-15] The launcher notices: sticky announcements and tags set from the manager (contracts/LauncherNoticesRepository.ts).
+    launcherNotices: LauncherNoticesRepository;
 
     // [hardening] Idempotency ledger for POST /inventory (see InventoryTransactionRepository.ts).
     inventoryTransactions: InventoryTransactionRepository;

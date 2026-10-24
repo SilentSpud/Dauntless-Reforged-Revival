@@ -26,8 +26,17 @@ import {
     CheckUsernameAvailable,
     SetUsername
 } from "../controllers/launcherAuth";
-import { StartDiscordAuth, HandleDiscordCallback, CompleteDiscordLogin } from "../controllers/discordAuth";
+import {
+    StartDiscordAuth, StartDiscordLink, HandleDiscordCallback, CompleteDiscordLogin, StartDiscordUnlink, ConfirmDiscordUnlink
+} from "../controllers/discordAuth";
+// [2026-10-15] The email routes (email verification, resend, password reset by code) and their code flow (controllers/emailCodes.ts).
+import { ResendEmailCode, RequestPasswordResetCode, ResetPasswordWithCode, VerifyEmailWithPassword } from "../controllers/launcherEmail";
 import { GetLauncherPolicy } from "../controllers/launcherPolicy";
+// [2026-10-15] The launcher notices the launcher shows (controllers/launcherNotices.ts): public, the sign-in screen shows them too.
+import { GetPublicLauncherNotices } from "../controllers/launcherNotices";
+import { AcceptConsent, CancelAccountDeletion, GetConsentState, GetDeletionState, RequestAccountDeletion } from "../controllers/launcherAccount";
+import { CurrentLegalRequirements } from "../legal/legalPolicy";
+import { ReadOfficialPlay } from "../config/officialPlay";
 import { ParseRuntimeChannel } from "../security/runtimeAuthorization";
 
 // Implements the /launcher/v1 contract from Plans/LAUNCHER_BACKEND_AUTH_REQUIREMENTS.md.
@@ -84,7 +93,8 @@ launcherAuthRouter.use((req, res, next) => {
         }
         res.header("Access-Control-Allow-Origin", Origin);
         res.header("Vary", "Origin");
-        res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        // DELETE is for DELETE /launcher/v1/account/deletion (restore a deactivated account); nothing else uses it.
+        res.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
         res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
         logger.info(`[CORS] Allowed origin: ${Origin}`);
     }
@@ -131,7 +141,7 @@ async function Handle(req: Request, res: Response, fn: () => Promise<unknown>, s
 launcherAuthRouter.post("/launcher/v1/auth/register", (req, res) =>
     Handle(req, res, () => {
         const { deviceId, deviceName } = GetDeviceFields(req);
-        return RegisterAccount(req.body?.displayName, req.body?.email, req.body?.password, deviceName, deviceId, GetClientIp(req));
+        return RegisterAccount(req.body?.displayName, req.body?.email, req.body?.password, deviceName, deviceId, GetClientIp(req), req.body?.consent);
     }, 202)
 );
 
@@ -186,6 +196,44 @@ launcherAuthRouter.post("/launcher/v1/auth/discord/complete", (req, res) =>
     })
 );
 
+// [2026-10-15] Email verification and password reset by code. Verify takes the password and the code; resend and forgot always answer
+// { sent: true }; reset takes the code and the new password. Each route is limited per address and per IP (controllers/launcherEmail.ts).
+launcherAuthRouter.post("/launcher/v1/auth/email/verify", (req, res) =>
+    Handle(req, res, () => {
+        const { deviceId, deviceName } = GetDeviceFields(req);
+        return VerifyEmailWithPassword(req.body?.email, req.body?.password, req.body?.code, deviceId, deviceName, GetClientIp(req));
+    })
+);
+
+launcherAuthRouter.post("/launcher/v1/auth/email/resend", (req, res) =>
+    Handle(req, res, () => ResendEmailCode(req.body?.email, GetClientIp(req)))
+);
+
+launcherAuthRouter.post("/launcher/v1/auth/password/forgot", (req, res) =>
+    Handle(req, res, () => RequestPasswordResetCode(req.body?.email, GetClientIp(req)))
+);
+
+launcherAuthRouter.post("/launcher/v1/auth/password/reset", (req, res) =>
+    Handle(req, res, () => {
+        const { deviceId, deviceName } = GetDeviceFields(req);
+        return ResetPasswordWithCode(req.body?.email, req.body?.code, req.body?.newPassword, deviceId, deviceName, GetClientIp(req));
+    })
+);
+
+// [2026-10-15] Link Discord to the signed-in account in Settings (the OAuth comes back to mysticparadox://link/done or link/error). Unlinking
+// is two steps: the start mails a code (purpose "unlink"), and the confirm checks it and unlinks. The one-click DELETE is gone.
+launcherAuthRouter.post("/launcher/v1/account/discord/link/start", HasLauncherAuth, (req, res) =>
+    Handle(req, res, () => StartDiscordLink((req as any).LauncherAuthData.userId))
+);
+
+launcherAuthRouter.post("/launcher/v1/account/discord/unlink/start", HasLauncherAuth, (req, res) =>
+    Handle(req, res, () => StartDiscordUnlink((req as any).LauncherAuthData.userId, GetClientIp(req)))
+);
+
+launcherAuthRouter.post("/launcher/v1/account/discord/unlink", HasLauncherAuth, (req, res) =>
+    Handle(req, res, () => ConfirmDiscordUnlink((req as any).LauncherAuthData.userId, req.body?.code, GetClientIp(req)))
+);
+
 launcherAuthRouter.get("/launcher/v1/me", HasLauncherAuth, (req, res) =>
     Handle(req, res, () => GetAccountView((req as any).LauncherAuthData.userId))
 );
@@ -224,7 +272,9 @@ launcherAuthRouter.post("/launcher/v1/game-sessions", HasLauncherAuth, (req, res
             ExecutableSha256,
             RuntimeChannel,
             RuntimeManifestVersion,
-            RuntimeArtifacts
+            RuntimeArtifacts,
+            req.body?.realm,
+            req.body?.launcher
         );
     })
 );
@@ -236,6 +286,37 @@ launcherAuthRouter.get("/launcher/v1/policy", HasLauncherAuth, (req, res) =>
 launcherAuthRouter.get("/launcher/v1/status", (req, res) =>
     Handle(req, res, async () => ({
         online: await GetPersistenceLifecycle().isHealthy(),
-        supportedBuildChangelist: Number(process.env.TARGET_CHANGELIST ?? 0)
+        supportedBuildChangelist: Number(process.env.TARGET_CHANGELIST ?? 0),
+        // [2026-10-15] Whether official play (no realm) is offered, and the message the launcher shows when it is not. Older launchers
+        // ignore the field.
+        officialPlay: ReadOfficialPlay()
     }))
+);
+
+// [2026-10-14] The Terms of Use and Privacy Policy versions and the minimum age the launcher must show (no sign-in needed).
+launcherAuthRouter.get("/launcher/v1/legal", (req, res) => Handle(req, res, async () => CurrentLegalRequirements()));
+
+// [2026-10-15] The sticky announcements and tags active now (no sign-in; a read error answers the empty set).
+launcherAuthRouter.get("/launcher/v1/notices", (req, res) => GetPublicLauncherNotices(req, res));
+
+// [2026-10-14] Consent to the current documents. These routes and the deletion ones keep working while the account is deactivated.
+launcherAuthRouter.get("/launcher/v1/account/consent", HasLauncherAuth, (req, res) =>
+    Handle(req, res, () => GetConsentState((req as any).LauncherAuthData.userId))
+);
+
+launcherAuthRouter.post("/launcher/v1/account/consent", HasLauncherAuth, (req, res) =>
+    Handle(req, res, () => AcceptConsent((req as any).LauncherAuthData.userId, req.body))
+);
+
+// [2026-10-14] Account deletion: a request deactivates the account for DELETION_HOLD_DAYS (30); DELETE restores it while the hold lasts.
+launcherAuthRouter.get("/launcher/v1/account/deletion", HasLauncherAuth, (req, res) =>
+    Handle(req, res, () => GetDeletionState((req as any).LauncherAuthData.userId))
+);
+
+launcherAuthRouter.post("/launcher/v1/account/deletion", HasLauncherAuth, (req, res) =>
+    Handle(req, res, () => RequestAccountDeletion((req as any).LauncherAuthData.userId, req.body))
+);
+
+launcherAuthRouter.delete("/launcher/v1/account/deletion", HasLauncherAuth, (req, res) =>
+    Handle(req, res, () => CancelAccountDeletion((req as any).LauncherAuthData.userId))
 );

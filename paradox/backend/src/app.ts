@@ -11,7 +11,6 @@
  */
 
 import express from "express";
-import { rateLimit } from "express-rate-limit";
 import { loginRouter } from "./routes/login.js";
 import { logger } from "./logger.js";
 import { eosRouter } from "./routes/eos.js";
@@ -33,7 +32,7 @@ import { launcherLogsRouter } from "./routes/launcherLogs.js";
 import { adminLauncherLogsRouter } from "./routes/adminLauncherLogs.js";
 import { adminRouter } from "./routes/admin.js";
 import { sanitizeUrlForLog } from "./security/logRedaction.js";
-import { RequestRateLimitOptions } from "./security/rateLimit.js";
+import { CreateRequestRateLimiter } from "./security/rateLimit.js";
 import { GetRequestId, RequestContextMiddleware } from "./observability/requestContext.js";
 import { launcherGuardRouter } from "./routes/launcherGuard.js";
 import { GetPersistenceLifecycle } from "./persistence";
@@ -42,10 +41,18 @@ import { ReadMetagameServiceRole } from "./config/serviceRole";
 import { AdjustMetric, IncrementMetric, ObserveMetric } from "./observability/metrics";
 import { metricsRouter } from "./routes/metrics";
 import { GetP2PExtension } from "./extensions/p2p";
+import { releaseGatesRouter } from "./routes/releaseGates";
+import { ReadAdminApiPolicy } from "./config/adminApi";
+import { MountRealmsModule } from "./realms";
+import { TRUST_PROXY_SETTING } from "./config/proxyTrust";
+import { CaptureAdminRawBody } from "./security/managerOperator";
 import { reforgedApiRouter } from "./routes/reforgedApi";
 
 // Optional player-hosted hunt module (dedicated-only defaults when it is absent).
 const Extension = GetP2PExtension();
+// [2026-10-15] MYSTICPARADOX_ADMIN_API (config/adminApi.ts): off unless set, or unless the manager bridge is on. An invalid value
+// throws here, so startup stops.
+export const AdminApi = ReadAdminApiPolicy();
 
 // Request tagged with the original backend host, decoded from the /__origin/<host>/
 // prefix that the injected DLL's SetURL hook adds (see the strip middleware below).
@@ -66,12 +73,11 @@ function isAllowedOriginHost(host: string): boolean {
 
 export const app = express();
 
-// req.ip / X-Forwarded-For trust. The in-process DLL redirect (see the strip
-// middleware below) points the game straight at this server over TLS — there is
-// no nginx in front. Kept as "loopback" so a future same-box reverse proxy still
-// resolves the real client for per-IP rate limiting (security/rateLimit.ts);
-// change this only if a trusted L7 proxy is actually deployed ahead of Metagame.
-app.set("trust proxy", "loopback");
+// req.ip / X-Forwarded-For trust. With the in-process HTTPS listener the game connects straight to this
+// server. [2026-10-14 M2] Behind nginx (MYSTICPARADOX_TLS_TERMINATED_BY_PROXY=on) the peer is the loopback
+// proxy, so req.ip is the client the proxy forwarded (per-IP rate limiting, security/rateLimit.ts); any other
+// peer is its own address, whatever X-Forwarded-For says (config/proxyTrust.ts, tested).
+app.set("trust proxy", TRUST_PROXY_SETTING);
 
 // Install the request context before parsers and routers so every downstream async log,
 // including the DeployServer fetch, carries one safe correlation identifier.
@@ -132,14 +138,12 @@ if ((process.env.MYSTICPARADOX_LOG_ORIGIN_BODIES ?? "0") === "1") {
     });
 }
 
-// Routes of an optional module that need their own body parser are mounted before the shared
-// parsers. All other routes use Express's default limit.
-Extension.http.mountEarlyRoutes(app);
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Per-address request budget (security/rateLimit.ts). One instance, counted once per request.
+const RequestLimiter = CreateRequestRateLimiter();
 
 // [move5 diagnostic — 2026-07-10]
+// [2026-10-16] Mounted ahead of the request budget and the early (player-host) routes: /mystic/v1/hunts (lease, Guard evidence,
+// completion) used to bypass it, so a refused completion or lease never appeared in the backend log.
 // Log every incoming request BEFORE any router so we can definitively answer:
 //   1. Does this request reach the metagame at all?
 //   2. Does it carry the x-mysticparadox-gameserver-apikey header? (→ IsGameserver path)
@@ -150,6 +154,8 @@ app.use(express.urlencoded({ extended: true }));
 // [BODY-CAPTURE] Toggle: dump request bodies for progression/store/currency POST paths to learn the client
 // contract (Slayer's Path unlocks, currency spends). OFF by default; enable with env MYSTICPARADOX_BODY_CAPTURE=1
 // (accepts 1/true/on/yes). Kept behind a flag so it can be re-enabled for future contract debugging.
+/** [2026-10-16] The player-host lease and Guard evidence routes (see the request log below). */
+const HIGH_FREQUENCY_HOST_ROUTE = /^\/mystic\/v1\/hunts\/[^/]+\/(lease|event-batches)$/;
 const BODY_CAPTURE_ENABLED = /^(1|true|on|yes)$/i.test(process.env.MYSTICPARADOX_BODY_CAPTURE ?? "");
 
 app.use((req, res, next) => {
@@ -165,19 +171,43 @@ app.use((req, res, next) => {
     const authBearer = typeof req.headers.authorization === "string" && req.headers.authorization.toLowerCase().startsWith("bearer ") ? "Y" : "N";
     const originHost = (req as OriginTaggedRequest).originHost;
     const loggedUrl = sanitizeUrlForLog(req.originalUrl);
-    logger.info(`[REQ] requestId=${requestId} ${req.method} ${req.headers.host || "?"}${loggedUrl}${originHost ? ` origin=${originHost}` : ""} gsKey=${gsKey}${Extension.http.requestLogTags(req)} bearer=${authBearer}`);
-    if (BODY_CAPTURE_ENABLED && req.method === "POST" && /(pjm|progression|breadcrumbs|store|reconcile|balance|purchase|unlock|merit|currenc|inventory)/i.test(req.originalUrl)) {
-        try { logger.info(`[BODY-CAPTURE] ${req.method} ${loggedUrl} body=${JSON.stringify(req.body)}`); } catch { /* ignore */ }
-    }
+    const requestLine = `[REQ] requestId=${requestId} ${req.method} ${req.headers.host || "?"}${loggedUrl}${originHost ? ` origin=${originHost}` : ""} gsKey=${gsKey}${Extension.http.requestLogTags(req)} bearer=${authBearer}`;
+    // [2026-10-16] A player host renews its lease every ~2 s and sends one Guard evidence batch per event: those two are logged
+    // only when refused (both lines then, at the answer), so a failure shows without a line pair per heartbeat and per hit.
+    const quietWhenOk = HIGH_FREQUENCY_HOST_ROUTE.test(req.path);
+    if (!quietWhenOk) logger.info(requestLine);
     res.on("finish", () => {
         AdjustMetric("mysticparadox_http_inflight", -1);
         IncrementMetric("mysticparadox_http_responses_total", 1, { class: metricClass, status: `${Math.floor(res.statusCode / 100)}xx` });
         ObserveMetric("mysticparadox_http_request_duration_ms", Date.now() - started, { class: metricClass });
         // Authentication may add safe ` key=value` tags (for example an optional module's runtime identity).
         const responseTags = typeof res.locals.responseLogTags === "string" ? res.locals.responseLogTags : "";
+        if (quietWhenOk && res.statusCode < 400) return;
+        if (quietWhenOk) logger.info(requestLine);
         logger.info(`[RES] requestId=${requestId} ${req.method} ${loggedUrl} → ${res.statusCode}` +
             `${responseTags} (${Date.now() - started}ms)`);
     });
+    next();
+});
+
+// [2026-10-11 P2P, plan 39_ §13.1 B4] The player-hosted hunt routes are mounted early (below) for their own body
+// parser, which put them ahead of the request budget: lease, admission, Guard evidence and completion calls were
+// never limited. They now pass the same budget (hosts get their own bucket there) before their router.
+app.use("/mystic/v1/hunts", RequestLimiter);
+
+// Routes of an optional module that need their own body parser are mounted before the shared
+// parsers. All other routes use Express's default limit.
+Extension.http.mountEarlyRoutes(app);
+
+// [2026-10-14, P5.1] The verify hook keeps the raw bytes of /admin/v1 bodies for the manager operator signature (security/managerOperator.ts).
+app.use(express.json({ verify: CaptureAdminRawBody }));
+app.use(express.urlencoded({ extended: true }));
+
+// [BODY-CAPTURE] (see BODY_CAPTURE_ENABLED above) needs the parsed body, so it runs after the shared parsers.
+app.use((req, _res, next) => {
+    if (BODY_CAPTURE_ENABLED && req.method === "POST" && /(pjm|progression|breadcrumbs|store|reconcile|balance|purchase|unlock|merit|currenc|inventory)/i.test(req.originalUrl)) {
+        try { logger.info(`[BODY-CAPTURE] ${req.method} ${sanitizeUrlForLog(req.originalUrl)} body=${JSON.stringify(req.body)}`); } catch { /* ignore */ }
+    }
     next();
 });
 
@@ -206,9 +236,13 @@ app.get("/health/ready", async (_req, res) => {
     });
 });
 
+// [2026-10-14] Manager preflight (observability/releaseGates.ts). Loopback peers only, refused by the route itself; mounted with the
+// health probes, before the request budget and before any router's auth. [2026-10-15] Only with the admin API on.
+if (AdminApi.enabled) app.use("/", releaseGatesRouter);
+
 // Per-address request budget for every router below (security/rateLimit.ts). The health probes above stay outside
 // it; the request log above still records each 429.
-app.use(rateLimit(RequestRateLimitOptions()));
+app.use(RequestLimiter);
 
 app.use("/", metricsRouter);
 
@@ -231,8 +265,22 @@ app.use("/", launcherAuthRouter);
 app.use("/", reforgedApiRouter);
 app.use("/", launcherUpdatesRouter);
 app.use("/", launcherLogsRouter);
-app.use("/", adminLauncherLogsRouter);
-app.use("/", adminRouter);
+// [2026-10-15] With the admin API off, every /admin path answers 404 here, before the admin routers and before the optional
+// module's own /admin routes (mounted below), so a self-hosted backend exposes no admin surface.
+app.use("/admin", (_req, res, next) => {
+    if (AdminApi.enabled) {
+        next();
+        return;
+    }
+    res.status(404).end();
+});
+if (AdminApi.enabled) {
+    app.use("/", adminLauncherLogsRouter);
+    app.use("/", adminRouter);
+}
+// [2026-10-13 realms S2] Paradox realms directory (src/realms), /launcher/v1/realms with its own launcher auth. Mounted only
+// when MYSTICPARADOX_REALMS_MODULE is on|true|1; off by default.
+MountRealmsModule(app);
 Extension.http.mountRoutes(app);
 app.use("/", launcherGuardRouter);
 

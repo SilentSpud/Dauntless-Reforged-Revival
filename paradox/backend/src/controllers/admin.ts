@@ -16,6 +16,7 @@ import { VerifyTotp } from "../security/totp";
 import { IsRateLimited } from "../security/rateLimit";
 import { ADMIN_COOKIE_NAME } from "../middleware/HasAdminAuth";
 import { sessionRegistry } from "../realtime/SessionRegistry";
+import { RecentlyActiveAccountIds } from "../activity/activityMonitor";
 import { ASSIGNABLE_ROLES, TESTER_ROLE } from "../security/testerFeatures";
 
 const ADMIN_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
@@ -89,19 +90,40 @@ export async function AdminLogin(req: Request, res: Response): Promise<void> {
 }
 
 export async function AdminLogout(req: Request, res: Response): Promise<void> {
-    await GetRepositories().admin.revokeSession((req as any).AdminAuth.session.id);
+    const Session = (req as any).AdminAuth.session;
+    // [2026-10-14, P5.1] A manager operator request has no backend session to revoke or cookie to clear.
+    if (Session == undefined) {
+        res.json({});
+        return;
+    }
+    await GetRepositories().admin.revokeSession(Session.id);
     res.setHeader("Set-Cookie", `${ADMIN_COOKIE_NAME}=; ${AdminCookieOptions(0)}`);
     res.json({});
 }
 
 export async function AdminMe(req: Request, res: Response): Promise<void> {
     const Auth = (req as any).AdminAuth;
-    res.json({ csrfToken: Auth.session.csrfToken, account: PublicAccount(Auth.account) });
+    // A manager operator request has no session, so no CSRF token (the signature covers the request instead).
+    res.json({ csrfToken: Auth.session?.csrfToken ?? null, account: PublicAccount(Auth.account) });
+}
+
+/** [2026-10-15] `?ids=a,b,c`: the accounts with these ids (at most 100), for the dashboard's names of players not online. */
+export function ParsePlayerIds(value: unknown): string[] | undefined {
+    if (typeof value !== "string" || value.trim() === "") return undefined;
+    const Ids = [...new Set(value.split(",").map((id) => id.trim()).filter((id) => /^[A-Za-z0-9_-]{1,64}$/.test(id)))];
+    return Ids.slice(0, 100);
 }
 
 export async function ListPlayers(req: Request, res: Response): Promise<void> {
     const Page = Math.max(1, Number.parseInt(String(req.query.page ?? "1"), 10) || 1);
     const Limit = Math.min(100, Math.max(1, Number.parseInt(String(req.query.limit ?? "25"), 10) || 25));
+    const Ids = ParsePlayerIds(req.query.ids);
+    if (Ids !== undefined) {
+        const Found = (await Promise.all(Ids.map((UserId) => GetRepositories().launcherAccounts.findByUserId(UserId))))
+            .filter((Account): Account is LauncherAccountRecord => Account !== undefined);
+        res.json({ accounts: Found.map(PublicAccount), total: Found.length, page: 1, limit: Ids.length });
+        return;
+    }
     const Approval = ["pending", "approved", "rejected"].includes(String(req.query.approvalStatus))
         ? String(req.query.approvalStatus) as AccountApprovalStatus : undefined;
     const Status = ["active", "disabled", "banned"].includes(String(req.query.status))
@@ -116,10 +138,15 @@ export async function ListPlayers(req: Request, res: Response): Promise<void> {
     res.json({ accounts: Result.accounts.map(PublicAccount), total: Result.total, page: Page, limit: Limit });
 }
 
+/** [2026-10-15] A running game reports in about every 5 s (matchmaking heartbeat); a minute without one is offline. */
+const ONLINE_PRESENCE_WINDOW_MS = 60_000;
+
 export async function ListOnlinePlayers(_req: Request, res: Response): Promise<void> {
     // The XMPP registry represents live game-client sockets, not reusable launcher/login
     // sessions. Account IDs are deduplicated there when one client has multiple resources.
-    const AccountIds = sessionRegistry.onlineAccountIds();
+    // [2026-10-15] Plus every account whose game reported in within the last minute: a game on a realm or player-hosted
+    // server holds no XMPP socket, so the dashboard showed 0 online while people played (15 Oct repro).
+    const AccountIds = [...new Set([...sessionRegistry.onlineAccountIds(), ...RecentlyActiveAccountIds(ONLINE_PRESENCE_WINDOW_MS)])];
     const Accounts = await Promise.all(
         AccountIds.map((UserId) => GetRepositories().launcherAccounts.findByUserId(UserId))
     );
@@ -132,7 +159,7 @@ export async function ListOnlinePlayers(_req: Request, res: Response): Promise<v
         count: Players.length,
         players: Players,
         observedAt: new Date().toISOString(),
-        source: "xmpp"
+        source: "xmpp+presence"
     });
 }
 

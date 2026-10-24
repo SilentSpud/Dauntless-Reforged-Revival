@@ -66,18 +66,16 @@ test("non-tester policy is stable and stable is authorized", () => {
     assert.doesNotThrow(() => AssertRuntimeChannelMatchesAccount("stable", ["player"]));
 });
 
-test("non-tester beta and dev requests are denied", () => {
-    expectLauncherError(() => AssertRuntimeChannelMatchesAccount("beta", ["player"]), "AUTH_TESTER_REQUIRED");
-    expectLauncherError(() => AssertRuntimeChannelMatchesAccount("dev", ["player"]), "AUTH_TESTER_REQUIRED");
+test("beta and dev requests are denied", () => {
+    expectLauncherError(() => AssertRuntimeChannelMatchesAccount("beta", ["player"]), "AUTH_CHANNEL_MISMATCH");
+    expectLauncherError(() => AssertRuntimeChannelMatchesAccount("dev", ["player"]), "AUTH_CHANNEL_MISMATCH");
 });
 
-test("tester policy is beta and beta is authorized", () => {
-    assert.equal(ExpectedRuntimeChannel(["player", "tester"]), "beta");
-    assert.doesNotThrow(() => AssertRuntimeChannelMatchesAccount("beta", ["player", "tester"]));
-});
-
-test("tester cannot claim stable or dev when policy currently requires beta", () => {
-    expectLauncherError(() => AssertRuntimeChannelMatchesAccount("stable", ["player", "tester"]), "AUTH_CHANNEL_MISMATCH");
+test("[2026-10-16, owner] the tester role changes no channel: a tester is on stable, authorized on stable only", () => {
+    assert.equal(ExpectedRuntimeChannel(["player", "tester"]), "stable");
+    assert.equal(ExpectedRuntimeChannel(["player", "admin"]), "stable");
+    assert.doesNotThrow(() => AssertRuntimeChannelMatchesAccount("stable", ["player", "tester"]));
+    expectLauncherError(() => AssertRuntimeChannelMatchesAccount("beta", ["player", "tester"]), "AUTH_CHANNEL_MISMATCH");
     expectLauncherError(() => AssertRuntimeChannelMatchesAccount("dev", ["player", "tester"]), "AUTH_CHANNEL_MISMATCH");
 });
 

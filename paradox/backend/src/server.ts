@@ -14,11 +14,19 @@ import https from "node:https";
 import http from "node:http";
 import tls from "node:tls";
 
-import { app } from "./app";
+import { app, AdminApi } from "./app";
+import { DescribeAdminApiPolicy } from "./config/adminApi";
 import { DrainAndRegisterAPIKeys } from "./controllers/apikeys";
 import { DrainAndRegisterUserAPIKeys } from "./controllers/auth";
 import { AssertApiKeyHashSecret } from "./security/apiKeyHash";
 import { GetPersistenceLifecycle } from "./persistence";
+import { LogRegistrationApprovalPolicy, ResolveRegistrationApproval } from "./config/registrationApproval";
+import { AssertEmailVerificationConfig, EmailVerificationRequired, LogEmailVerificationPolicy, ResolveEmailVerification } from "./config/emailVerification";
+import { StartUnverifiedRegistrationSweeper } from "./controllers/launcherEmail";
+// [2026-10-15] The automatic purge of the uploaded launcher logs (90 days after their last upload; MYSTICPARADOX_LOG_RETENTION=off).
+import { LOG_STORAGE_ROOT } from "./routes/launcherLogs";
+import { StartUploadedLogRetention, UploadedLogRetentionJob } from "./services/launcherLogRetention";
+import { LogGuardModePolicy, ResolveGuardMode } from "./services/guardMode";
 import { initRealtime, shutdownRealtime } from "./realtime";
 import { logger } from "./logger";
 import { partyOutboxDispatcher } from "./realtime/PartyOutboxDispatcher";
@@ -26,17 +34,10 @@ import { AssertRuntimeSafety } from "./config/runtimeSafety";
 import { ReadMetagameServiceRole } from "./config/serviceRole";
 import { SetServiceReadiness } from "./observability/serviceReadiness";
 import { GetP2PExtension } from "./extensions/p2p";
+import { ResolveListenerPlan } from "./config/listenerPlan";
 import { GetTestMultipliers } from "./testMultipliers";
 
 const PORT = process.env.PORT?.trim() || "3000";
-// [Dauntless Reforged Revival] The address the HTTP listener binds. Unset keeps every interface (the
-// previous behaviour); the Reforged setup writes 127.0.0.1, so only the gateway, the deploy server and
-// the game servers on this machine reach it.
-const BIND_HOST = process.env.BIND_HOST?.trim() || undefined;
-// [Dauntless Reforged Revival] HTTP-only mode: the Reforged gateway terminates TLS with its own pinned
-// certificate and the launcher relays the game's traffic, so this process needs no HTTPS identity. The
-// realtime (XMPP) WebSocket is then served on the HTTP listener.
-const HTTP_ONLY = /^(1|true|yes|on)$/i.test(process.env.REFORGED_HTTP_ONLY?.trim() ?? "");
 
 // HTTPS listener for the game client. The injected DLL rewrites the official backend
 // hosts (*.steelyard.ca, *.steelyard.online, ...) to https://paradox.mysticfox.dev/__origin/...
@@ -80,6 +81,8 @@ function LoadTlsContext(CertPath: string, KeyPath: string, Label: string, Passph
 // Mongo client — GetPersistenceLifecycle().stop() existed already but nothing ever called it.
 let HttpServer: import("node:http").Server | undefined;
 let HttpsServer: https.Server | undefined;
+// [2026-10-15] The uploaded-log purge (services/launcherLogRetention.ts); undefined when MYSTICPARADOX_LOG_RETENTION=off.
+let UploadedLogRetention: UploadedLogRetentionJob | undefined;
 
 function HandleListenerError(Label: "HTTP" | "HTTPS", Error: Error, ServiceRole: ReturnType<typeof ReadMetagameServiceRole>): void {
     const reason = `${Label}_LISTENER_ERROR`;
@@ -98,44 +101,66 @@ async function Main(): Promise<void> {
     const serviceRole = ReadMetagameServiceRole();
     const moduleSummary = GetP2PExtension().server.startupSummary(serviceRole);
     if (moduleSummary != undefined) logger.info(moduleSummary, "[Startup] Optional module policy");
+    // [2026-10-14] One line with the active registration approval mode (every provider), plus warnings for an unrecognised value or the replaced switch.
+    LogRegistrationApprovalPolicy(ResolveRegistrationApproval(process.env));
+    // [2026-10-14] One line with the Guard mode (observe by default: Guard verdicts refuse nothing).
+    LogGuardModePolicy(ResolveGuardMode(process.env));
+    // [2026-10-15] One line: whether the admin API and the manager preflight are served (config/adminApi.ts).
+    logger.info(DescribeAdminApiPolicy(AdminApi));
     if (serviceRole !== "combined" && serviceRole !== "api") {
         throw new Error(`server.ts serves the combined or api role; ${serviceRole} has its own entry point.`);
     }
-    const ParadoxCtx = HTTP_ONLY ? undefined : LoadTlsContext(PARADOX_CERT_PATH, PARADOX_KEY_PATH, "paradox.mysticfox.dev", PARADOX_KEY_PASSPHRASE);
-    if (process.env.NODE_ENV === "production" && ParadoxCtx == undefined && !HTTP_ONLY) {
+    // [2026-10-14 M2] Behind a reverse proxy (MYSTICPARADOX_TLS_TERMINATED_BY_PROXY=on) the proxy holds the certificate: no HTTPS
+    // listener is opened and none is loaded here, in production too. Throws on an invalid switch value.
+    const Listeners = ResolveListenerPlan(process.env);
+    const ParadoxCtx = Listeners.tlsTerminatedByProxy
+        ? undefined
+        : LoadTlsContext(PARADOX_CERT_PATH, PARADOX_KEY_PATH, "paradox.mysticfox.dev", PARADOX_KEY_PASSPHRASE);
+    if (process.env.NODE_ENV === "production" && !Listeners.tlsTerminatedByProxy && ParadoxCtx == undefined) {
         throw new Error("Production API startup requires a valid HTTPS certificate and key.");
     }
     // API keys are HMAC-hashed under API_KEY_HASH_SECRET; refuse to start without it rather than reject every
     // gameserver request later.
     AssertApiKeyHashSecret();
+    // [2026-10-15] MYSTICPARADOX_EMAIL_VERIFICATION=required needs working SMTP settings: the same refusal to start as the line above. One
+    // line logs the mode (and the warning for an unrecognised value, once).
+    AssertEmailVerificationConfig(process.env);
+    LogEmailVerificationPolicy(ResolveEmailVerification(process.env));
     await GetPersistenceLifecycle().start();
+    if (EmailVerificationRequired(process.env)) StartUnverifiedRegistrationSweeper();
 
     await DrainAndRegisterAPIKeys();
     await DrainAndRegisterUserAPIKeys();
 
     partyOutboxDispatcher.start();
     GetP2PExtension().server.start(serviceRole);
+    // [2026-10-15] One pass about a minute after start, then every six hours. Each pass logs counts only.
+    UploadedLogRetention = StartUploadedLogRetention({ root: LOG_STORAGE_ROOT, log: (line) => logger.info(line) });
 
     // [Dauntless Reforged Revival] Say whether this private test server multiplies XP and rewards (testMultipliers.ts).
     const Multipliers = GetTestMultipliers();
     if (Multipliers.xp !== 1 || Multipliers.rewards !== 1) logger.warn(`[TestMultiplier] ON: XP x${Multipliers.xp}, rewards x${Multipliers.rewards} (private Tailscale server)`);
     else logger.info(`[TestMultiplier] off (${Multipliers.reason ?? "x1"})`);
 
-    const OnHttpListening = () => {
-        logger.info(`Mystic Paradox Metagame (HTTP) on ${BIND_HOST ?? "every interface"}, port ${PORT}`);
+    // [2026-10-14 M2] BIND_HOST (unset = every interface, as before). Behind a proxy the listener is ready as soon as it listens.
+    const ListenHttp = (listening: () => void) => (Listeners.httpBindHost != undefined
+        ? app.listen(Number(PORT), Listeners.httpBindHost, listening)
+        : app.listen(PORT, listening));
+    HttpServer = ListenHttp(() => {
+        logger.info(`Mystic Paradox Metagame (HTTP) on port ${PORT}${Listeners.httpBindHost != undefined ? ` bound to ${Listeners.httpBindHost}` : ""}`);
         logger.info(`Clear Skies, Slayer.`);
-        if (HTTP_ONLY) SetServiceReadiness({ ready: true, reason: "HTTP_ONLY_BEHIND_GATEWAY", role: serviceRole });
-    };
-    HttpServer = BIND_HOST ? app.listen(Number(PORT), BIND_HOST, OnHttpListening) : app.listen(PORT, OnHttpListening);
+        if (Listeners.tlsTerminatedByProxy) SetServiceReadiness({ ready: true, reason: "API_BEHIND_PROXY_RUNNING", role: serviceRole });
+    });
     HttpServer.on("error", (error) => {
         HandleListenerError("HTTP", error, serviceRole);
     });
-    if (HTTP_ONLY) {
-        initRealtime(HttpServer as unknown as https.Server);
+    // [2026-10-14 M2] Behind the proxy the XMPP WebSocket upgrade arrives on the plain listener; the Host allowlist still applies.
+    if (Listeners.realtimeListener === "HTTP") {
+        initRealtime(HttpServer, { behindProxy: Listeners.tlsTerminatedByProxy });
     }
 
-    if (HTTP_ONLY) {
-        logger.info("REFORGED_HTTP_ONLY: no HTTPS listener (the Reforged gateway terminates TLS)");
+    if (Listeners.tlsTerminatedByProxy) {
+        logger.info("TLS terminates at the reverse proxy (MYSTICPARADOX_TLS_TERMINATED_BY_PROXY=on): no HTTPS listener and no certificate loaded");
     } else if (ParadoxCtx == undefined) {
         logger.error("No HTTPS certificate available - HTTPS listener not started (game client TLS will fail)");
     } else {
@@ -167,7 +192,7 @@ async function Main(): Promise<void> {
             if (process.env.NODE_ENV === "production") throw e;
         }
     }
-    if (ParadoxCtx == undefined && !HTTP_ONLY && process.env.NODE_ENV !== "production") {
+    if (!Listeners.tlsTerminatedByProxy && ParadoxCtx == undefined && process.env.NODE_ENV !== "production") {
         SetServiceReadiness({ ready: true, reason: "HTTP_ONLY_DEVELOPMENT", role: serviceRole });
     }
 
@@ -187,11 +212,11 @@ async function Main(): Promise<void> {
     //
     // A bind failure is logged and deliberately does NOT change readiness: the game is still playable
     // without a latency measurement, so a busy QoS port must never take the API down.
-    const QOS_PORT = Number(process.env.QOS_PORT?.trim() || "80");
-    // [Dauntless Reforged Revival] QOS_PORT=0 turns this listener off: the launcher's local relay
-    // answers the region pings on the player's own PC (QOS_TARGET_URL points there).
-    if (QOS_PORT === 0) {
-        logger.info("QoS listener off (QOS_PORT=0)");
+    // [2026-10-14 M2] QOS_PORT=off starts no listener (a reverse proxy answers the pings, see deploy/nginx); an invalid value is reported.
+    const QOS_PORT = Listeners.qosPort;
+    if (QOS_PORT == undefined) {
+        if (Listeners.qosProblem != undefined) logger.warn(`QoS listener not started: ${Listeners.qosProblem}`);
+        else logger.info("QoS latency-test listener off (QOS_PORT=off); a reverse proxy answers the region pings");
         return;
     }
     try {
@@ -250,6 +275,7 @@ async function GracefulShutdown(Signal: string, ExitCode = 0): Promise<void> {
         // listeners go away (plan §8.4). No-op when realtime is disabled.
         await shutdownRealtime();
         partyOutboxDispatcher.stop();
+        UploadedLogRetention?.stop();
         await GetP2PExtension().server.stop();
         logger.info("Realtime (XMPP) gateway stopped");
 

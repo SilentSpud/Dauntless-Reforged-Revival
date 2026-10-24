@@ -272,7 +272,11 @@ inventoryRouter.post("/inventory", HasParadoxBackendAuth, async (req: any, res) 
     // [2026-10-10] A season challenge's coin reward may arrive ~50 ms before the bounty save that claims the challenge;
     // give that claim a moment to land so it can fund the grant (controllers/challengeRewards.ts).
     const IsDedicatedServer = req.AuthData.IsGameserver === true && ExtensionTransaction == undefined;
-    if (IsDedicatedServer && Array.isArray(StackedItemsToAdd)
+    // [2026-10-13 realms S3] A module-authorized transaction (a realm host's game server) pays season-challenge coins the
+    // same way: only from one claimed, uncredited challenge, at most 1,000, credit recorded in the same transaction. The
+    // module's grant policy lets the coin through only in that shape (p2p/security/hostGrantPolicy.ts).
+    const FundsChallengeRewards = IsDedicatedServer || ExtensionTransaction != undefined;
+    if (FundsChallengeRewards && Array.isArray(StackedItemsToAdd)
         && StackedItemsToAdd.some((Item: any) => IsChallengeRewardGrant(Item?.catalogId, Item?.quantity))) {
         const Ready = await WaitForFundableSeasonClaim(UserId);
         if (!Ready) logger.warn(`transactionId ${TransactionId}: challenge-reward currency with no claimed, uncredited season challenge after 1.5 s`);
@@ -293,7 +297,10 @@ inventoryRouter.post("/inventory", HasParadoxBackendAuth, async (req: any, res) 
     try {
         ExtensionTransaction?.report?.("applying");
         TransactionResult = await RunInventoryTransaction(UserId, CharacterId, TransactionId, InstancedItemsToAdd, EffectiveStackedItemsToAdd, InstancedItemsToRemove, StackedItemsToRemove, InstancedItemsToSave,
-            { ...(ExtensionTransaction?.options ?? {}), allowChallengeRewardFunding: IsDedicatedServer });
+            { ...(ExtensionTransaction?.options ?? {}), allowChallengeRewardFunding: FundsChallengeRewards,
+                // [diagnostics 2026-10-14] The economy ledger's source: a host's options name their session (p2p/security/p2pInventoryAuthorization.ts);
+                // a dedicated server is the game server; anything else is OTHER.
+                economy: ExtensionTransaction?.options?.economy ?? { source: IsDedicatedServer ? "INVENTORY_GAMESERVER" : "OTHER" } });
     } catch (Err) {
         CaptureInventoryTransaction({
             phase: "error",
@@ -396,13 +403,25 @@ inventoryRouter.post("/inventory/instanceditem", HasParadoxBackendAuth, async (r
         return;
     }
 
-    // This endpoint persists item state, so a runtime authenticated by an optional module must not
-    // be able to write through it. Keep the check ahead of sentinel handling for the same reason as
-    // POST /inventory; standalone dedicated gameservers remain unaffected.
-    if (req.AuthData.IsPlayerHostRuntime === true) {
-        logger.warn("POST /inventory/instanceditem rejected: a module runtime cannot mutate inventory");
-        res.status(403).json({ code: "forbidden", message: "Player-host runtime cannot mutate inventory.", payload: null });
-        return;
+    // This endpoint persists item state, so a runtime authenticated by an optional module writes through it only when that module's
+    // hostWrites hook accepts it. Keep the check ahead of sentinel handling for the same reason as POST /inventory; standalone dedicated
+    // gameservers remain unaffected.
+    // [2026-10-16] A realm hub or hunt saves an item here as a dedicated server does: the cells slotted into gear from the
+    // armoury (itemData EquippedCells). Every such save was refused until now (403, next to the loadout saves; the game retried
+    // each). The hook decides who may write
+    // (the session runs; the player is present in the hub or admitted to the hunt; kind ITEM_SAVE), the item must belong to that player's
+    // character (UpdateInstancedItem), and the save is tagged. Without the module the hook refuses, as before.
+    const IsHostRuntime = req.AuthData.IsPlayerHostRuntime === true;
+    if (IsHostRuntime) {
+        const Target = req.AuthData.userId;
+        const Denial = typeof Target === "string" && Target.length > 0
+            ? await GetP2PExtension().hostWrites.authorize(req, "ITEM_SAVE", Target)
+            : { status: 403, body: { code: "forbidden", message: "Player-host runtime cannot mutate inventory.", payload: null } };
+        if (Denial !== undefined) {
+            logger.warn(`POST /inventory/instanceditem rejected: the host write was refused (${Denial.status})`);
+            res.status(Denial.status).json(Denial.body);
+            return;
+        }
     }
 
     const CharacterId = req.body.characterId;
@@ -452,6 +471,12 @@ inventoryRouter.post("/inventory/instanceditem", HasParadoxBackendAuth, async (r
     });
 
     const Item = await UpdateInstancedItem(CharacterId, UserId, InstanceId, CatalogId, ItemData, UpdateVersion);
+    if (IsHostRuntime && Item !== undefined) {
+        await GetP2PExtension().hostWrites.record(req, { kind: "ITEM_SAVE", targetUserId: UserId, summary: {
+            instanceId: String(InstanceId).slice(0, 64), catalogId: String(CatalogId).slice(0, 128), updateVersion: UpdateVersion,
+            itemDataBytes: typeof ItemData === "string" ? ItemData.length : 0
+        } });
+    }
 
     res.status(200);
     res.json(ServeWeaponsAtBaseLevel(Item)); // [Reforged 0036]

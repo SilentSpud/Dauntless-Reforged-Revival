@@ -80,6 +80,8 @@ export const STARTER_INSTANCED_CATALOG_IDS = [
 const STARTER_WEAPON_CATALOG_ID = "WP_EB_BEGINNER";
 const STARTER_WEAPON_PART_CATALOG_ID = "PART_EB_SPECIAL_DEFAULT";
 export const STARTER_BANNER_CATALOG_ID = "BN_BEGINNER_00";
+export const STARTER_FLASK_CATALOG_ID = "FL_HEALING_DEFAULT";
+export const STARTER_GLIDER_CATALOG_ID = "GD_FRAME_STARTER_BASE";
 
 // [Reforged 0017] Emojis from INITIAL_INVENTORY_BUNDLE. EJ_SYSTEM_TYPING is the typing indicator, not a
 // wheel entry, so it is owned but never placed on the wheel.
@@ -231,6 +233,12 @@ function BuildStarterPersistent(instanceIdsByCatalogId: Record<string, string>):
     if (!BannerInstanceId) {
         throw new Error(`Missing inventory instance ID for starter banner ${STARTER_BANNER_CATALOG_ID}`);
     }
+    // [2026-10-14] The glider is an instance reference too: GD_FRAME_STARTER_BASE as a catalog id resolved to no owned item
+    // (VPS account; MysticFox's working row holds the instance id). scripts/migrate_starter_instance_refs.ts repairs old rows.
+    const GliderInstanceId = instanceIdsByCatalogId[STARTER_GLIDER_CATALOG_ID];
+    if (!GliderInstanceId) {
+        throw new Error(`Missing inventory instance ID for starter glider ${STARTER_GLIDER_CATALOG_ID}`);
+    }
 
     return {
         manual_emotes: ["", "", "", "", "", ""],
@@ -244,7 +252,7 @@ function BuildStarterPersistent(instanceIdsByCatalogId: Record<string, string>):
             BackgroundSheenType: 0, BorderSheenType: 0, SigilSheenType: 0
         }),
         flare: "QI_BASIC_FLARE_DURABLE", title: "", head_accessory: "", back_accessory: "", pet: "",
-        glider: "GD_FRAME_STARTER_BASE", update_version: 0,
+        glider: GliderInstanceId, update_version: 0,
         quick_chats: [...DEFAULT_QUICK_CHATS],
         emojis: [...DEFAULT_QUICK_EMOJIS],
         quick_curiosities_items: Array.from({ length: 8 }, (_, item_index) => ({ item_index, item_id: "", instance_id: "" })),
@@ -265,12 +273,17 @@ export function BuildStarterLoadoutSlot(
         if (!InstanceId) throw new Error(`Missing inventory instance ID for starter loadout item ${CatalogId}`);
         Slot[Key] = { item_id: CatalogId, instance_id: InstanceId, instance_data: CatalogId === STARTER_WEAPON_CATALOG_ID ? InstanceData : null };
     }
+    // [2026-10-14] `flask` is the owned flask's inventory INSTANCE id, like persistent.banner. The catalog id
+    // FL_HEALING_DEFAULT resolves to no owned item, so the slayer had no flask: no heals and no revives (measured on the
+    // VPS account; MysticFox's working slot holds the instance id). scripts/migrate_starter_instance_refs.ts repairs old rows.
+    const FlaskInstanceId = instanceIdsByCatalogId[STARTER_FLASK_CATALOG_ID];
+    if (!FlaskInstanceId) throw new Error(`Missing inventory instance ID for starter flask ${STARTER_FLASK_CATALOG_ID}`);
     return {
         ...Slot,
         player_role: null,
         subweapon: null,
         appearance: "{\"CreationState\":\"EArchonCharacterCreationState::FaceComplete\",\"Data\":[{\"SkeletalMeshComponentName\":\"Head Slot\",\"MorphData\":[]}],\"AssetReferences\":[],\"StringData\":[{\"Key\":\"BodyType\",\"Data\":\"Feminine\"},{\"Key\":\"Hair\",\"Data\":\"Hair12\"},{\"Key\":\"SkinName\",\"Data\":\"Tan\"},{\"Key\":\"SkinValue\",\"Data\":\"(R=0.610496,G=0.417885,B=0.254152,A=1.000000)\"},{\"Key\":\"Hair_Color\",\"Data\":\"(R=0.196843,G=0.042531,B=0.019093,A=1.000000)\"},{\"Key\":\"Beard\",\"Data\":\"NoBeard\"},{\"Key\":\"Facepaint\",\"Data\":\"NoFacepaint\"},{\"Key\":\"Makeup\",\"Data\":\"NoMakeup\"}]}",
-        flask: "FL_HEALING_DEFAULT", quick_items: [], slot_index: 0, update_version: 0, custom_name: "", persistent,
+        flask: FlaskInstanceId, quick_items: [], slot_index: 0, update_version: 0, custom_name: "", persistent,
     };
 }
 
@@ -413,6 +426,10 @@ function RepairStarterInstancedItems(existingItems: any[], sourceLoadout?: any):
         if (equipment?.item_id === CatalogId && typeof equipment.instance_id === "string" && /^[A-Z0-9]{26}$/.test(equipment.instance_id)) {
             loadoutIds[CatalogId] = equipment.instance_id;
         }
+    }
+    // The flask is a bare instance id, not an {item_id, instance_id} pair.
+    if (typeof sourceLoadout?.flask === "string" && /^[A-Z0-9]{26}$/.test(sourceLoadout.flask)) {
+        loadoutIds[STARTER_FLASK_CATALOG_ID] = sourceLoadout.flask;
     }
 
     for (const CatalogId of STARTER_INSTANCED_CATALOG_IDS) {

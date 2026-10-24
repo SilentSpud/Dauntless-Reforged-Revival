@@ -8,7 +8,6 @@
 
 import { GetRepositories } from "../persistence";
 import { LauncherApiError } from "../security/launcherErrors";
-import { TESTER_ROLE } from "../security/testerFeatures";
 import { GetOperationsPolicy } from "../services/operationsPolicy";
 import { GetP2PExtension } from "../extensions/p2p";
 
@@ -32,15 +31,15 @@ export async function GetLauncherPolicy(userId: string): Promise<LauncherPolicyV
         throw new LauncherApiError("NOT_FOUND", "Account not found.");
     }
 
-    const IsTester = Account.roles.includes(TESTER_ROLE);
+    // [2026-10-16, owner] The tester role unlocks the log upload only (security/testerFeatures.ts): a tester gets the same stable
+    // channel and production diagnostics as everyone. The development profile's verbose diagnostics are for admin accounts.
     const Operations = await GetOperationsPolicy();
-    const DevelopmentDiagnostics = Operations.diagnosticsProfile === "DEVELOPMENT" &&
-        (IsTester || Account.roles.includes("admin"));
+    const DevelopmentDiagnostics = Operations.diagnosticsProfile === "DEVELOPMENT" && Account.roles.includes("admin");
 
     return {
         policyVersion: `${Account.rolesUpdatedAt ?? Account.createdAt}:ops-${Operations.version}`,
         roles: Account.roles,
-        channel: IsTester ? "beta" : "stable",
+        channel: "stable",
         // Verbose diagnostics are centrally controlled, audited, and restricted to tester/admin
         // accounts. Production remains the default because one verbose hunt can generate tens of
         // megabytes and recreate the historical stdout-pipe stall class.

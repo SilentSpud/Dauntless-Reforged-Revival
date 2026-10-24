@@ -9,18 +9,26 @@
  * Additional terms under AGPLv3 Section 7 apply. See ADDITIONAL_TERMS.md.
  */
 
-import { GetRepositories, GetUnitOfWork, ProgressionGrantRecord, ProgressionTrackRecord, ProgressionTrackRepository, RepositoryProvider, UnitOfWork } from "../persistence";
+import { RecordXpActivity } from "../activity/activityMonitor";
+import { IsIgnoredActivitySource } from "../activity/activityRules";
+import { GetRepositories, GetUnitOfWork, PlayerJourneyRepository, ProgressionGrantRecord, ProgressionTrackRecord, ProgressionTrackRepository, RepositoryProvider, UnitOfWork } from "../persistence";
 import { logger } from "../logger";
 import { loadGameData } from "../gameData/loader";
 import { ComputeNewlyUnlockedNodeIds } from "./slayersPath";
+import { GetP2PExtension } from "../extensions/p2p";
+import type { ExtensionHttpResponse, HostWriteAuthorizeOptions, HostWriteKind } from "../extensions/p2p";
 import crypto from "node:crypto";
+import { ClientSession } from "mongodb";
 
 // [WP-1 stage 4 — security fix] Per-track rank curves, indexed once (on first use) from the
 // same file GET /progression/config serves. Used to validate confirm/public requests instead of
 // trusting the client's claimed rank outright. requiredXP entries are INCREMENTAL (cost to
 // advance one rank, not a cumulative threshold — see tools/CatalogExporter/ExportFlags.md) so the
 // cumulative XP needed for a given rank is the running sum of every requirement up to it.
-type TrackCurve = { maxRank: number; cumulativeXpForRank: Map<number, number> };
+// prestigeXpPerLevel: the path's `prestige.xp_per_level`, when it has one. Past maxRank a track keeps ranking up by one
+// prestige level per that much progress (the game's rank maths, FUN_140E53760); PrestigeTrack_Weapon_* has a single
+// 0-XP requirement and xp_per_level 1, so its rank IS its progress (the weapon's reforge count).
+type TrackCurve = { maxRank: number; cumulativeXpForRank: Map<number, number>; prestigeXpPerLevel?: number };
 
 function BuildTrackCurves(): Map<string, TrackCurve> {
     const Curves = new Map<string, TrackCurve>();
@@ -39,7 +47,12 @@ function BuildTrackCurves(): Map<string, TrackCurve> {
             CumulativeXpForRank.set(Req.rank_id, Running);
         }
 
-        Curves.set(ProgressionId, { maxRank: Sorted[Sorted.length - 1].rank_id, cumulativeXpForRank: CumulativeXpForRank });
+        const PrestigeXpPerLevel = Number(Path?.prestige?.xp_per_level);
+        Curves.set(ProgressionId, {
+            maxRank: Sorted[Sorted.length - 1].rank_id,
+            cumulativeXpForRank: CumulativeXpForRank,
+            prestigeXpPerLevel: Number.isFinite(PrestigeXpPerLevel) && PrestigeXpPerLevel > 0 ? PrestigeXpPerLevel : undefined,
+        });
     }
 
     return Curves;
@@ -72,6 +85,30 @@ export const SELECTED_HUNTPASS_TRACK_ALIAS = "selected_huntpass";
 export function ResolveProgressionTrackId(progressionId: string): string | undefined {
     if (progressionId === SELECTED_HUNTPASS_TRACK_ALIAS) return ACTIVE_HUNTPASS_PROGRESSION_ID;
     return TrackCurves().has(progressionId) ? progressionId : undefined;
+}
+
+// [2026-10-10] The pass GET /huntpass serves. Same expression as routes/system.ts GetServedHuntPassId (system.ts imports
+// this module, so importing it back would close a cycle); GAMESERVER_HUNTPASS_ID=season19 is the 1.12 setting. The game
+// grants hunt pass XP into whichever track that response named (UHuntPassComponent::AddProgressToSelectedTrack,
+// FUN_1419F22E0 -> GrantProgressionInTrack 0x140E61610).
+export function ServedHuntPassProgressionId(): string {
+    return (process.env.GAMESERVER_HUNTPASS_ID ?? ACTIVE_HUNTPASS_PROGRESSION_ID).trim();
+}
+
+export function IsHuntPassXpTrack(progressionId: string): boolean {
+    return progressionId === ACTIVE_HUNTPASS_PROGRESSION_ID || progressionId === ServedHuntPassProgressionId();
+}
+
+// Rank reached with `progress` cumulative XP on the served curve (the highest rank whose cumulative requirement is
+// met) - the same requirements ConfirmPublicProgressionRank checks. undefined for a track without a curve.
+export function RankForProgress(progressionId: string, progress: number): number | undefined {
+    const Curve = TrackCurves().get(progressionId);
+    if (Curve === undefined || !Number.isFinite(progress)) return undefined;
+    let Rank = 0;
+    for (const [RankId, Cumulative] of Curve.cumulativeXpForRank) {
+        if (Cumulative <= progress && RankId > Rank) Rank = RankId;
+    }
+    return Rank;
 }
 
 // [WP-1] Persistent XP (Plans/PROGRESSION_XP_COMBAT_DATA_IMPLEMENTATION_PLAN.md section 16).
@@ -109,7 +146,29 @@ export const APPROVED_XP_PROGRESSION_TRACK_IDS = Object.freeze([
 const ApprovedXpTracks = new Set<string>(APPROVED_XP_PROGRESSION_TRACK_IDS);
 
 export function IsApprovedXpProgressionTrack(progressionId: string): boolean {
-    return ApprovedXpTracks.has(progressionId) && TrackCurves().has(progressionId);
+    // [2026-10-10] The served hunt pass is approved as well: GAMESERVER_HUNTPASS_ID can move GET /huntpass off the
+    // constant above, and every grant into the pass the game was told about would then be refused. Nothing else is
+    // widened; the track still needs a rank curve in the config file, and an override can only name a hunt pass id
+    // (a typo'd GAMESERVER_HUNTPASS_ID must not open grants on an ExperienceTrack_/PrestigeTrack_/test track).
+    const ServedPass = ServedHuntPassProgressionId();
+    const Approved = ApprovedXpTracks.has(progressionId)
+        || (progressionId === ServedPass && HUNT_PASS_ID_PATTERN.test(ServedPass));
+    return Approved && TrackCurves().has(progressionId);
+}
+
+const HUNT_PASS_ID_PATTERN = /^(season|eventpass_|d24_)/i;
+
+// [2026-10-10] Why the grant route refuses a track, for its rejection line - the hunt server itself only logs
+// "OnGrantOnlineProgressionComplete - BadRequest".
+export function DescribeUnapprovedXpTrack(progressionId: string): string {
+    if (/^Linked_Slayer_Slot_\d+$/.test(progressionId)) {
+        return "Slayer Link track (the hunt pass also_progress target) - deliberately not approved";
+    }
+    if (!TrackCurves().has(progressionId)) return "no rank curve in progression_config.json";
+    if (HUNT_PASS_ID_PATTERN.test(progressionId)) {
+        return `hunt pass that is not served (served=${ServedHuntPassProgressionId()})`;
+    }
+    return "not on the XP allowlist";
 }
 
 export function BuildProgressionGrantRequestHash(userId: string, progressionId: string, amount: number): string {
@@ -129,6 +188,121 @@ export class ProgressionGrantConflictError extends Error {
     }
 }
 
+// The bound every authoritative grant must meet (dedicated server and host alike); routes/progression.ts validates the URL's
+// amount against the same number.
+export const MAX_PROGRESSION_GRANT_AMOUNT = 100000;
+
+// [2026-10-13 realms S3 limits] What a player-hosted server may add to one track in one XP grant. Owner decision: refuse only
+// the impossible, proven by evidence. Real play on 1.14.7 (13 Oct research): a kill sends three grants ~130 ms apart (weapon
+// ~98, player level ~98, Hunt Pass ~9; a gatherable adds Hunt Pass +5); the largest real values are 225 (weapon and player
+// level) and 15 applied / 25 requested (Hunt Pass); a weapon's PrestigeTrack is +1 per grant. The ceilings sit 4-8x above
+// that, so only a forged value trips them; the Hunt Pass one is the game's own MaxXPAwarded for Hunt Pass XP. They bind
+// hosts only (GrantProgressionXp `source`): a dedicated server's grant keeps the bound above and nothing else.
+// MasteryTrack_* has no real caller on this route (mastery arrives in the progression report, controllers/masteryReport.ts),
+// so a host may not grant it at all.
+export const HOST_WEAPON_XP_GRANT_CEILING = 1000;
+export const HOST_PLAYER_XP_GRANT_CEILING = 1000;
+export const HOST_HUNT_PASS_XP_GRANT_CEILING = 200;
+export const HOST_PRESTIGE_GRANT_AMOUNT = 1;
+const PLAYER_EXPERIENCE_TRACK = "ExperienceTrack_PlayerLevel";
+
+export type HostGrantRefusalReason = "track_not_writable" | "amount_over_ceiling" | "amount_not_one" | "track_full";
+
+export interface HostGrantRefusal {
+    reason: HostGrantRefusalReason;
+    progressionId: string;
+    amount: number;
+    /** The ceiling the grant broke, the exact amount a prestige grant must be, or the track total that is already reached. */
+    limit: number;
+    /** The track's stored progress, for `track_full`. */
+    stored?: number;
+}
+
+/**
+ * [2026-10-17] Dedicated parity: whether a host limit only logs. A dedicated
+ * server had neither of these, so in the host policy's observe mode (the default) they log `[HostPolicyObserve] would refuse xp ...` and
+ * the grant is applied as a dedicated server's would be:
+ *   - amount_over_ceiling: a grant above the per-track ceiling (big Escalation and bounty Hunt Pass rewards may exceed 200);
+ *   - track_full: a grant to a full player level track (the game sends player XP with every weapon grant, also at the top level).
+ * The reforge rules stay refused in both modes, as the game itself applies them: a prestige grant that is not +1 (amount_not_one) and
+ * any MasteryTrack_ grant (track_not_writable; mastery arrives in the progression report). enforce refuses all of them as before.
+ */
+export function HostLimitOnlyLogs(refusal: HostGrantRefusal, hostPolicy = GetP2PExtension().hostPolicy): boolean {
+    return (refusal.reason === "amount_over_ceiling" || refusal.reason === "track_full") && !hostPolicy.refuses();
+}
+
+/** Applies a host limit: throws HostGrantLimitError, or (observe, HostLimitOnlyLogs) logs it once and lets the grant through. */
+function ApplyHostLimit(refusal: HostGrantRefusal, userId: string, grantId: string, hostPolicy = GetP2PExtension().hostPolicy): void {
+    if (!HostLimitOnlyLogs(refusal, hostPolicy)) throw new HostGrantLimitError(refusal);
+    hostPolicy.noteWouldRefuse("xp", `user=${userId} ${DescribeHostGrantRefusal(refusal)} grant=${grantId.slice(0, 96)}`);
+}
+
+/** A host's grant was refused by the limits above; the route answers with HostGrantLimitDenial. Nothing was stored. */
+export class HostGrantLimitError extends Error {
+    constructor(public readonly refusal: HostGrantRefusal) {
+        super(`Host progression grant refused: ${DescribeHostGrantRefusal(refusal)}`);
+        this.name = "HostGrantLimitError";
+    }
+}
+
+/**
+ * The most one host grant may add to `progressionId`: 0 = the track is not writable by a host, undefined = this table has no
+ * opinion (the general bound still applies). Every approved track has an entry (pinned by a test), so a track added to
+ * APPROVED_XP_PROGRESSION_TRACK_IDS without a decision here fails that test instead of silently going unbounded.
+ */
+export function HostXpGrantCeiling(progressionId: string): number | undefined {
+    if (progressionId === PLAYER_EXPERIENCE_TRACK) return HOST_PLAYER_XP_GRANT_CEILING;
+    if (progressionId.startsWith("ExperienceTrack_Weapon_")) return HOST_WEAPON_XP_GRANT_CEILING;
+    if (progressionId.startsWith("PrestigeTrack_Weapon_")) return HOST_PRESTIGE_GRANT_AMOUNT;
+    if (progressionId.startsWith("MasteryTrack_")) return 0;
+    if (IsHuntPassXpTrack(progressionId)) return HOST_HUNT_PASS_XP_GRANT_CEILING;
+    return undefined;
+}
+
+/** Pure: why a host may not add `amount` to `progressionId` in one grant, or undefined when it may. Needs no stored state. */
+export function CheckHostXpGrant(progressionId: string, amount: number): HostGrantRefusal | undefined {
+    const Ceiling = HostXpGrantCeiling(progressionId);
+    if (Ceiling === undefined) return undefined;
+    if (Ceiling === 0) return { reason: "track_not_writable", progressionId, amount, limit: 0 };
+    if (progressionId.startsWith("PrestigeTrack_Weapon_")) {
+        return amount === HOST_PRESTIGE_GRANT_AMOUNT ? undefined : { reason: "amount_not_one", progressionId, amount, limit: HOST_PRESTIGE_GRANT_AMOUNT };
+    }
+    return amount > Ceiling ? { reason: "amount_over_ceiling", progressionId, amount, limit: Ceiling } : undefined;
+}
+
+/**
+ * The total a track cannot be pushed past by a host: its rank-sum cap from the progression config, only for the player
+ * level track (141,020 XP to level 20, no prestige block). Weapon tracks keep earning past their level-20 total (prestige
+ * levels, banked XP) and the Hunt Pass converts XP past rank 100 to coins, so those have no ceiling on the total.
+ */
+export function HostTrackTotalCap(progressionId: string): number | undefined {
+    if (progressionId !== PLAYER_EXPERIENCE_TRACK) return undefined;
+    const Cap = TrackCapXp(progressionId);
+    return Cap !== undefined && Cap > 0 ? Cap : undefined;
+}
+
+/**
+ * Pure: a host's grant to a track whose total is already at its cap. Refused only when the track is FULL, not when this grant
+ * would cross the line: the game need not clip its last grant, so refusing "stored + amount > cap" could leave a player a few
+ * XP short of the last level for good. The overshoot is at most one grant (under the ceiling above).
+ */
+export function CheckHostTrackTotal(progressionId: string, storedProgress: number, amount: number): HostGrantRefusal | undefined {
+    const Cap = HostTrackTotalCap(progressionId);
+    if (Cap === undefined || !(storedProgress >= Cap)) return undefined;
+    return { reason: "track_full", progressionId, amount, limit: Cap, stored: storedProgress };
+}
+
+/** One line (no user id) for the log: `reason=... track=... amount=... limit=...`. */
+export function DescribeHostGrantRefusal(refusal: HostGrantRefusal): string {
+    return `reason=${refusal.reason} track=${refusal.progressionId.slice(0, 64).replace(/[^\x21-\x7E]/g, "?")} amount=${refusal.amount} limit=${refusal.limit}`
+        + (refusal.stored !== undefined ? ` stored=${refusal.stored}` : "");
+}
+
+/** The answer to a refused host grant. 403 like the module's own host refusals (the request is well formed; this host may not write it), never a clamp. */
+export function HostGrantLimitDenial(): ExtensionHttpResponse {
+    return { status: 403, body: { code: "HOST_WRITE_LIMIT", message: "This write is beyond what a hosted server may report.", payload: null } };
+}
+
 export type ProgressionGrantResult = { record: ProgressionTrackRecord; replayed: boolean };
 
 function IsDuplicateKeyError(ErrorValue: unknown): boolean {
@@ -146,20 +320,35 @@ export async function GrantProgressionXp(
     progressionId: string,
     amount: number,
     grantId: string,
-    unitOfWork: Pick<UnitOfWork, "withTransaction"> = GetUnitOfWork()
+    unitOfWork: Pick<UnitOfWork, "withTransaction"> = GetUnitOfWork(),
+    // [2026-10-11] Runs inside the grant's transaction for a NEW grant only (never for a replay): the reforge follow-ups
+    // (controllers/reforge.ts) mark their one-time use here, so the mark and the XP commit or roll back together.
+    beforeApply?: (repos: RepositoryProvider, session: ClientSession) => Promise<void>,
+    // [2026-10-13 realms S3] Who sent the grant ("host" for a player-hosted server's runtime): named in the log line, and a
+    // host's grant also meets the limits above (HostGrantLimitError). "gameserver" is the dedicated server, unchanged.
+    source: "gameserver" | "host" = "gameserver",
+    // [2026-10-14 P5.1] The economy source of a test grant (OPERATOR_TEST): the activity monitor does not count its XP.
+    economySource?: string
 ): Promise<ProgressionGrantResult> {
     if(!IsApprovedXpProgressionTrack(progressionId)) {
         throw new Error(`Unsupported progression track '${progressionId}'.`);
     }
-    if(!Number.isInteger(amount) || amount <= 0 || amount > 100000 || !IsValidProgressionGrantId(grantId)) {
+    if(!Number.isInteger(amount) || amount <= 0 || amount > MAX_PROGRESSION_GRANT_AMOUNT || !IsValidProgressionGrantId(grantId)) {
         throw new Error("Invalid authoritative progression grant.");
+    }
+    // [2026-10-13 realms S3 limits] A host's per-grant ceilings (CheckHostXpGrant). Needs no stored state, so it is the same
+    // answer for a retry of a grant that was accepted; the route checks it too, ahead of its own reads.
+    // [2026-10-17] In observe mode an over-ceiling amount only logs (ApplyHostLimit, HostLimitOnlyLogs).
+    if(source === "host") {
+        const Refusal = CheckHostXpGrant(progressionId, amount);
+        if(Refusal !== undefined) ApplyHostLimit(Refusal, userId, grantId);
     }
     const requestHash = BuildProgressionGrantRequestHash(userId, progressionId, amount);
     const maxAttempts = 4;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
-            return await unitOfWork.withTransaction(async (repos, session) => {
+            const Granted = await unitOfWork.withTransaction(async (repos, session) => {
                 const Existing = await repos.progressionGrants.findByGrantId(grantId, session);
                 if (Existing !== undefined) {
                     if (Existing.requestHash !== requestHash || Existing.userId !== userId ||
@@ -169,6 +358,17 @@ export async function GrantProgressionXp(
                     return { record: Existing.result, replayed: true };
                 }
 
+                // [2026-10-13 realms S3 limits] A host may not add to a player level track that is already full. Read inside
+                // the transaction and after the replay branch above, so a retry of the grant that filled the track still
+                // replays instead of being refused.
+                // [2026-10-17] In observe mode a full track only logs and the grant is applied, as a dedicated server's is.
+                if (source === "host" && HostTrackTotalCap(progressionId) !== undefined) {
+                    const Current = await repos.progressionTracks.get(userId, progressionId, session);
+                    const Full = CheckHostTrackTotal(progressionId, Current?.progress ?? 0, amount);
+                    if (Full !== undefined) ApplyHostLimit(Full, userId, grantId);
+                }
+
+                if (beforeApply) await beforeApply(repos, session);
                 const Before = await repos.progressionTracks.get(userId, progressionId, session);
                 const After = await repos.progressionTracks.increment(userId, progressionId, amount, session);
                 const Ledger: ProgressionGrantRecord = {
@@ -183,9 +383,12 @@ export async function GrantProgressionXp(
                 };
                 await repos.progressionGrants.insertApplied(Ledger, session);
 
-                logger.info(`[ProgressionGrant] grant=${grantId} user=${userId} track=${progressionId} delta=${amount} old=${Before?.progress ?? 0} new=${After.progress} source=gameserver applied=1`);
+                logger.info(`[ProgressionGrant] grant=${grantId} user=${userId} track=${progressionId} delta=${amount} old=${Before?.progress ?? 0} new=${After.progress} source=${source} applied=1`);
                 return { record: After, replayed: false };
             });
+            // [2026-10-14] The activity monitor counts an applied grant's XP by track (a replay is not counted again).
+            if (!Granted.replayed && !IsIgnoredActivitySource(economySource)) RecordXpActivity(userId, progressionId, amount);
+            return Granted;
         } catch (ErrorValue) {
             if (!IsDuplicateKeyError(ErrorValue) || attempt === maxAttempts) throw ErrorValue;
             logger.warn(`[ProgressionGrant] grant=${grantId} concurrent ledger race; retrying transaction attempt=${attempt + 1}`);
@@ -243,43 +446,10 @@ export async function GetPersistedProgressionForUser(userId: string, knownTrackI
 // delta would. Same conclusion for progress_tracks (MasteryTrack_PlayerLevel/Weapon_Sword
 // reporting a stable rank number across events). Those values remain diagnostics only: a normal
 // player report is not an authoritative progression grant and must never mutate canonical state.
-// [Dauntless Reforged Revival] `authoritative` is set for a report from an authenticated game server
-// (gsKey), never for a player's own bearer. Its objectives are then stored with the repository's
-// monotonic max-guard (setObjectiveIfGreater): each report is an absolute running total (see above),
-// so a stale or repeated report can never lower one. Without it, the 1.14.7 game server's reports of
-// daily collectibles, mastery and achievement objectives were only logged, and GET
-// /progression/objectives kept answering with nothing.
-// [Dauntless Reforged Revival] Mastery XP. The 1.14.7 game server never sends a grant for a
-// MasteryTrack_*: it reports the mastery points of the objectives completed since its last report in
-// this same call, as progress_tracks DELTAS (captured from real hunts: every report holds +1 on the
-// objective's weapon or behemoth track and +1 on MasteryTrack_PlayerLevel per completed objective,
-// e.g. MasteryObjective_Weapon_Strikers_Generic_Breaks2 -> PlayerLevel=1, Weapon_Strikers=1, and the
-// next completion in the same hunt reports 1 and 1 again, not 2). They were only logged, so mastery
-// never gained XP. They are now added with the grant route's increment, for a game server only, and
-// only for the MasteryTrack_* tracks (the other tracks still arrive through the grant route). A report
-// can repeat completions already stored (a game server that had not seen them): each track gains at
-// most the number of NEW completions (completed_count above the stored one) that can feed it, so a
-// repeated report adds nothing.
-export const MASTERY_TRACK_PREFIX = "MasteryTrack_";
-const MASTERY_PLAYER_LEVEL_TRACK = "MasteryTrack_PlayerLevel";
-const MASTERY_BEHEMOTH_TRACK = "MasteryTrack_Behemoth";
-const MASTERY_OBJECTIVE_PREFIX = "MasteryObjective_";
-const MASTERY_BEHEMOTH_OBJECTIVE_PREFIX = "MasteryObjective_Behemoth_";
-
-// How much of a reported mastery track delta new completions can account for.
-export function MasteryTrackGain(trackId: string, delta: number, newCompletions: { behemoth: number; weapon: number }): number {
-    if (!Number.isSafeInteger(delta) || delta <= 0) return 0;
-    const Available = trackId === MASTERY_PLAYER_LEVEL_TRACK ? newCompletions.behemoth + newCompletions.weapon
-        : trackId === MASTERY_BEHEMOTH_TRACK ? newCompletions.behemoth
-        : newCompletions.weapon;
-    return Math.min(delta, Available);
-}
-
 export async function CaptureProgressionObjectiveEvent(
     userId: string,
     rawBody: unknown,
-    diagnosticsRepository: Pick<ProgressionTrackRepository, "appendObjectiveEvent"> & Partial<Pick<ProgressionTrackRepository, "setObjectiveIfGreater" | "increment">> = GetRepositories().progressionTracks,
-    authoritative = false
+    diagnosticsRepository: Pick<ProgressionTrackRepository, "appendObjectiveEvent"> = GetRepositories().progressionTracks
 ){
     const BodyJson = JSON.stringify(rawBody ?? {});
 
@@ -328,44 +498,7 @@ export async function CaptureProgressionObjectiveEvent(
         logger.warn(`[ProgressionObjective] user=${userId} UNRECOGNIZED top-level key(s) [${UnrecognizedKeys.join(", ")}] in a progression report - possible unhandled reward/grant payload, not applied. Raw: ${BodyJson.slice(0, 2000)}`);
     }
 
-    let Applied = 0;
-    const NewCompletions = { behemoth: 0, weapon: 0 };
-    if(authoritative && diagnosticsRepository.setObjectiveIfGreater){
-        for(const Objective of Body.objectives ?? []){
-            const CompletedCount = Number(Objective.completed_count ?? 0);
-            const Stored = await diagnosticsRepository.setObjectiveIfGreater(userId, Objective.objective_id, Number(Objective.value), CompletedCount);
-            Applied++;
-            const ObjectiveId: string = Objective.objective_id;
-            if(ObjectiveId.startsWith(MASTERY_OBJECTIVE_PREFIX) && CompletedCount > Number(Stored?.previousCompletedCount ?? 0)){
-                const Count = CompletedCount - Number(Stored?.previousCompletedCount ?? 0);
-                if(ObjectiveId.startsWith(MASTERY_BEHEMOTH_OBJECTIVE_PREFIX)) NewCompletions.behemoth += Count;
-                else NewCompletions.weapon += Count;
-            }
-        }
-    }
-
-    const MasteryGains: string[] = [];
-    if(authoritative && diagnosticsRepository.increment){
-        for(const Track of Body.progress_tracks ?? []){
-            const TrackId: string = Track.progression_id;
-            if(!TrackId.startsWith(MASTERY_TRACK_PREFIX) || !IsApprovedXpProgressionTrack(TrackId)) continue;
-            const Delta = Number(Track.progress);
-            const Gain = MasteryTrackGain(TrackId, Delta, NewCompletions);
-            if(Gain > 0){
-                const After = await diagnosticsRepository.increment(userId, TrackId, Gain);
-                Applied++;
-                MasteryGains.push(`${TrackId}+${Gain}=${After.progress}`);
-            }
-            if(Gain !== Delta){
-                logger.info(`[MasteryXp] user=${userId} track=${TrackId} reported=+${Delta} applied=+${Gain} (new completions: behemoth=${NewCompletions.behemoth} weapon=${NewCompletions.weapon})`);
-            }
-        }
-        if(MasteryGains.length > 0){
-            logger.info(`[MasteryXp] user=${userId} ${MasteryGains.join(" ")}`);
-        }
-    }
-
-    logger.info(`[ProgressionObjective] user=${userId} mode=${authoritative ? "gameserver" : "diagnostics-only"} tracksReceived=${TracksReceived} objectivesReceived=${ObjectivesReceived} authoritativeMutation=${Applied} rawBytes=${BodyJson.length}`);
+    logger.info(`[ProgressionObjective] user=${userId} mode=diagnostics-only tracksReceived=${TracksReceived} objectivesReceived=${ObjectivesReceived} authoritativeMutation=0 rawBytes=${BodyJson.length}`);
 }
 
 export function IsAuthorizedProgressionReporter(authData: any, targetUserId: string): boolean {
@@ -376,26 +509,96 @@ export function IsAuthorizedProgressionReporter(authData: any, targetUserId: str
     return typeof authData?.userId === "string" && authData.userId === targetUserId;
 }
 
+// [2026-10-13 realms S3] A runtime authenticated by the optional P2P module (AuthData.IsPlayerHostRuntime) writes
+// progression for the players it hosts as a dedicated server would (SteamDocs/PARADOX_REALMS_PLAN_2026_10_13.md §4):
+// instantly, but only after the module's hostWrites hook accepts the write (a running hunt of that host, a member of it) and
+// tagged afterwards for behaviour analysis and reversal. The check lives behind the extension hook; this file holds no
+// P2P rule. Without the module the hook refuses, so these routes stay dedicated-only. The host flag wins over
+// IsGameserver: the auth layer never sets both, and a request that did would still be treated as a host.
+export type HostWriteHooks = ReturnType<typeof GetP2PExtension>["hostWrites"];
+
+export function IsHostRuntimeAuth(authData: any): boolean {
+    return authData?.IsPlayerHostRuntime === true;
+}
+
+/**
+ * Undefined when the host may write `kind` for `targetUserId`; otherwise the response to send. [2026-10-16] `options.probe`: a quiet
+ * check of one kind among several (extensions/p2p.ts hostWrites.authorize); the route's last, plain call decides and logs.
+ */
+export async function RefuseUnauthorizedHostWrite(
+    req: unknown,
+    kind: HostWriteKind,
+    targetUserId: string,
+    hooks: HostWriteHooks = GetP2PExtension().hostWrites,
+    options?: HostWriteAuthorizeOptions
+): Promise<ExtensionHttpResponse | undefined> {
+    return hooks.authorize(req as any, kind, targetUserId, options);
+}
+
+/**
+ * [2026-10-17] Dedicated parity: whether this request is the authoritative server
+ * for `targetUserId`, as a dedicated server is for its players - the gameserver key, or a realm hub or hunt whose session holds the player
+ * (hostWrites.authorize with `parity`: who may write only, the host policy's observe mode only). For the backend's own work for a player
+ * that only a dedicated server's request used to start: finishing an interrupted reforge at the load, the Slayer's Path catch-up at
+ * login. A realm server's accepted check sets the session context, so TagHostWrite can tag what the work did.
+ */
+export async function IsAuthoritativeServerFor(
+    req: any,
+    targetUserId: string,
+    kind: HostWriteKind,
+    hooks: HostWriteHooks = GetP2PExtension().hostWrites
+): Promise<boolean> {
+    if (IsHostRuntimeAuth(req?.AuthData)) return (await hooks.authorize(req, kind, targetUserId, { parity: true })) === undefined;
+    return req?.AuthData?.IsGameserver === true;
+}
+
+/** What a progression report carried, for the tag of a host's report: track increments (first 20) and counts, no objective rows. */
+export function SummarizeObjectiveReport(body: any): Record<string, unknown> {
+    const Tracks: any[] = Array.isArray(body?.progress_tracks) ? body.progress_tracks : [];
+    const Objectives: any[] = Array.isArray(body?.objectives) ? body.objectives : [];
+    return {
+        progressTracks: Tracks.slice(0, 20).map((Track) => ({ id: String(Track?.progression_id).slice(0, 128), progress: Number(Track?.progress) })),
+        progressTrackCount: Tracks.length,
+        objectiveCount: Objectives.length,
+        completedObjectiveCount: Objectives.filter((Objective) => Number(Objective?.completed_count) >= 1).length
+    };
+}
+
+/** Tags an accepted host write. Never throws: the write is already stored, the tag is best effort. */
+export async function TagHostWrite(
+    req: unknown,
+    kind: HostWriteKind,
+    targetUserId: string,
+    summary: Record<string, unknown>,
+    hooks: HostWriteHooks = GetP2PExtension().hostWrites
+): Promise<void> {
+    try {
+        await hooks.record(req as any, { kind, targetUserId, summary });
+    } catch (error) {
+        logger.error(`[HostWrite] tag failed kind=${kind} target=${targetUserId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+}
+
 export function IsAuthorizedProgressionReader(authData: any, targetUserId: string): boolean {
     if (authData?.IsGameserver === true) return true;
     return typeof authData?.userId === "string" && authData.userId === targetUserId;
 }
 
+// [1.14.7 2026-10-11] The element shape the game reads (FOnlineProgressionPhoenix element reader 0x140E89BD0, as in
+// DauntlessEndpointDocumentation/Progression/GetObjectiveProgression.md): phx_account_id, objective_id, progress,
+// completed_count, created_date, last_modified_date. The list handler (0x140E72DA0) caches each element under its own
+// phx_account_id (UpdateCachedObjectiveForPlayer 0x140E96FA0), so the old {objective_id, value, completed_count} rows
+// were never cached for anyone: every mastery card (UMasteryCard::InitializeCard) started from progress 0, owned items
+// re-completed the craft objectives on every arrival and each kill re-completed its kill objective.
 export async function GetPersistedObjectivesForUser(userId: string){
     const Rows = await GetRepositories().progressionTracks.getAllObjectivesForUser(userId);
 
-    // [Dauntless Reforged Revival] The live service's row (DauntlessEndpointDocumentation,
-    // Progression/GetObjectiveProgression.md): the count is `progress`, the name a report uses is
-    // `value`. Served with `value` alone, the 1.14.7 game server read every stored objective as not
-    // started and completed the same mastery objectives again in every hunt. `value` stays for the
-    // 1.12 lineage.
     return Rows.map((Row) => ({
         phx_account_id: userId,
         objective_id: Row.objectiveId,
         progress: Row.value,
-        value: Row.value,
         completed_count: Row.completedCount,
-        created_date: Row.createdAt ?? Row.updatedAt,
+        created_date: Row.updatedAt,
         last_modified_date: Row.updatedAt,
     }));
 }
@@ -419,99 +622,77 @@ export type ConfirmRankResult =
     | { ok: true; record: ProgressionTrackRecord }
     | { ok: false; reason: "unknown_track" | "rank_out_of_range" | "insufficient_xp" };
 
-export async function ConfirmPublicProgressionRank(userId: string, progressionId: string, rank: number): Promise<ConfirmRankResult> {
+const MAX_PRESTIGE_RANKS = 100_000;
+
+/** Cumulative progress a rank needs, prestige ranks included; undefined for a rank the track does not have. */
+export function RequiredXpForRank(Curve: TrackCurve, rank: number): number | undefined {
+    if (!Number.isInteger(rank) || rank < 0) return undefined;
+    if (rank <= Curve.maxRank) return Curve.cumulativeXpForRank.get(rank) ?? 0;
+    if (Curve.prestigeXpPerLevel === undefined || rank > Curve.maxRank + MAX_PRESTIGE_RANKS) return undefined;
+    return (Curve.cumulativeXpForRank.get(Curve.maxRank) ?? 0) + (rank - Curve.maxRank) * Curve.prestigeXpPerLevel;
+}
+
+/** XP needed to reach the top regular rank (a weapon's level-20 cap, 27,775 on the 1.14.7 curve). */
+export function TrackCapXp(progressionId: string): number | undefined {
+    const Curve = TrackCurves().get(progressionId);
+    return Curve === undefined ? undefined : (Curve.cumulativeXpForRank.get(Curve.maxRank) ?? 0);
+}
+
+/**
+ * [2026-10-15] The mastery credit of one objective: a mastery objective's first completion adds 1 to its card's track and 1 to
+ * MasteryTrack_PlayerLevel (controllers/masteryReport.ts PlanMasteryReport; the client claims the same +1, 1.14.7). It is the largest
+ * single credit a mastery track ever receives, so it bounds the bounded sync below. It lives here, not in masteryReport.ts, which
+ * imports this file.
+ */
+export const MASTERY_CREDIT_PER_OBJECTIVE = 1;
+
+export function IsMasteryProgressionTrack(progressionId: string): boolean {
+    return progressionId.startsWith("MasteryTrack_");
+}
+
+export interface ConfirmRankOptions {
+    /**
+     * [2026-10-15] A host's or a dedicated server's confirm of a MASTERY track may run ahead of the persisted progress by at most one
+     * objective's credit (MASTERY_CREDIT_PER_OBJECTIVE). The cause of such a gap is not pinned down (the 1.14.7 client claimed fewer
+     * increments than its rank check counted; 14 Oct, a test account): the persisted progress is raised to the rank's requirement, and
+     * the confirm goes through, logged as [MasteryMon] SYNC. A larger gap stays refused. Any other track is unchanged.
+     */
+    boundedMasterySync?: boolean;
+}
+
+export async function ConfirmPublicProgressionRank(userId: string, progressionId: string, rank: number, options: ConfirmRankOptions = {}): Promise<ConfirmRankResult> {
     const Curve = TrackCurves().get(progressionId);
     if (Curve === undefined) {
         logger.warn(`Rejected rank confirm: unknown track '${progressionId}' has no rank curve (user=${userId})`);
         return { ok: false, reason: "unknown_track" };
     }
 
-    if (!Number.isInteger(rank) || rank < 0 || rank > Curve.maxRank) {
-        logger.warn(`Rejected rank confirm: rank ${rank} out of range [0,${Curve.maxRank}] for track ${progressionId} (user=${userId})`);
+    const RequiredCumulativeXp = RequiredXpForRank(Curve, rank);
+    if (RequiredCumulativeXp === undefined) {
+        logger.warn(`Rejected rank confirm: rank ${rank} out of range [0,${Curve.maxRank}${Curve.prestigeXpPerLevel ? "+prestige" : ""}] for track ${progressionId} (user=${userId})`);
         return { ok: false, reason: "rank_out_of_range" };
     }
 
     // Rank 0/1 (pre-first-requirement) never needs an XP check — every track's floor.
-    const RequiredCumulativeXp = Curve.cumulativeXpForRank.get(rank) ?? 0;
     if (RequiredCumulativeXp > 0) {
         const ExistingTrack = await GetRepositories().progressionTracks.get(userId, progressionId);
         const PersistedProgress = ExistingTrack?.progress ?? 0;
 
         if (PersistedProgress < RequiredCumulativeXp) {
-            logger.warn(`Rejected rank confirm: user=${userId} track=${progressionId} claims rank ${rank} (needs ${RequiredCumulativeXp} cumulative XP) but only has ${PersistedProgress} persisted`);
-            return { ok: false, reason: "insufficient_xp" };
+            const Gap = RequiredCumulativeXp - PersistedProgress;
+            if (options.boundedMasterySync === true && IsMasteryProgressionTrack(progressionId) && Gap <= MASTERY_CREDIT_PER_OBJECTIVE) {
+                await GetRepositories().progressionTracks.setProgressIfGreater(userId, progressionId, RequiredCumulativeXp);
+                logger.info(`[MasteryMon] SYNC user=${userId} track=${progressionId} from=${PersistedProgress} to=${RequiredCumulativeXp}`);
+            }
+            else {
+                logger.warn(`Rejected rank confirm: user=${userId} track=${progressionId} claims rank ${rank} (needs ${RequiredCumulativeXp} cumulative XP) but only has ${PersistedProgress} persisted`);
+                return { ok: false, reason: "insufficient_xp" };
+            }
         }
     }
 
     const Record = await GetRepositories().progressionTracks.setConfirmedFremiumRank(userId, progressionId, rank);
     return { ok: true, record: Record };
-}
-
-// [Dauntless Reforged Revival] Weapon reforge. A reforge on the 1.14.7 game server
-// (UPlayerExperienceComponent::ServerPrestigeExperience) takes 100 Aethersparks through POST /inventory and
-// then sends DELETE /progression/<user>/ExperienceTrack_Weapon_<weapon>, with no other call. That route
-// did not exist (404), so the weapon was never reset and its reforge level never rose: the player paid,
-// and after the next load the weapon was back where it was (seen on the VPS 2026-10-20: two reforges of
-// the axe, -100 sparks each, both DELETEs answered 404).
-// Handled here as the reset plus the reforge level the game reads from the weapon's prestige track
-// (PrestigeTrack_Weapon_<weapon>, named by the experience track's row): the experience track loses the
-// XP of its full curve (any XP above it stays) and its confirmed ranks go back to 0; the prestige track
-// moves up one rank on its own served curve, progress and confirmed rank together. The reset is guarded
-// on the weapon being at its last rank, so a repeated request does not count a second reforge.
-export const WEAPON_EXPERIENCE_TRACK_PREFIX = "ExperienceTrack_Weapon_";
-export const WEAPON_PRESTIGE_TRACK_PREFIX = "PrestigeTrack_Weapon_";
-
-export function PrestigeTrackFor(experienceTrackId: string): string | undefined {
-    if (!experienceTrackId.startsWith(WEAPON_EXPERIENCE_TRACK_PREFIX)) return undefined;
-    return WEAPON_PRESTIGE_TRACK_PREFIX + experienceTrackId.slice(WEAPON_EXPERIENCE_TRACK_PREFIX.length);
-}
-
-// The highest rank of `curve` that `progress` reaches (0 below its first rank).
-export function RankForProgress(curve: { maxRank: number; cumulativeXpForRank: Map<number, number> }, progress: number): number {
-    let Rank = 0;
-    for (const [RankId, Cumulative] of [...curve.cumulativeXpForRank.entries()].sort((a, b) => a[0] - b[0])) {
-        if (progress >= Cumulative) Rank = RankId;
-        else break;
-    }
-    return Rank;
-}
-
-export type PrestigeResult =
-    | { ok: true; experience: ProgressionTrackRecord; prestige: ProgressionTrackRecord; prestigeRank: number }
-    | { ok: false; reason: "unknown_track" | "not_max_rank" };
-
-export async function PrestigeExperienceTrack(
-    userId: string,
-    experienceTrackId: string,
-    unitOfWork: Pick<UnitOfWork, "withTransaction"> = GetUnitOfWork()
-): Promise<PrestigeResult> {
-    const PrestigeTrackId = PrestigeTrackFor(experienceTrackId);
-    const ExperienceCurve = TrackCurves().get(experienceTrackId);
-    const PrestigeCurve = PrestigeTrackId === undefined ? undefined : TrackCurves().get(PrestigeTrackId);
-    if (PrestigeTrackId === undefined || ExperienceCurve === undefined || PrestigeCurve === undefined ||
-        !IsApprovedXpProgressionTrack(experienceTrackId) || !IsApprovedXpProgressionTrack(PrestigeTrackId)) {
-        return { ok: false, reason: "unknown_track" };
-    }
-    const FullCurveXp = ExperienceCurve.cumulativeXpForRank.get(ExperienceCurve.maxRank) ?? 0;
-
-    return unitOfWork.withTransaction(async (repos, session) => {
-        const Experience = await repos.progressionTracks.resetForPrestige(userId, experienceTrackId, FullCurveXp, session);
-        if (Experience === undefined) {
-            return { ok: false, reason: "not_max_rank" } as const;
-        }
-
-        const Before = await repos.progressionTracks.get(userId, PrestigeTrackId, session);
-        const BeforeProgress = Before?.progress ?? 0;
-        const NextRank = Math.min(RankForProgress(PrestigeCurve, BeforeProgress) + 1, PrestigeCurve.maxRank);
-        const Cost = (PrestigeCurve.cumulativeXpForRank.get(NextRank) ?? 0) - BeforeProgress;
-        if (Cost > 0) {
-            await repos.progressionTracks.increment(userId, PrestigeTrackId, Cost, session);
-        }
-        const Prestige = await repos.progressionTracks.setConfirmedFremiumRank(userId, PrestigeTrackId, NextRank, session);
-
-        logger.info(`[Reforge] user=${userId} track=${experienceTrackId} reset (-${FullCurveXp} -> ${Experience.progress}) ${PrestigeTrackId} rank=${NextRank} progress ${BeforeProgress} -> ${Prestige.progress}`);
-        return { ok: true, experience: Experience, prestige: Prestige, prestigeRank: NextRank } as const;
-    });
 }
 
 export async function QueryEncounteredContent(userId: string, characterId: string, categoriesToQuery: number[]){
@@ -677,23 +858,36 @@ export function MergePlayerJourneyNodes(storedNodes: any, incomingNodes: any, in
     };
 }
 
-export async function SavePlayerJourney(userId: string, nodes: any, updateVersion: number){
+// [2026-10-13 realms S3] Checks the merged map of a save before it is stored (PlanHostPlayerJourney in
+// controllers/slayersPath.ts, used only for a player-hosted server's writes). It runs inside the compare-and-swap loop,
+// against the stored map the write replaces, so a concurrent save cannot slip an unchecked unlock in between. Returns
+// the node map to store.
+export type PlayerJourneyVet = (storedNodes: any, mergedNodes: any) => any;
+
+export async function SavePlayerJourney(
+    userId: string,
+    nodes: any,
+    updateVersion: number,
+    vet?: PlayerJourneyVet,
+    journeys: Pick<PlayerJourneyRepository, "findByUserId" | "createIfAbsent" | "updateIfRevision"> = GetRepositories().playerJourney
+){
     const SafeNodes = (nodes && typeof nodes === "object") ? nodes : {};
     const SafeVersion = Number.isFinite(updateVersion) ? updateVersion : 1;
 
     for(let Attempt = 1; Attempt <= 6; Attempt++){
-        const Existing = await GetRepositories().playerJourney.findByUserId(userId);
+        const Existing = await journeys.findByUserId(userId);
 
         if(Existing == undefined){
-            const Created = await GetRepositories().playerJourney.createIfAbsent({
-                userId, nodes: JSON.stringify(SafeNodes), updateVersion: SafeVersion, revision: 0
+            const FirstNodes = vet === undefined ? SafeNodes : vet({}, SafeNodes);
+            const Created = await journeys.createIfAbsent({
+                userId, nodes: JSON.stringify(FirstNodes), updateVersion: SafeVersion, revision: 0
             });
             if(Created){
                 logger.info(`Creating player journey row for userId ${userId}`);
                 return {
-                    nodes: SafeNodes,
+                    nodes: FirstNodes,
                     update_version: SafeVersion,
-                    newlyUnlocked: ComputeNewlyUnlockedNodeIds({}, SafeNodes)
+                    newlyUnlocked: ComputeNewlyUnlockedNodeIds({}, FirstNodes)
                 };
             }
             continue;
@@ -718,7 +912,7 @@ export async function SavePlayerJourney(userId: string, nodes: any, updateVersio
     //   2) Fresh write (incoming version > stored): incoming wins per-node, but we still UNION over
     //      the stored map so a partial/truncated payload can never drop existing unlocks.
         const Merged = MergePlayerJourneyNodes(StoredNodes, SafeNodes, SafeVersion, Existing.updateVersion);
-        const MergedNodes = Merged.nodes;
+        const MergedNodes = vet === undefined ? Merged.nodes : vet(StoredNodes, Merged.nodes);
         const EffectiveVersion = Merged.version;
         const IsStale = SafeVersion <= Existing.updateVersion;
 
@@ -732,7 +926,7 @@ export async function SavePlayerJourney(userId: string, nodes: any, updateVersio
     // guard for reward granting.
         const NewlyUnlocked = ComputeNewlyUnlockedNodeIds(StoredNodes, MergedNodes);
 
-        const Updated = await GetRepositories().playerJourney.updateIfRevision(
+        const Updated = await journeys.updateIfRevision(
             userId, JSON.stringify(MergedNodes), EffectiveVersion, Existing.revision
         );
         if(!Updated){

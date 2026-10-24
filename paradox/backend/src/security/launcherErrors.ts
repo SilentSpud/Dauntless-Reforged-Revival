@@ -31,8 +31,22 @@ type CoreLauncherErrorCode =
     | "AUTH_DISCORD_NOT_CONFIGURED"
     | "AUTH_DISCORD_CANCELLED"
     | "AUTH_DISCORD_ALREADY_LINKED"
+    // [2026-10-15] Email verification and password reset by code (controllers/launcherEmail.ts), and the Discord link and unlink.
+    | "AUTH_EMAIL_UNVERIFIED"
+    | "AUTH_CODE_INVALID"
+    | "AUTH_EMAIL_UNAVAILABLE"
+    | "AUTH_DISCORD_NOT_LINKED"
+    | "AUTH_DISCORD_ACCOUNT_HAS_LINK"
+    | "AUTH_DISCORD_ONLY_LOGIN"
     | "AUTH_TESTER_REQUIRED"
     | "AUTH_CHANNEL_MISMATCH"
+    // [2026-10-14] Terms of Use / Privacy Policy consent and the account deletion hold (launcherAuth routes, accountConsent.ts).
+    | "CONSENT_REQUIRED"
+    | "CONSENT_AGE_REQUIRED"
+    | "LEGAL_VERSION_OUTDATED"
+    | "DELETION_CONFIRMATION_MISMATCH"
+    | "DELETION_HOLD_EXPIRED"
+    | "ACCOUNT_DEACTIVATED"
     | "GAME_EXCHANGE_CODE_EXPIRED"
     | "GAME_BUILD_UNSUPPORTED"
     | "RUNTIME_BUILD_UNSUPPORTED"
@@ -42,6 +56,14 @@ type CoreLauncherErrorCode =
     | "GUARD_SESSION_INVALID"
     | "GUARD_SIGNATURE_INVALID"
     | "GUARD_SEQUENCE_CONFLICT"
+    // [2026-10-15] A launch with no realm while MYSTICPARADOX_OFFICIAL_PLAY is off (config/officialPlay.ts).
+    | "OFFICIAL_PLAY_UNAVAILABLE"
+    // [2026-10-16] Play from an unofficial launcher build while MYSTICPARADOX_UNOFFICIAL_LAUNCHER=refuse (security/unofficialLauncherPolicy.ts).
+    | "LAUNCHER_UNOFFICIAL"
+    // [2026-10-15] Launcher notices (controllers/launcherNotices.ts): a manager save that is refused (400), and one whose expectedVersion
+    // is stale (409, the answer carries the current document).
+    | "NOTICES_INVALID"
+    | "NOTICES_VERSION_CONFLICT"
     | "NOT_FOUND"
     | "INTERNAL";
 
@@ -77,8 +99,24 @@ const StatusByCode: Record<CoreLauncherErrorCode, number> = {
     AUTH_DISCORD_NOT_CONFIGURED: 503,
     AUTH_DISCORD_CANCELLED: 400,
     AUTH_DISCORD_ALREADY_LINKED: 409,
+    // [2026-10-15] A sign-in whose email is not verified is refused (403) until a code is entered; a wrong, expired, used-up or
+    // already-used code is one generic answer (400); the mail settings missing is a 503, like the other "not set up here" codes.
+    AUTH_EMAIL_UNVERIFIED: 403,
+    AUTH_CODE_INVALID: 400,
+    AUTH_EMAIL_UNAVAILABLE: 503,
+    AUTH_DISCORD_NOT_LINKED: 403,
+    AUTH_DISCORD_ACCOUNT_HAS_LINK: 409,
+    AUTH_DISCORD_ONLY_LOGIN: 409,
     AUTH_TESTER_REQUIRED: 403,
     AUTH_CHANNEL_MISMATCH: 409,
+    // [2026-10-14] CONSENT_REQUIRED defaults to 400 (registration); a refusal of a game session or realm hosting sends 403 with
+    // { status: 403 } (LauncherApiError options), like the other statuses one code can carry.
+    CONSENT_REQUIRED: 400,
+    CONSENT_AGE_REQUIRED: 400,
+    LEGAL_VERSION_OUTDATED: 409,
+    DELETION_CONFIRMATION_MISMATCH: 400,
+    DELETION_HOLD_EXPIRED: 409,
+    ACCOUNT_DEACTIVATED: 403,
     GAME_EXCHANGE_CODE_EXPIRED: 410,
     GAME_BUILD_UNSUPPORTED: 400,
     RUNTIME_BUILD_UNSUPPORTED: 409,
@@ -88,25 +126,43 @@ const StatusByCode: Record<CoreLauncherErrorCode, number> = {
     GUARD_SESSION_INVALID: 401,
     GUARD_SIGNATURE_INVALID: 401,
     GUARD_SEQUENCE_CONFLICT: 409,
+    // [2026-10-15] Official play is off on this server (the same 503 as the other "not available here" codes).
+    OFFICIAL_PLAY_UNAVAILABLE: 503,
+    LAUNCHER_UNOFFICIAL: 403,
+    // [2026-10-15] Launcher notices: a refused save (400) and a stale expectedVersion (409).
+    NOTICES_INVALID: 400,
+    NOTICES_VERSION_CONFLICT: 409,
     NOT_FOUND: 404,
     INTERNAL: 500
 };
 
+export interface LauncherApiErrorOptions {
+    /** HTTP status for this refusal. One code may be refused with different statuses (CONSENT_REQUIRED: 400 at sign-up, 403 at play). */
+    status?: number;
+    /** Extra top-level fields of the error object (for example `scheduledFor` on ACCOUNT_DEACTIVATED), as the P2P errors send them. */
+    details?: Record<string, unknown>;
+}
+
 export class LauncherApiError extends Error {
     code: LauncherErrorCode;
+    status?: number;
+    details?: Record<string, unknown>;
 
-    constructor(code: LauncherErrorCode, message: string) {
+    constructor(code: LauncherErrorCode, message: string, options: LauncherApiErrorOptions = {}) {
         super(message);
         this.name = "LauncherApiError";
         this.code = code;
+        this.status = options.status;
+        this.details = options.details;
     }
 }
 
 export function SendLauncherError(res: Response, error: LauncherApiError): void {
     const RequestId = crypto.randomUUID();
 
-    const Status = (StatusByCode as Record<string, number>)[error.code] ?? ExtensionStatusByCode.get(error.code) ?? 500;
+    const Status = error.status ?? (StatusByCode as Record<string, number>)[error.code] ?? ExtensionStatusByCode.get(error.code) ?? 500;
     res.status(Status).json({
-        error: { code: error.code, message: error.message, requestId: RequestId }
+        // The fixed fields come last, so a detail can never replace the code, the message or the request id.
+        error: { ...(error.details ?? {}), code: error.code, message: error.message, requestId: RequestId }
     });
 }

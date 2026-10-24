@@ -26,6 +26,7 @@ import { MongoAuthIdentityRepository } from "./repositories/MongoAuthIdentityRep
 import { MongoRefreshSessionRepository } from "./repositories/MongoRefreshSessionRepository";
 import { MongoGameExchangeCodeRepository } from "./repositories/MongoGameExchangeCodeRepository";
 import { MongoDiscordOAuthTransactionRepository } from "./repositories/MongoDiscordOAuthTransactionRepository";
+import { MongoEmailCodeRepository } from "./repositories/MongoEmailCodeRepository";
 import { MongoInventoryTransactionRepository } from "./repositories/MongoInventoryTransactionRepository";
 import { MongoFriendshipRepository } from "./repositories/MongoFriendshipRepository";
 import { MongoAdminRepository } from "./repositories/MongoAdminRepository";
@@ -35,6 +36,9 @@ import { MongoCooldownStateRepository } from "./repositories/MongoCooldownStateR
 import { MongoEntitlementRepository } from "./repositories/MongoEntitlementRepository";
 import { MongoPartyRepository } from "./repositories/MongoPartyRepository";
 import { MongoLauncherGuardRepository } from "./repositories/MongoLauncherGuardRepository";
+import { MongoEconomyRollupRepository } from "./repositories/MongoEconomyRollupRepository";
+import { MongoActivityRepository } from "./repositories/MongoActivityRepository";
+import { MongoLauncherNoticesRepository } from "./repositories/MongoLauncherNoticesRepository";
 
 // Builds the MongoDB-backed RepositoryProvider. Each repository lazily resolves
 // the shared pooled Db handle (src/persistence/mongo/client.ts) on first use.
@@ -54,11 +58,15 @@ export function CreateMongoRepositoryProvider(): RepositoryProvider {
         escalationProgress: new MongoEscalationProgressRepository(),
         bountyStates: new MongoBountyStateRepository(),
         cooldownStates: new MongoCooldownStateRepository(),
+        economyRollups: new MongoEconomyRollupRepository(),
+        activity: new MongoActivityRepository(),
         launcherAccounts: new MongoLauncherAccountRepository(),
         authIdentities: new MongoAuthIdentityRepository(),
         refreshSessions: new MongoRefreshSessionRepository(),
         gameExchangeCodes: new MongoGameExchangeCodeRepository(),
         discordOAuthTransactions: new MongoDiscordOAuthTransactionRepository(),
+        emailCodes: new MongoEmailCodeRepository(),
+        launcherNotices: new MongoLauncherNoticesRepository(),
         inventoryTransactions: new MongoInventoryTransactionRepository(),
         friendships: new MongoFriendshipRepository(),
         admin: new MongoAdminRepository(),

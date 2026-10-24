@@ -10,6 +10,7 @@ downloaded the pinned commit and applied these patches as files under `upstream/
 | --- | --- |
 | Upstream repository | https://github.com/pranav158/Mystic-Paradox |
 | Base commit | `00d3be8aa812e334aaa26e5149d2607acb744360` (docs: installing Dauntless 1.14.7 from Epic with Legendary) |
+| Updated to | `21b9ff5c6de7a3b6edd8b5cad7a63c5d8aa73098` (18 October 2026, backend: privacy policy version matches launcher 0.1.78), see [below](#updated-to-mystic-paradox-21b9ff5) |
 | Fork | https://github.com/SilentSpud/Mystic-Paradox, branch `reforged` at `24e60c8dd89c871f273b8f6b8753f2ee334b017f` |
 | Game build | Dauntless `rel-1.14.7-Archon`, changelist 647472, Unreal Engine 4.26.2 |
 | License | AGPL-3.0-only, with the attribution terms in [`paradox/ADDITIONAL_TERMS.md`](../paradox/ADDITIONAL_TERMS.md) |
@@ -21,6 +22,60 @@ ordinary commits to `paradox/` and `native/`, not on the fork's branch. The path
 `tools/RuntimeLoader` are [`native/paradox-runtime`](../native/paradox-runtime) and
 [`native/runtime-loader`](../native/runtime-loader). Later changes are ordinary commits to those folders; how
 runtime patches from Mystic Paradox's own line are taken is in [paradox-runtime-patches.md](paradox-runtime-patches.md).
+
+## Updated to Mystic Paradox 21b9ff5
+
+`paradox/` and `native/` were brought up to Mystic Paradox `21b9ff5` (68 commits after the base, 14-18 October 2026: realms,
+player-hosted co-op hunts, the launcher's accounts and Guard, the proxy mode, mastery and reforge persistence, the runtime's
+player-host role). The patches were replayed one by one onto that commit, so each one was either kept, cut down to what upstream
+still lacks, or dropped because upstream now does the same. The sections below describe each patch as it was first written; this
+table says what is left of it.
+
+Not taken, as before: `ParadoxLauncher` (Reforged has its own launcher), and with it `ParadoxTransport` (the launcher's ICE
+transport for player-hosted realms), the launcher and runtime-extras release workflows, `.gitleaks.toml` and
+`docs/SELF_HOSTING.md`. Upstream's new hunt-manifest module is at [`paradox/shared`](../paradox/shared), where the backend and
+the Director import it from. Upstream's new switches (realms, player-hosted hunts, registration approval, email verification,
+the admin API, the unofficial-launcher refusal, Guard) are off or observe-only by default, so a Reforged host runs as before.
+
+| Patch | Now | Why |
+| --- | --- | --- |
+| 0001 | Reduced | Upstream reads `MYSTICPARADOX_BACKEND_URL` itself (`BackendUrl.h`, the same grammar) and answers the XMPP `ServerPort`. Kept: `REFORGED_BACKEND_URL` read when that is not set, the optional deployment header failing closed on `reforged.invalid`, and the XMPP `bUseSSL` answer, which upstream lacks and the launcher's `ws://` relay needs |
+| 0002 | Reduced | Upstream's proxy mode (`config/listenerPlan.ts`) has `BIND_HOST`, `MYSTICPARADOX_TLS_TERMINATED_BY_PROXY` (no HTTPS listener, XMPP on the HTTP one) and `QOS_PORT=off`; `REFORGED_HTTP_ONLY=1` and `QOS_PORT=0` are read as those. The `/reforged/api` routes and the EOS changes are kept |
+| 0003 | Kept | Upstream's Director has no bind address or instance list |
+| 0004 | Kept, rarely used | Upstream boots every server role without the phantom local player (`[NoLocalPlayer]`), so this only acts if that byte patch fails |
+| 0005 | Reduced | Upstream still refuses the game server's id-less XP grants with 400, so the minted grant id stays. The objective half is dropped: upstream stores report objectives in its own mastery transaction, and storing them first would stop its mastery credit |
+| 0006 | Dropped | Upstream ships the same fix (its LoadMap hook releases the stuck `Async` keep flag, with the same `KEEP_STUCK_ASYNC_FLAGS.flag`) |
+| 0007 | Kept | Reforged only; re-placed after upstream's host-write and reforge checks |
+| 0008 | Kept | Upstream dropped `CALL_HUNTPASS_QUERY.flag` (the query is always made) but still at the second readiness check |
+| 0009 | Dropped | Upstream credits mastery from the progression report (`controllers/masteryReport.ts`) and serves objective rows with `progress` |
+| 0010 | Kept, merged | Upstream answers `POST /bounty/delete` with 200 and changes nothing (it reads it as the bounty reset). Reforged's handler still removes the bounties a body names; it takes upstream's host authorization, and a call that names nothing gets upstream's answer instead of 400 |
+| 0011 | Kept | Upstream only added a client HUD guard for a missing weapon |
+| 0012 | Kept | Upstream still forces `PlayerCanRestart` to true for every controller; moved next to `ProcessEventHook` |
+| 0013, 0014 | Kept (logging) | Diagnostics for 0015 and 0016; they can go once the weapon fixes are confirmed on this runtime |
+| 0015, 0016 | Kept | Upstream files weapons in the replication graph as before |
+| 0017 | Kept | Upstream's starter loadout still has empty quick chat and emoji wheels |
+| 0018 | Kept | Upstream has no `/maintenance/status` |
+| 0019 | Dropped | A backport of upstream's own CPU fixes, which the new base has |
+| 0020 | Kept | Upstream has no server frame cap |
+| 0021 | Reduced | Upstream's `TRAINING_HUB=off` starts the Training Grounds on their first request; `TRAINING_ON_DEMAND=1` now only makes that the default. `GAMESERVER_LOG_CMDS` is kept |
+| 0022 | Kept | Upstream has no memory admission for hunts |
+| 0023, 0024 | Kept | Reforged only |
+| 0025 | Kept | Upstream lets realm members into a realm hub's City room; a dedicated Ramsgate's room still needs the development switch. The served hub session is now read from upstream's `controllers/candidateStatus.ts` answer |
+| 0026, 0027, 0037 | Kept | No upstream equivalent |
+| 0028 | Kept | Upstream's bounty merge (now `ApplyBountySave`) still replaces the token group on every draft save |
+| 0029 | Kept | No upstream equivalent |
+| 0030 | Kept | A Reforged policy; applied after upstream's new price checks |
+| 0031 | Kept | Upstream has no server locale fix |
+| 0032 | Dropped | Upstream implements the reforge (`controllers/reforge.ts`): the reset, then the game's own prestige +1 and banked XP, each once. 0032 raised the prestige in the reset, which would now count every reforge twice |
+| 0033 | Kept | Upstream never stops an idle Training hub; now keyed on `TRAINING_HUB=off` |
+| 0034 | Dropped | Upstream serves `PUT` and `POST /cooldown/:userId/:cooldownId` |
+| 0035 | Kept (diagnostic) | An A/B switch for the controller channel guards, which upstream keeps; it can go once 0039 is confirmed |
+| 0036 | Kept | Upstream still serves weapons at their stored level |
+| 0038 | Kept | The base's own viewport fallback is still opt-in (`VIEWPORT_FALLBACK.flag`) |
+| 0039 | Kept | No upstream equivalent |
+
+The runtime part was not built here: build it with a host's SDK and play a hunt before releasing it
+([paradox-runtime-patches.md](paradox-runtime-patches.md), step 5).
 
 ## Patches
 
