@@ -391,7 +391,10 @@ jobs:
     name: Docker images (build, tests in the image, smoke test)
     needs: changes
     if: needs.changes.outputs.docker == 'true'
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: that is Ubuntu 26.04 on Linux 6.19, where MongoDB 8.0 refuses to start (its tcmalloc
+    # and the kernel's rseq disagree; mongodb.org SERVER-121912). The compose mongo service is what the smoke
+    # test needs; 24.04's kernel is older. Lift once the mongo:8.0 image starts on 6.19.
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
