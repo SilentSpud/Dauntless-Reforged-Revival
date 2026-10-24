@@ -50,6 +50,9 @@ the host kit's, unchanged, and a `.workspace` can move between a container host 
   try-out.
 - The kernel's nftables (`nf_tables`, loaded on any distribution whose Docker uses iptables-nft, which is the
   default on Debian 12 and 13 and Ubuntu 22.04 and newer).
+- A Linux kernel older than 6.19 or at least 7.0.14: the `mongo:8.0` image refuses to start in between (its
+  memory allocator and those kernels' `rseq` disagree, mongodb.org SERVER-121912), which `docker compose logs
+  mongo` shows as "MongoDB cannot start". Ubuntu 26.04 ships 6.19; Debian 13 and Ubuntu 24.04 are fine.
 - Your Dauntless 1.14.7 folder on the server, as for [a Linux host](hosting-linux.md) (about 15 GB), owned by
   or writable for uid 1000: the game servers write their logs and a switch file next to the executable.
 - The game runtime and game data, from a Windows PC with your own game ([sdk-and-game-data.md](sdk-and-game-data.md)).
