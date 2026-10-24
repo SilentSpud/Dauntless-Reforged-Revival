@@ -18,12 +18,14 @@ given in full, with the DR rows and the `docs/port/` delta file it names.
 | `legacy/` | The Node projects being replaced: `ReforgedLauncher` (Electron), `ReforgedGateway`, `ReforgedContent`, `ReforgedHost`. Each is deleted by its row (RS5, RH7, RA16) |
 | `docker/`, `compose.yaml` | Container deployment (RX4), laid out as the server release |
 | `preset/` | The game data every server starts from, hash-locked by `preset.json` |
-| `docs/` | Player and host guides, `architecture.md`, `paradox-patches.md`, `port/` (delta and catch-up lists), `security/` (one checklist per trust-boundary component) |
+| `docs/` | Player and host guides, `architecture.md`, `paradox-patches.md`, `port/` (the migration guide, delta and catch-up lists), `security/` (one checklist per trust-boundary component) |
 
 `backend` and `director` in `rust/services/` are still stubs: nothing in the RB rows starts before the gate
 (RD17). Don't fill them in ahead of it.
 
-`docs/architecture.md` is the reference for how the parts talk and what each trusts. Section 6 of the plan,
+`docs/port/migration-guide.md` maps every upstream file to its Rust home and says where the next upstream change
+goes and how to port it; start there when a brief names an upstream commit. `docs/architecture.md` is the
+reference for how the parts talk and what each trusts. Section 6 of the plan,
 "Things that must not change", lists what every port keeps byte for byte: read it before touching anything a
 player, host or the game client already depends on.
 
