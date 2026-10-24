@@ -6,9 +6,8 @@ Draft, 2026-10-24. Scope: Dauntless Reforged Revival first; Dauntless Revived at
 projects in `legacy/`. The file and function names below come from the Node kit; the Rust port keeps the same
 ones (`hostconfig.rs`, `buildEnvFiles` → `build_env_files`, and so on).
 
-**Status:** Phase 1 is done on `feat/host-toml`. `hosttoml.rs` reads and patches the file with `toml_edit`, so the
-host's own comments survive setup. It still needs a decision row amending MIGRATION_PLAN.md section 6, which
-lists `host.json` as a file that must not change.
+**Status:** Phase 1 is merged into `plan`. `hosttoml.rs` reads and patches the file with `toml_edit`, so the
+host's own comments survive setup. MIGRATION_PLAN.md decision RD24 records this plan and amends section 6.
 
 ## Where configuration lives today
 
