@@ -13,7 +13,7 @@ given in full, with the DR rows and the `docs/port/` delta file it names.
 | --- | --- |
 | `rust/` | One cargo workspace: `crates/` (`protocol`, `proxy`, `service-kit`, `store`), `services/` (`gateway` with the `allowlist` bin, `content`, `host` = `reforged-host`, `backend`, `director`), `launcher/src-tauri` (the Tauri launcher backend) and `launcher/page`, `isolation/` |
 | `rust/fuzz/` | `cargo fuzz` targets, a workspace of its own (excluded from the main one) |
-| `paradox/` | Mystic Paradox's Node backend and Director, forked with their history. Fixes only until the Rust port replaces them (RD2) |
+| `paradox/` | Mystic Paradox's Node backend and Director, forked with their history, until the Rust port replaces them. Any change is allowed; fixes are the baseline (RD2) |
 | `native/` | The C++ game runtime (`paradox-runtime`, `MysticParadox.dll`), its loader (`runtime-loader`, `winmm.dll`, Rust, not in the workspace) and the CatalogExporter. Built by each host from their own SDK |
 | `legacy/` | The Node projects being replaced: `ReforgedLauncher` (Electron), `ReforgedGateway`, `ReforgedContent`, `ReforgedHost`. Each is deleted by its row (RS5, RH7, RA16) |
 | `docker/`, `compose.yaml` | Container deployment (RX4), laid out as the server release |
@@ -43,8 +43,9 @@ dependency order, runs the checks and strikes the rows.
   append-only conflicts.
 - **Hands-on work isn't an agent's job:** the canary, cutovers, spikes that need a machine with the game, signing
   and publishing, the cut-off date. Write down the steps and leave them for the maintainer.
-- `paradox/` takes fixes only, plus RX2's catch-up. `legacy/` is never extended. A fix found there is listed for
-  the catch-up (`docs/port/catchup-*.md`), not ported ad hoc.
+- `paradox/` takes any change, with fixes as the baseline (RD2): keep a change small, and list a new or changed
+  route in RB1's inventory so the Rust port carries it. `legacy/` is never extended. A fix found there is listed
+  for the catch-up (`docs/port/catchup-*.md`), not ported ad hoc.
 
 ## Rust
 

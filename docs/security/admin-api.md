@@ -104,12 +104,11 @@ Fuzz target in `rust/fuzz`:
       `X-Forwarded-For` header). The gateway refuses it like every `/reforged/api` route not on its public list
       (`PUBLIC_REFORGED_API`).
 
-## paradox/ change (an exception to RD2)
+## paradox/ change
 
-RD2 says `paradox/` takes fixes only. The kick needs a way to drop a live session, and nothing in the Node backend
-did that: `SessionRegistry` holds the chat connections, but no route closed them on demand. The Rust backend can't
-start before its gate (RD17). The user chose to add one small route instead (2026-10-24), recorded here so the
-maintainer can add a decision row:
+RD2 makes fixes the baseline for `paradox/`, not a rule. The kick needs a way to drop a live session, and nothing in
+the Node backend did that: `SessionRegistry` holds the chat connections, but no route closed them on demand. The Rust
+backend can't start before its gate (RD17). So `paradox/` gained one small route (2026-10-24, decision RD25):
 
 - `paradox/backend/src/routes/reforgedApi.ts`: `POST /reforged/api/Kick {Username}`, behind `HasAdminKey`, answers
   `{UserId, Username, Closed}` (404 `not_found`, 400 `bad_request`).

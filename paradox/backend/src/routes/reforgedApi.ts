@@ -390,8 +390,8 @@ reforgedApiRouter.post("/reforged/api/SetAccountStatus", HasAdminKey, async (req
     res.status(200).json({ UserId: Account.userId, Username: Account.displayName, Status: Updated?.status ?? Status });
 });
 
-// The admin API's kick (rust/services/admin; docs/security/admin-api.md says why this route is an
-// exception to RD2). The player is not banned and may log in again.
+// The admin API's kick (rust/services/admin; docs/security/admin-api.md says why this route was added,
+// MIGRATION_PLAN.md RD25). The player is not banned and may log in again.
 reforgedApiRouter.post("/reforged/api/Kick", HasAdminKey, async (req, res) => {
     const Body = req.body != null && typeof req.body === "object" ? req.body : {};
     const Username = CleanUsername(Body.Username);
