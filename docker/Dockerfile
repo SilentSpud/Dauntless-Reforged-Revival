@@ -28,13 +28,13 @@ WORKDIR /src/rust
 COPY rust/rust-toolchain.toml ./
 RUN rustup show active-toolchain || rustup toolchain install
 COPY rust/ ./
-# The release workflow's build: the host kit, gateway (and allowlist) and content server. The launcher is a
+# The release workflow's build: the host kit, gateway (and allowlist), content server and admin API. The launcher is a
 # workspace member but is not built (only the lock file is read). backend and director join once they are real.
 RUN --mount=type=cache,id=reforged-cargo-registry,target=/usr/local/cargo/registry \
     --mount=type=cache,id=reforged-cargo-target,target=/src/rust/target \
-    cargo build --release --locked -p host -p gateway -p content --bins \
+    cargo build --release --locked -p host -p gateway -p content -p admin --bins \
  && mkdir -p /out/bin \
- && for bin in reforged-host gateway allowlist content; do cp "target/release/$bin" /out/bin/; done
+ && for bin in reforged-host gateway allowlist content admin; do cp "target/release/$bin" /out/bin/; done
 
 # ------------------------------------------------------------------ the Node services (until RB14)
 FROM ${NODE_IMAGE} AS node-build
@@ -54,7 +54,7 @@ RUN (cd paradox/backend && npm run build) \
  && (cd paradox/director && npm run build) \
  && find . -type d -name .bin -path '*/node_modules/*' -prune -exec rm -rf {} +
 
-# ------------------------------------------------------------------ front: gateway, allowlist, content
+# ------------------------------------------------------------------ front: gateway, allowlist, content, admin API
 FROM ${DEBIAN_IMAGE} AS front
 # nftables for the allowlist (ALLOWLIST_NFT is /usr/sbin/nft). The helper runs as the reforged user with
 # CAP_NET_ADMIN in its bounding set (compose.yaml); nft gets it from its file capability, nothing else does.
@@ -66,7 +66,7 @@ RUN apt-get update \
  && groupadd --gid 1000 reforged \
  && useradd --uid 1000 --gid 1000 --home-dir /opt/reforged --no-create-home --shell /usr/sbin/nologin reforged \
  && mkdir -p /opt/reforged/.workspace && chown reforged:reforged /opt/reforged/.workspace
-COPY --from=rust-build /out/bin/gateway /out/bin/allowlist /out/bin/content /opt/reforged/bin/
+COPY --from=rust-build /out/bin/gateway /out/bin/allowlist /out/bin/content /out/bin/admin /opt/reforged/bin/
 COPY --chmod=0755 docker/healthcheck.sh /opt/reforged/bin/reforged-healthcheck
 ENV PATH=/opt/reforged/bin:$PATH
 WORKDIR /opt/reforged/.workspace
@@ -136,6 +136,6 @@ USER node
 # rebuilds nothing and needs no network). The launcher (Tauri, WebKitGTK) is not a server crate and is not
 # built; the fuzz targets are a workspace of their own.
 RUN cd rust && cargo test --locked --no-run \
-      -p protocol -p proxy -p service-kit -p store -p gateway -p content -p host
+      -p protocol -p proxy -p service-kit -p store -p gateway -p content -p admin -p host
 ENTRYPOINT ["/usr/bin/tini", "--", "reforged-test"]
 CMD []

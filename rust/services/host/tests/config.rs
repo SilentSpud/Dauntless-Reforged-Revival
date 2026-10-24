@@ -84,6 +84,8 @@ fn fast_secrets() -> Secrets {
         metrics_token: hex(6),
         jwt_private_key_b64: hex(7),
         jwt_public_key_b64: hex(8),
+        admin_api_key: hex(9),
+        operator_secret: hex(10),
     }
 }
 
@@ -263,6 +265,48 @@ fn secrets_are_made_once_and_kept_and_a_missing_one_is_added_without_touching_th
 
 fn win_paths() -> Paths {
     Paths::new("C:\\rr")
+}
+
+#[test]
+fn the_admin_api_gets_its_keys_on_loopback_and_the_backend_accepts_its_signed_calls() {
+    let s = fast_secrets();
+    let p = win_paths();
+    let f = build_env_files(
+        &config(with(public(), json!({"maxHuntServers": 5}))),
+        &s,
+        &p,
+        "",
+        Platform::Windows,
+    );
+    assert_eq!(get(&f.backend, "MYSTICPARADOX_MANAGER_ADMIN"), Some("on"));
+    assert_eq!(
+        get(&f.backend, "MYSTICPARADOX_MANAGER_OPERATOR_SECRET"),
+        Some(s.operator_secret.as_str())
+    );
+    assert!(
+        f.files()
+            .iter()
+            .any(|(name, entries)| *name == "admin" && entries.is_some())
+    );
+    // Read back by the admin API as `admin serve --env-file admin.env` reads it
+    let env = service_kit::env::Env::from_pairs(f.admin.iter().map(|(k, v)| (k.as_str(), v.as_str())));
+    let read = admin::config::Config::from_env(&env).unwrap();
+    assert_eq!(
+        (read.port, read.bind_hosts.clone()),
+        (61003, vec!["127.0.0.1".to_owned()])
+    );
+    assert_eq!(read.backend_url, "http://127.0.0.1:61000");
+    assert_eq!(read.director_url, "http://127.0.0.1:61001");
+    assert_eq!(read.api_key, s.admin_api_key);
+    assert_eq!(read.admin_key, s.admin_key);
+    assert_eq!(read.operator_secret, s.operator_secret);
+    assert_eq!(read.max_hunt_servers, 5);
+    assert_eq!(read.server_mode, admin::config::ServerMode::Public);
+    // In the config folder, kept with secrets.env in the host's backups
+    assert_eq!(
+        get(&f.admin, "REFORGED_ADMIN_API_TIMEOUTS_FILE"),
+        p.config.join("admin-timeouts.json").to_str()
+    );
 }
 
 #[test]

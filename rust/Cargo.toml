@@ -13,6 +13,7 @@ members = [
     "services/host",
     "services/backend",
     "services/director",
+    "services/admin",
     "launcher/src-tauri",
 ]
 # The fuzz targets (cargo fuzz, nightly) are a workspace of their own
@@ -31,9 +32,12 @@ protocol = { path = "crates/protocol" }
 store = { path = "crates/store" }
 service-kit = { path = "crates/service-kit" }
 proxy = { path = "crates/proxy" }
+admin = { path = "services/admin" }
 
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "query", "tokio", "form", "ws"] }
 aes-gcm = "0.11"
+# The admin API's GraphQL schema (services/admin); no web framework integration, no playground
+async-graphql = { version = "7", default-features = false }
 base64 = "0.23"
 
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }

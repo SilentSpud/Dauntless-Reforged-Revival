@@ -176,6 +176,8 @@ fn fast_secrets() -> Result<Secrets, host::HostError> {
         metrics_token: "f".repeat(64),
         jwt_private_key_b64: "g".repeat(64),
         jwt_public_key_b64: "h".repeat(64),
+        admin_api_key: "i".repeat(64),
+        operator_secret: "j".repeat(64),
     })
 }
 

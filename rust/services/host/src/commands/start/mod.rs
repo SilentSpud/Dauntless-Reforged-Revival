@@ -61,8 +61,8 @@ fn spec_from(name: &str, launch: Launch, env_file: std::path::PathBuf, ready: Re
     }
 }
 
-/// The services after the database, in the order they start: backend, Director, content, the
-/// allowlist helper (public, unless systemd runs it), the gateway last.
+/// The services after the database, in the order they start: backend, Director, content, the admin
+/// API (when installed), the allowlist helper (public, unless systemd runs it), the gateway last.
 pub fn service_plan(paths: &Paths, config: &HostConfig, external_allowlist: bool, programs: &Programs) -> Vec<Planned> {
     let node = |name: &str, dir: &Path, script: &[&str], ready: Ready| ServiceSpec {
         name: name.into(),
@@ -106,6 +106,25 @@ pub fn service_plan(paths: &Paths, config: &HostConfig, external_allowlist: bool
             required: false,
         },
     ];
+    // The admin API has no Node build: it runs when its bin is there and setup wrote its env file.
+    let admin_env = env_file(paths, "admin");
+    if let Some(bin) = programs.rust_bin("admin").filter(|_| admin_env.is_file()) {
+        plan.push(Planned {
+            spec: spec_from(
+                "admin",
+                Launch {
+                    command: bin,
+                    args: vec!["serve".into(), "--env-file".into(), admin_env.display().to_string()],
+                    cwd: paths.workspace.clone(),
+                    env_file_in_args: true,
+                },
+                admin_env,
+                Ready::http(PORTS.admin, "/health"),
+            ),
+            ready_timeout: minute,
+            required: false,
+        });
+    }
     if config.mode == ServerMode::Public && !external_allowlist {
         plan.push(Planned {
             spec: spec_from(
@@ -653,6 +672,39 @@ mod tests {
         assert_eq!(plan[4].spec.ready, Some(Ready::tcp("127.0.0.1", 4443)));
         let external = service_plan(&paths, &c, true, &programs(dir.path()));
         assert_eq!(names(&external), ["backend", "director", "content", "gateway"]);
+    }
+
+    #[test]
+    fn runs_the_admin_api_after_content_when_its_bin_and_env_file_are_there() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::new(dir.path());
+        let c = config(ServerMode::Private);
+        std::fs::create_dir_all(dir.path().join("bin")).unwrap();
+        let bin = dir
+            .path()
+            .join("bin")
+            .join(format!("admin{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(&bin, "").unwrap();
+        // An older setup wrote no admin.env
+        let plan = service_plan(&paths, &c, false, &programs(dir.path()));
+        assert_eq!(names(&plan), ["backend", "director", "content", "gateway"]);
+        std::fs::create_dir_all(&paths.config).unwrap();
+        std::fs::write(paths.config.join("admin.env"), "").unwrap();
+        let plan = service_plan(&paths, &c, false, &programs(dir.path()));
+        assert_eq!(names(&plan), ["backend", "director", "content", "admin", "gateway"]);
+        let admin = &plan[3];
+        assert_eq!(admin.spec.command, bin);
+        assert_eq!(
+            admin.spec.args,
+            [
+                "serve",
+                "--env-file",
+                &paths.config.join("admin.env").display().to_string()
+            ]
+        );
+        assert_eq!(admin.spec.env_file, None);
+        assert_eq!(admin.spec.ready, Some(Ready::http(61003, "/health")));
+        assert!(!admin.required);
     }
 
     #[test]

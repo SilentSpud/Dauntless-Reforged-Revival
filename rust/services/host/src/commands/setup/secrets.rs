@@ -1,5 +1,6 @@
-//! New secrets (the Node kit's `newSecrets()` in `hostconfig.ts`): six 32-byte hex keys and a
-//! 4096-bit RSA pair for the backend's tokens, PKCS#8 and SPKI PEM, each base64 as one line.
+//! New secrets (the Node kit's `newSecrets()` in `hostconfig.ts`, plus the admin API's two): eight
+//! 32-byte hex keys and a 4096-bit RSA pair for the backend's tokens, PKCS#8 and SPKI PEM, each base64
+//! as one line.
 //! RSA with aws-lc-rs (D10). [`crate::hostconfig::load_or_create_secrets`] takes this as its `make`;
 //! `hostconfig::new_secrets` (RH1's stub) can call it once the integration pass wires it.
 
@@ -50,6 +51,8 @@ pub fn new_secrets() -> Result<Secrets, HostError> {
         metrics_token: hex(&rng)?,
         jwt_private_key_b64: STANDARD.encode(pem("PRIVATE KEY", private.as_ref())),
         jwt_public_key_b64: STANDARD.encode(pem("PUBLIC KEY", public.as_ref())),
+        admin_api_key: hex(&rng)?,
+        operator_secret: hex(&rng)?,
     })
 }
 

@@ -24,6 +24,7 @@
 //   GET    /reforged/api/InviteCodes
 //   DELETE /reforged/api/InviteCode/:code
 //   POST   /reforged/api/SetAccountStatus  {Username, Status: active|banned|disabled, Reason?}
+//   POST   /reforged/api/Kick              {Username} -> {UserId, Username, Closed}
 //
 // The account key is the game's AUTH_PASSWORD: with AUTH_MODE=APIKEY the game trades it for its
 // session token at /account/api/oauth/token (routes/eos.ts). Keys are stored only as HMACs
@@ -53,6 +54,7 @@ import {
     IsLocalAdminRequest,
     IsPlausibleAccountKey,
     IsValidInviteCode,
+    KickAccount,
     MAX_INVITE_USES,
     ParseDirectorInstances,
     PlayerWhere,
@@ -386,4 +388,29 @@ reforgedApiRouter.post("/reforged/api/SetAccountStatus", HasAdminKey, async (req
     StatusCache.clear();
     logger.info(`[reforged] ${Account.userId} (${Account.displayName}) is now ${Status}`);
     res.status(200).json({ UserId: Account.userId, Username: Account.displayName, Status: Updated?.status ?? Status });
+});
+
+// The admin API's kick (rust/services/admin; docs/security/admin-api.md says why this route is an
+// exception to RD2). The player is not banned and may log in again.
+reforgedApiRouter.post("/reforged/api/Kick", HasAdminKey, async (req, res) => {
+    const Body = req.body != null && typeof req.body === "object" ? req.body : {};
+    const Username = CleanUsername(Body.Username);
+    if (Username === undefined) {
+        res.status(400).json({ error: "bad_request", message: "Username is required." });
+        return;
+    }
+    const Repos = GetRepositories();
+    const Account = await Repos.launcherAccounts.findByDisplayNameNormalized(Username.toLowerCase());
+    if (Account === undefined) {
+        res.status(404).json(ErrorBody("not_found"));
+        return;
+    }
+    const Closed = await KickAccount(Account.userId, {
+        connectionsFor: (Id) => sessionRegistry.connectionsFor(Id),
+        revokeRefreshSessions: (Id) => Repos.refreshSessions.revokeAllForUser(Id),
+        revokeExchangeCodes: (Id) => Repos.gameExchangeCodes.revokeUnusedForUser(Id)
+    });
+    StatusCache.clear();
+    logger.info(`[reforged] ${Account.userId} (${Account.displayName}) kicked, ${Closed} chat connection(s) closed`);
+    res.status(200).json({ UserId: Account.userId, Username: Account.displayName, Closed });
 });

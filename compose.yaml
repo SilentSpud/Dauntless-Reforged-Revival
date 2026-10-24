@@ -150,6 +150,21 @@ services:
       backend:
         condition: service_healthy
 
+  # The admin API for the host's tools (a Discord bot): loopback in the shared namespace, never published
+  # (docs/admin-api.md). It writes its timeouts next to secrets.env, so the workspace is mounted writable.
+  admin:
+    <<: *front
+    command: ["admin", "serve", "--env-file", "/opt/reforged/.workspace/config/admin.env"]
+    volumes:
+      - workspace:/opt/reforged/.workspace
+    healthcheck:
+      test: ["CMD", "reforged-healthcheck", "admin"]
+      interval: 5s
+      start_period: 30s
+    depends_on:
+      backend:
+        condition: service_healthy
+
   # Public servers only: opens the game ports to players who logged in (nftables, in the shared namespace)
   allowlist:
     <<: *front

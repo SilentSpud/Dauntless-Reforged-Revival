@@ -16,6 +16,9 @@ publish = false
 cargo-fuzz = true
 
 [dependencies]
+admin = { path = "../services/admin" }
+# admin_request: the query parser the admin API runs
+async-graphql = { version = "7", default-features = false }
 libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
 arbitrary = { version = "1", features = ["derive"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
@@ -31,6 +34,13 @@ serde_json = "1"
 toml_edit = { version = "0.25", default-features = false, features = ["parse", "display"] }
 service-kit = { path = "../crates/service-kit" }
 url = "2"
+
+[[bin]]
+name = "admin_request"
+path = "fuzz_targets/admin_request.rs"
+test = false
+doc = false
+bench = false
 
 [[bin]]
 name = "allowlist_input"

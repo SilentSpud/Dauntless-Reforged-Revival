@@ -21,6 +21,7 @@ import {
     IsLocalAdminRequest,
     IsPlausibleAccountKey,
     IsValidInviteCode,
+    KickAccount,
     ParseDirectorInstances,
     ReadRegistrationMode,
     ShortAssetName
@@ -131,4 +132,18 @@ test("game data is told apart from the synthetic examples", () => {
     } finally {
         fs.rmSync(Dir, { recursive: true, force: true });
     }
+});
+
+test("a kick revokes the account's tokens, then closes every chat connection it holds", async () => {
+    const Calls: string[] = [];
+    const Connection = (Name: string) => ({ close: (Code: number, Reason: string) => void Calls.push(`${Name} ${Code} ${Reason}`) });
+    const Closed = await KickAccount("u1", {
+        connectionsFor: (Id) => (Id === "u1" ? [Connection("pc"), Connection("game")] : []),
+        revokeRefreshSessions: async (Id) => void Calls.push(`refresh ${Id}`),
+        revokeExchangeCodes: async (Id) => void Calls.push(`codes ${Id}`)
+    });
+    assert.equal(Closed, 2);
+    assert.deepEqual(Calls, ["refresh u1", "codes u1", "pc 1008 kicked by the host", "game 1008 kicked by the host"]);
+    const Offline = await KickAccount("u2", { connectionsFor: () => [], revokeRefreshSessions: async () => {}, revokeExchangeCodes: async () => {} });
+    assert.equal(Offline, 0);
 });
