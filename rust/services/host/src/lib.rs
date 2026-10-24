@@ -16,6 +16,7 @@ pub mod error;
 pub mod hostconfig;
 pub mod hosttoml;
 pub mod paths;
+pub mod servers;
 
 // RH2
 pub mod run;
@@ -45,6 +46,10 @@ pub type Outcome = Result<ExitCode, HostError>;
 
 /// Runs the parsed command line: finds the checkout, then the command.
 pub fn run(cli: &cli::Cli) -> Outcome {
+    // A server needs no checkout: its env file says everything (DR X7).
+    if let cli::Command::Server(server) = &cli.command {
+        return Ok(server.run());
+    }
     let root = paths::locate_repo_root()?;
     commands::dispatch(&cli.command, &paths::Paths::new(root))
 }

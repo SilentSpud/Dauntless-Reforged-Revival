@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)] // test helpers
 
 //! The allowlist helper (`test/allowlist.test.ts`, `test/e2e.test.ts`): over HTTP, its expiry, a
-//! restart, and with the gateway in front of it, in process and as the two binaries. Every helper
+//! restart, and with the gateway in front of it, in process and as two processes. Every helper
 //! here runs in DRY-RUN: nothing in this file ever changes a firewall.
 
 mod common;
@@ -586,11 +586,45 @@ async fn a_logged_in_player_gets_the_game_ports() {
     helper.close().await;
 }
 
-// ---- the binaries as processes ----
+// ---- the servers as processes ----
 
-fn command(binary: &str, dir: &Path, env: &[(&str, String)]) -> std::process::Command {
-    let mut command = std::process::Command::new(binary);
-    command.current_dir(dir).env_clear();
+/// The server a child runs, and its arguments one per line: `reforged-host <server> <args>` in a
+/// release, this test binary again here (the servers are features of `reforged-host`, not bins).
+const SERVER: &str = "TEST_SERVER_ROLE";
+const SERVER_ARGS: &str = "TEST_SERVER_ARGS";
+
+#[derive(clap::Parser)]
+enum Server {
+    Gateway(gateway::cli::Cli),
+    Allowlist(gateway::allowlist::cli::Cli),
+}
+
+#[test]
+fn server_process() {
+    use clap::Parser;
+    let Ok(name) = std::env::var(SERVER) else {
+        return;
+    };
+    let args = std::env::var(SERVER_ARGS).unwrap_or_default();
+    let argv = ["server", name.as_str()]
+        .into_iter()
+        .chain(args.lines().filter(|a| !a.is_empty()));
+    // Ends libtest's `test server_process ... ` line, so the server's first log line stands alone.
+    println!();
+    let code = match Server::parse_from(argv) {
+        Server::Gateway(cli) => gateway::cli::run(&cli),
+        Server::Allowlist(cli) => gateway::allowlist::cli::run(&cli),
+    };
+    std::process::exit(if code == std::process::ExitCode::SUCCESS { 0 } else { 1 });
+}
+
+fn command(server: &str, dir: &Path, env: &[(&str, String)]) -> std::process::Command {
+    let mut command = std::process::Command::new(std::env::current_exe().unwrap());
+    command
+        .args(["server_process", "--exact", "--nocapture", "--test-threads=1"])
+        .current_dir(dir)
+        .env_clear()
+        .env(SERVER, server);
     for name in ["SystemRoot", "PATH", "TEMP", "TMP"] {
         if let Some(value) = std::env::var_os(name) {
             command.env(name, value);
@@ -605,13 +639,9 @@ fn command(binary: &str, dir: &Path, env: &[(&str, String)]) -> std::process::Co
 #[test]
 fn the_helper_wants_an_explicit_dry_run_setting() {
     let dir = tempfile::tempdir().unwrap();
-    let output = command(
-        env!("CARGO_BIN_EXE_allowlist"),
-        dir.path(),
-        &[("ALLOWLIST_SECRET", SECRET.into())],
-    )
-    .output()
-    .unwrap();
+    let output = command("allowlist", dir.path(), &[("ALLOWLIST_SECRET", SECRET.into())])
+        .output()
+        .unwrap();
     assert_eq!(output.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&output.stderr).contains("ALLOWLIST_DRY_RUN must be set"));
 }
@@ -621,7 +651,7 @@ fn close_ports_closes_once_and_exits() {
     let dir = tempfile::tempdir().unwrap();
     let audit = dir.path().join("audit.log");
     let output = command(
-        env!("CARGO_BIN_EXE_allowlist"),
+        "allowlist",
         dir.path(),
         &[
             ("ALLOWLIST_DRY_RUN", "1".into()),
@@ -629,7 +659,7 @@ fn close_ports_closes_once_and_exits() {
             ("ALLOWLIST_AUDIT_LOG", audit.to_string_lossy().into_owned()),
         ],
     )
-    .arg("--close-ports")
+    .env(SERVER_ARGS, "--close-ports")
     .output()
     .unwrap();
     assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
@@ -646,7 +676,7 @@ fn close_ports_closes_the_nftables_table_too() {
     let dir = tempfile::tempdir().unwrap();
     let audit = dir.path().join("audit.log");
     let output = command(
-        env!("CARGO_BIN_EXE_allowlist"),
+        "allowlist",
         dir.path(),
         &[
             ("ALLOWLIST_DRY_RUN", "1".into()),
@@ -656,7 +686,7 @@ fn close_ports_closes_the_nftables_table_too() {
             ("ALLOWLIST_AUDIT_LOG", audit.to_string_lossy().into_owned()),
         ],
     )
-    .arg("--close-ports")
+    .env(SERVER_ARGS, "--close-ports")
     .output()
     .unwrap();
     assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
@@ -675,7 +705,7 @@ fn the_real_firewall_must_be_this_platforms() {
     let dir = tempfile::tempdir().unwrap();
     let wrong = if cfg!(windows) { "nftables" } else { "windows" };
     let output = command(
-        env!("CARGO_BIN_EXE_allowlist"),
+        "allowlist",
         dir.path(),
         &[
             ("ALLOWLIST_DRY_RUN", "0".into()),
@@ -683,7 +713,7 @@ fn the_real_firewall_must_be_this_platforms() {
             ("ALLOWLIST_SECRET", SECRET.into()),
         ],
     )
-    .arg("--close-ports")
+    .env(SERVER_ARGS, "--close-ports")
     .output()
     .unwrap();
     assert_eq!(output.status.code(), Some(1));
@@ -699,8 +729,8 @@ fn the_real_firewall_must_be_this_platforms() {
 #[test]
 fn the_gateway_refuses_bad_configuration_and_a_key_that_is_not_the_certificates() {
     let dir = tempfile::tempdir().unwrap();
-    let missing = command(env!("CARGO_BIN_EXE_gateway"), dir.path(), &[])
-        .arg("serve")
+    let missing = command("gateway", dir.path(), &[])
+        .env(SERVER_ARGS, "serve")
         .output()
         .unwrap();
     assert_eq!(missing.status.code(), Some(1));
@@ -708,7 +738,7 @@ fn the_gateway_refuses_bad_configuration_and_a_key_that_is_not_the_certificates(
 
     let (cert, other) = (make_cert(), make_cert());
     let mismatch = command(
-        env!("CARGO_BIN_EXE_gateway"),
+        "gateway",
         dir.path(),
         &[
             ("GATEWAY_CERT", cert.cert_file.to_string_lossy().into_owned()),
@@ -719,7 +749,7 @@ fn the_gateway_refuses_bad_configuration_and_a_key_that_is_not_the_certificates(
             ("GATEWAY_PORT", "1".into()),
         ],
     )
-    .arg("serve")
+    .env(SERVER_ARGS, "serve")
     .output()
     .unwrap();
     assert_eq!(mismatch.status.code(), Some(1));
@@ -783,7 +813,7 @@ async fn helper_and_gateway_as_processes_open_the_ports_for_a_logged_in_player()
     let helper_port = dead_port().await;
     let helper = launch(
         command(
-            env!("CARGO_BIN_EXE_allowlist"),
+            "allowlist",
             dir.path(),
             &[
                 ("ALLOWLIST_DRY_RUN", "1".into()),
@@ -821,7 +851,7 @@ async fn helper_and_gateway_as_processes_open_the_ports_for_a_logged_in_player()
     let cert = make_cert();
     let gateway_port = dead_port().await;
     let mut gateway_command = command(
-        env!("CARGO_BIN_EXE_gateway"),
+        "gateway",
         dir.path(),
         &[
             ("GATEWAY_CERT", cert.cert_file.to_string_lossy().into_owned()),
@@ -836,7 +866,7 @@ async fn helper_and_gateway_as_processes_open_the_ports_for_a_logged_in_player()
             ("ALLOWLIST_SECRET", SECRET.into()),
         ],
     );
-    gateway_command.arg("serve");
+    gateway_command.env(SERVER_ARGS, "serve");
     let gateway = launch(gateway_command, "gateway ready").await;
     {
         let lines = gateway.lines.lock().unwrap();

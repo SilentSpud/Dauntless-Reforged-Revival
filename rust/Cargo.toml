@@ -33,6 +33,10 @@ store = { path = "crates/store" }
 service-kit = { path = "crates/service-kit" }
 proxy = { path = "crates/proxy" }
 admin = { path = "services/admin" }
+backend = { path = "services/backend" }
+content = { path = "services/content" }
+director = { path = "services/director" }
+gateway = { path = "services/gateway" }
 
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "query", "tokio", "form", "ws"] }
 aes-gcm = "0.11"

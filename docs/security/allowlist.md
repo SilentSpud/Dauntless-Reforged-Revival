@@ -26,7 +26,7 @@ ports to everyone defeats the allowlist.
   and the state file (written by the helper, read back at start).
 
 Code: `rust/services/gateway/src/allowlist/` (`config.rs`, `ports.rs`, `nft.rs`, `firewall.rs`, `windows.rs`,
-`helper.rs`, `state.rs`, `sync.rs`), `src/ip.rs` (`check_allowlist_ip`) and `src/bin/allowlist.rs`.
+`helper.rs`, `state.rs`, `sync.rs`), `src/ip.rs` (`check_allowlist_ip`) and `src/allowlist/cli.rs` (run as `reforged-host allowlist`).
 
 Fuzz target: `allowlist_input` in `rust/fuzz` (the `/allow` body and its `Content-Length`, the state file, and the
 ports, table and interface that reach a script). It also checks that nothing the checks accept changes the shape of

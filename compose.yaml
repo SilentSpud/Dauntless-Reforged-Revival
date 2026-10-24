@@ -139,7 +139,7 @@ services:
 
   content:
     <<: *front
-    command: ["content", "serve", "--env-file", "/opt/reforged/.workspace/config/content.env"]
+    command: ["reforged-host", "content", "serve", "--env-file", "/opt/reforged/.workspace/config/content.env"]
     volumes:
       - workspace:/opt/reforged/.workspace:ro
     healthcheck:
@@ -154,7 +154,7 @@ services:
   # (docs/admin-api.md). It writes its timeouts next to secrets.env, so the workspace is mounted writable.
   admin:
     <<: *front
-    command: ["admin", "serve", "--env-file", "/opt/reforged/.workspace/config/admin.env"]
+    command: ["reforged-host", "admin", "serve", "--env-file", "/opt/reforged/.workspace/config/admin.env"]
     volumes:
       - workspace:/opt/reforged/.workspace
     healthcheck:
@@ -169,7 +169,7 @@ services:
   allowlist:
     <<: *front
     profiles: [public]
-    command: ["allowlist", "--env-file", "/opt/reforged/.workspace/config/allowlist.env"]
+    command: ["reforged-host", "allowlist", "--env-file", "/opt/reforged/.workspace/config/allowlist.env"]
     # nft's file capability: the helper itself runs unprivileged (Dockerfile, front)
     security_opt: []
     cap_add: [NET_ADMIN]
@@ -186,7 +186,7 @@ services:
   # Started last, as by the host kit: no player request reaches a service that is not up yet
   gateway:
     <<: *front
-    command: ["gateway", "serve", "--env-file", "/opt/reforged/.workspace/config/gateway.env"]
+    command: ["reforged-host", "gateway", "serve", "--env-file", "/opt/reforged/.workspace/config/gateway.env"]
     volumes:
       - workspace:/opt/reforged/.workspace:ro
     healthcheck:

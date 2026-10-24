@@ -49,5 +49,6 @@ pub fn dispatch(command: &Command, paths: &Paths) -> Outcome {
             let code = crate::wine::run_game_server(args)?;
             Ok(ExitCode::from(u8::try_from(code).unwrap_or(1)))
         }
+        Command::Server(server) => Ok(server.run()),
     }
 }

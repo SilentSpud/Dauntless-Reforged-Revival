@@ -3,6 +3,12 @@
 /// The component's name, until the real crate lands.
 pub const COMPONENT: &str = "backend";
 
+/// `reforged-host backend`: refuses to run until the real crate lands.
+pub fn run() -> std::process::ExitCode {
+    eprintln!("backend: not implemented yet (backend is a stub)");
+    std::process::ExitCode::FAILURE
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

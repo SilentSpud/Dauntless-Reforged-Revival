@@ -28,13 +28,13 @@ WORKDIR /src/rust
 COPY rust/rust-toolchain.toml ./
 RUN rustup show active-toolchain || rustup toolchain install
 COPY rust/ ./
-# The release workflow's build: the host kit, gateway (and allowlist), content server and admin API. The launcher is a
-# workspace member but is not built (only the lock file is read). backend and director join once they are real.
+# The release workflow's build: reforged-host, with the gateway, allowlist, content server and admin API built in as
+# its features. The launcher is a workspace member but is not built (only the lock file is read).
 RUN --mount=type=cache,id=reforged-cargo-registry,target=/usr/local/cargo/registry \
     --mount=type=cache,id=reforged-cargo-target,target=/src/rust/target \
-    cargo build --release --locked -p host -p gateway -p content -p admin --bins \
+    cargo build --release --locked -p host --bins \
  && mkdir -p /out/bin \
- && for bin in reforged-host gateway allowlist content admin; do cp "target/release/$bin" /out/bin/; done
+ && cp target/release/reforged-host /out/bin/
 
 # ------------------------------------------------------------------ the Node services (until RB14)
 FROM ${NODE_IMAGE} AS node-build
@@ -66,7 +66,7 @@ RUN apt-get update \
  && groupadd --gid 1000 reforged \
  && useradd --uid 1000 --gid 1000 --home-dir /opt/reforged --no-create-home --shell /usr/sbin/nologin reforged \
  && mkdir -p /opt/reforged/.workspace && chown reforged:reforged /opt/reforged/.workspace
-COPY --from=rust-build /out/bin/gateway /out/bin/allowlist /out/bin/content /out/bin/admin /opt/reforged/bin/
+COPY --from=rust-build /out/bin/reforged-host /opt/reforged/bin/
 COPY --chmod=0755 docker/healthcheck.sh /opt/reforged/bin/reforged-healthcheck
 ENV PATH=/opt/reforged/bin:$PATH
 WORKDIR /opt/reforged/.workspace

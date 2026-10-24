@@ -10,8 +10,8 @@ it. What it trusts and why is in [security/admin-api.md](security/admin-api.md).
 ## Running it
 
 `reforged-host setup` makes its key and writes `.workspace/config/admin.env`. `reforged-host start` runs it after
-the content server when the `admin` binary is in the release (or in `rust/target/`). In Docker it is the `admin`
-service in `compose.yaml`. Nothing needs setting in `host.toml`.
+the content server, as `reforged-host admin serve` (the admin API is built into `reforged-host`). In Docker it is
+the `admin` service in `compose.yaml`. Nothing needs setting in `host.toml`.
 
 What it needs, all written by setup:
 
@@ -32,7 +32,7 @@ stay as they are.
 ## The schema
 
 The full schema, with every field's description, is
-[rust/services/admin/schema.graphql](../rust/services/admin/schema.graphql) (`admin schema` prints it; a test keeps
+[rust/services/admin/schema.graphql](../rust/services/admin/schema.graphql) (`reforged-host admin schema` prints it; a test keeps
 the file current). In short:
 
 ```graphql

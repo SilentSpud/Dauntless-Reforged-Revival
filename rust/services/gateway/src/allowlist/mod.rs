@@ -4,6 +4,7 @@
 //! `CAP_NET_ADMIN`), so it listens on loopback only, wants the shared secret on every request, and
 //! only ever changes its own firewall rule or table.
 
+pub mod cli;
 pub mod config;
 pub mod firewall;
 pub mod helper;

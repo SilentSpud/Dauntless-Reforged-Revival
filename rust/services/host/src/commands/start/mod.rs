@@ -106,15 +106,20 @@ pub fn service_plan(paths: &Paths, config: &HostConfig, external_allowlist: bool
             required: false,
         },
     ];
-    // The admin API has no Node build: it runs when its bin is there and setup wrote its env file.
+    // The admin API has no Node build: it runs when it is built in and setup wrote its env file.
     let admin_env = env_file(paths, "admin");
-    if let Some(bin) = programs.rust_bin("admin").filter(|_| admin_env.is_file()) {
+    if let Some(bin) = programs.server("admin").filter(|_| admin_env.is_file()) {
         plan.push(Planned {
             spec: spec_from(
                 "admin",
                 Launch {
                     command: bin,
-                    args: vec!["serve".into(), "--env-file".into(), admin_env.display().to_string()],
+                    args: vec![
+                        "admin".into(),
+                        "serve".into(),
+                        "--env-file".into(),
+                        admin_env.display().to_string(),
+                    ],
                     cwd: paths.workspace.clone(),
                     env_file_in_args: true,
                 },
@@ -557,7 +562,7 @@ pub fn run(paths: &Paths) -> Outcome {
         cfg!(target_os = "linux") && std::env::var("REFORGED_ALLOWLIST").is_ok_and(|v| v == "external");
     let config = preflight(paths, external_allowlist)?;
     let external_allowlist = external_allowlist && config.mode == ServerMode::Public;
-    let programs = Programs::find(paths)?;
+    let programs = Programs::find()?;
     let controlled = controlled_by_stdin();
     let control = Control::begin(controlled)?;
     let supervisor = Supervisor::new(&paths.logs, console_printer()).with_cancel(control.flag());
@@ -623,8 +628,12 @@ mod tests {
     fn programs(dir: &Path) -> Programs {
         Programs {
             node: PathBuf::from("node"),
-            rust_dirs: vec![dir.join("bin")],
+            host: Some(host_bin(dir)),
         }
+    }
+
+    fn host_bin(dir: &Path) -> PathBuf {
+        dir.join("bin").join("reforged-host")
     }
 
     fn names(plan: &[Planned]) -> Vec<&str> {
@@ -675,16 +684,10 @@ mod tests {
     }
 
     #[test]
-    fn runs_the_admin_api_after_content_when_its_bin_and_env_file_are_there() {
+    fn runs_the_admin_api_after_content_when_its_env_file_is_there() {
         let dir = tempfile::tempdir().unwrap();
         let paths = Paths::new(dir.path());
         let c = config(ServerMode::Private);
-        std::fs::create_dir_all(dir.path().join("bin")).unwrap();
-        let bin = dir
-            .path()
-            .join("bin")
-            .join(format!("admin{}", std::env::consts::EXE_SUFFIX));
-        std::fs::write(&bin, "").unwrap();
         // An older setup wrote no admin.env
         let plan = service_plan(&paths, &c, false, &programs(dir.path()));
         assert_eq!(names(&plan), ["backend", "director", "content", "gateway"]);
@@ -693,10 +696,11 @@ mod tests {
         let plan = service_plan(&paths, &c, false, &programs(dir.path()));
         assert_eq!(names(&plan), ["backend", "director", "content", "admin", "gateway"]);
         let admin = &plan[3];
-        assert_eq!(admin.spec.command, bin);
+        assert_eq!(admin.spec.command, host_bin(dir.path()));
         assert_eq!(
             admin.spec.args,
             [
+                "admin",
                 "serve",
                 "--env-file",
                 &paths.config.join("admin.env").display().to_string()
@@ -711,17 +715,11 @@ mod tests {
     fn gives_a_rust_allowlist_its_env_file_as_an_argument() {
         let dir = tempfile::tempdir().unwrap();
         let paths = Paths::new(dir.path());
-        std::fs::create_dir_all(dir.path().join("bin")).unwrap();
-        let bin = dir
-            .path()
-            .join("bin")
-            .join(format!("allowlist{}", std::env::consts::EXE_SUFFIX));
-        std::fs::write(&bin, "").unwrap();
         let plan = service_plan(&paths, &config(ServerMode::Public), false, &programs(dir.path()));
         let allowlist = &plan[3].spec;
-        assert_eq!(allowlist.command, bin);
+        assert_eq!(allowlist.command, host_bin(dir.path()));
         let file = paths.config.join("allowlist.env").display().to_string();
-        assert_eq!(allowlist.args, ["--env-file".to_string(), file]);
+        assert_eq!(allowlist.args, ["allowlist".to_string(), "--env-file".into(), file]);
         assert_eq!(allowlist.env_file, None, "a Rust bin reads its file itself");
     }
 

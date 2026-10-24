@@ -75,8 +75,8 @@ file, and what Reforged changed. The per-line detail is in [`delta-servers.md`](
 | `config.ts` | `config.ts` | `config.rs` | `GATEWAY_TLS=0` private mode on a Tailscale or loopback address; 443 or 61000 by mode; `GATEWAY_BACKEND_URL`; `GATEWAY_WS_URL` to the backend's own listener |
 | `gateway.ts` | `gateway.ts` | `gateway.rs`, `guard.rs` | `x-reforged-gateway`; `x-forwarded-proto` by mode; plain HTTP in private mode |
 | `feed.ts` | `feed.ts` | `feed.rs` | None; DR's helper-down backoff kept on purpose (RD20) |
-| `server.ts` | `server.ts` | `server.rs`, `main.rs` | Certificate loaded and checked in public mode only, never made; `mode` in the start-up log |
-| `tools/make-cert.js` | `tools/make-cert.js` | `cert.rs` (`gateway make-cert`) | Reforged's organization name and usage text |
+| `server.ts` | `server.ts` | `server.rs`, `cli.rs` | Certificate loaded and checked in public mode only, never made; `mode` in the start-up log |
+| `tools/make-cert.js` | `tools/make-cert.js` | `cert.rs` (`reforged-host gateway make-cert`) | Reforged's organization name and usage text |
 | — | `capture.ts` (DR M2) | `capture.rs` | Ported into Rust for RB2 (RD19); off unless configured |
 | `ip.ts`, `ratelimit.ts`, `redact.ts` | identical | `ip.rs`, `ratelimit.rs`, `redact.rs` | None |
 | `log.ts` | identical | `service-kit` `linelog` | None |
@@ -85,7 +85,7 @@ file, and what Reforged changed. The per-line detail is in [`delta-servers.md`](
 | `allowlist/nft.ts` | — (adapted from DR's `deploy/unix-common/allowlist-core.mjs`) | `allowlist/nft.rs`, `allowlist/firewall.rs` | Table `reforged_revival` swapped in one transaction, `lo` rule, nft at its configured path only (RD20) |
 | `allowlist/firewall.ts` | `allowlist/firewall.ts` | `allowlist/firewall.rs`, `allowlist/windows.rs` | Reforged's Windows Firewall rule name and display name; the backend choice |
 | `allowlist/helper.ts` | `allowlist/helper.ts` | `allowlist/helper.rs` | The backend choice |
-| `allowlist/server.ts` | `allowlist/server.ts` | `bin/allowlist.rs` | nftables needs Linux and a working `nft list tables`; the administrator check is Windows-only |
+| `allowlist/server.ts` | `allowlist/server.ts` | `allowlist/cli.rs` | nftables needs Linux and a working `nft list tables`; the administrator check is Windows-only |
 | `allowlist/state.ts`, `allowlist/sync.ts` | identical | `allowlist/state.rs`, `allowlist/sync.rs` | None |
 | tests | — | `tests/`, `tests/parity/` (recorded from the Node gateway) | Parity fixtures are the contract |
 
@@ -97,7 +97,7 @@ file, and what Reforged changed. The per-line detail is in [`delta-servers.md`](
 | `app.ts` | `app.ts` | `app.rs`, `input.rs` | `GET /content/v1/runtime/manifest` and `/runtime/files/<name>` in place of DR's game manifest and files; no HTTP ranges; `x-reforged-user-api-key`; no CORS headers; 256 KiB chunks |
 | `auth.ts` | `auth.ts` | `auth.rs`, `client.rs` | Key lookup at `GET /reforged/api/GetUserInfo` |
 | `config.ts` | `config.ts` | `config.rs` | Loopback binds only; `BACKEND_URL` (loopback `http:`); `CONTENT_RUNTIME_DIR`; `CONTENT_GAME_DIR`, `CONTENT_MANIFEST`, `CONTENT_DOWNLOAD_BASE_URL`, `CONTENT_ALLOW_ANY_BIND` gone; 4 streams per account |
-| `server.ts` | `server.ts` | `server.rs`, `main.rs` | No game-folder check at start; a missing runtime is a warning; `SIGBREAK` |
+| `server.ts` | `server.ts` | `server.rs`, `cli.rs` | No game-folder check at start; a missing runtime is a warning; `SIGBREAK` |
 | `branding.ts`, `limits.ts`, `log.ts`, `news.ts` | identical | `branding.rs`, `limits.rs`, `log.rs`, `news.rs` | None |
 | — | `gamedir.ts`, `manifest.ts`, `paths.ts`, `verify.ts`, `range.ts`, `data/dauntless-1.4.4.json` | dropped | The 1.4.4 game download. Only `if_none_match_hits` survives, in `app.rs` |
 
@@ -105,6 +105,10 @@ file, and what Reforged changed. The per-line detail is in [`delta-servers.md`](
 
 No DR counterpart: DR's kits were PowerShell and shell scripts under `deploy/`. The Rust kit follows the Node kit's
 files one to one; its tests run against fixtures generated from the Node kit (`tests/fixtures/node/`).
+
+`reforged-host` is also the one server binary: each Rust server is a cargo feature of the host crate (all on by
+default) and a subcommand (`reforged-host gateway|allowlist|content|admin ...`, `servers.rs`). Each service crate
+keeps its entry point as `cli.rs` (`Cli` and `run`), where DR had `main.rs` or `bin/*.rs`.
 
 | Reforged Node (`legacy/ReforgedHost/src/`) | Rust (`services/host/src/`) | Note |
 | --- | --- | --- |

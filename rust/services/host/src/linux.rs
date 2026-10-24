@@ -6,7 +6,7 @@
 //!   which runs the hidden `reforged-host gameserver` ([`crate::wine`])
 //! - privileges: a public server listens on TCP 443 and its allowlist changes nftables
 //! - systemd units that give each part only the privilege it needs, and run the server at boot:
-//!   `reforged-host start`, and in public mode the Rust allowlist helper next to it
+//!   `reforged-host start`, and in public mode `reforged-host allowlist`
 //! - `firewall.sh`: lets a host firewall (ufw) pass the server's traffic
 
 use std::fs;
@@ -142,14 +142,6 @@ fn host_binary(paths: &Paths) -> PathBuf {
         return release;
     }
     std::env::current_exe().unwrap_or_else(|_| PathBuf::from(name))
-}
-
-/// The allowlist helper next to `reforged-host`.
-fn allowlist_binary(paths: &Paths) -> PathBuf {
-    let name = format!("allowlist{}", std::env::consts::EXE_SUFFIX);
-    host_binary(paths)
-        .parent()
-        .map_or_else(|| PathBuf::from(&name), |dir| dir.join(&name))
 }
 
 #[cfg(unix)]
@@ -300,7 +292,6 @@ pub fn unit_path(s: &str) -> Result<String, HostError> {
 pub struct UnitContext {
     pub user: String,
     pub host_bin: PathBuf,
-    pub allowlist_bin: PathBuf,
 }
 
 fn user_name() -> Result<String, HostError> {
@@ -319,7 +310,6 @@ pub fn unit_context(paths: &Paths) -> Result<UnitContext, HostError> {
     Ok(UnitContext {
         user: user_name()?,
         host_bin: host_binary(paths),
-        allowlist_bin: allowlist_binary(paths),
     })
 }
 
@@ -338,7 +328,7 @@ pub fn systemd_units(c: &HostConfig, p: &Paths, ctx: &UnitContext) -> Result<Vec
     let mut files = Vec::new();
     let allowlist_env = p.config.join("allowlist.env");
     let workspace = unit_path(&p.workspace.to_string_lossy())?;
-    let allowlist = unit_word(&ctx.allowlist_bin.to_string_lossy())?;
+    let host = unit_word(&ctx.host_bin.to_string_lossy())?;
     let env_file = unit_word(&allowlist_env.to_string_lossy())?;
     if public {
         files.push((
@@ -356,9 +346,9 @@ pub fn systemd_units(c: &HostConfig, p: &Paths, ctx: &UnitContext) -> Result<Vec
                 "Type=simple".to_owned(),
                 format!("User={}", ctx.user),
                 format!("WorkingDirectory={workspace}"),
-                format!("ExecStart={allowlist} \"--env-file\" {env_file}"),
+                format!("ExecStart={host} \"allowlist\" \"--env-file\" {env_file}"),
                 "# Whatever happened, the game ports end closed.".to_owned(),
-                format!("ExecStopPost={allowlist} \"--env-file\" {env_file} \"--close-ports\""),
+                format!("ExecStopPost={host} \"allowlist\" \"--env-file\" {env_file} \"--close-ports\""),
                 "Restart=on-failure".to_owned(),
                 "RestartSec=3".to_owned(),
                 "TimeoutStopSec=30".to_owned(),

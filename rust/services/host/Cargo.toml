@@ -12,7 +12,23 @@ publish.workspace = true
 name = "reforged-host"
 path = "src/main.rs"
 
+# Every server is a feature of the one `reforged-host` binary: `reforged-host gateway serve ...` and so on.
+# `start` runs each compiled-in server as this binary again; one left out falls back to its Node build.
+[features]
+default = ["gateway", "allowlist", "content", "admin", "backend", "director"]
+gateway = ["dep:gateway"]
+allowlist = ["dep:gateway"]
+content = ["dep:content"]
+admin = ["dep:admin"]
+backend = ["dep:backend"]
+director = ["dep:director"]
+
 [dependencies]
+admin = { workspace = true, optional = true }
+backend = { workspace = true, optional = true }
+content = { workspace = true, optional = true }
+director = { workspace = true, optional = true }
+gateway = { workspace = true, optional = true }
 # The backend's token keys, RSA 4096 (D10: aws-lc-rs; already in the tree through rustls and rcgen).
 aws-lc-rs = "1.18"
 base64.workspace = true

@@ -8,6 +8,7 @@
 pub mod allowlist;
 pub mod capture;
 pub mod cert;
+pub mod cli;
 pub mod config;
 pub mod feed;
 pub mod gateway;

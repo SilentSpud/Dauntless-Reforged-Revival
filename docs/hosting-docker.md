@@ -98,7 +98,7 @@ docker compose run --rm host invite --for "Alex"
 logs are in the `workspace` volume, `logs/gameservers/`. `docker compose run --rm host doctor` checks the
 setup from inside the server's network. It checks for a plain Linux host, so in Docker a few of its lines
 are expected and harmless: git, nftables and the systemd units are not in the `host` container, and the
-gateway and content server count as "not built" because their Rust bins run in the `front` image instead.
+gateway and content server count as "not built" because they run as `reforged-host` in the `front` image instead.
 
 **Another port than 443** (`setup --public-port 4443`): set `REFORGED_GATEWAY_PORT=4443` and
 `REFORGED_GATEWAY_PUBLISH=4443` in `.env` too, and allow TCP 4443 in the provider's firewall. **More than six

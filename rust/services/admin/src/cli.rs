@@ -1,20 +1,19 @@
-//! The `admin` binary: `admin serve --env-file <file>` runs the admin API; `serve` is the default.
-//! `admin schema` prints the GraphQL schema (`schema.graphql`).
+//! `reforged-host admin serve --env-file <file>` runs the admin API; `serve` is the default.
+//! `reforged-host admin schema` prints the GraphQL schema (`schema.graphql`).
 
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Subcommand};
 use service_kit::env::Env;
 
-#[derive(Parser)]
-#[command(name = "admin", version, about = "Dauntless Reforged Revival admin API")]
-struct Cli {
+#[derive(Debug, Args)]
+pub struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
 }
 
-#[derive(Subcommand)]
+#[derive(Debug, Clone, Subcommand)]
 enum Command {
     /// Serves the admin API on loopback.
     Serve {
@@ -26,14 +25,14 @@ enum Command {
 }
 
 fn fail(error: &str) -> ExitCode {
-    admin::log::error(&format!("Configuration: {error}"), serde_json::json!({}));
+    crate::log::error(&format!("Configuration: {error}"), serde_json::json!({}));
     ExitCode::FAILURE
 }
 
-fn main() -> ExitCode {
-    let file = match Cli::parse().command.unwrap_or(Command::Serve { env_file: None }) {
+pub fn run(cli: &Cli) -> ExitCode {
+    let file = match cli.command.clone().unwrap_or(Command::Serve { env_file: None }) {
         Command::Schema => {
-            print!("{}", admin::schema::sdl());
+            print!("{}", crate::schema::sdl());
             return ExitCode::SUCCESS;
         }
         Command::Serve { env_file } => env_file,
@@ -42,7 +41,7 @@ fn main() -> ExitCode {
         Ok(env) => env,
         Err(error) => return fail(&error.to_string()),
     };
-    let config = match admin::config::Config::from_env(&env) {
+    let config = match crate::config::Config::from_env(&env) {
         Ok(config) => config,
         Err(error) => return fail(&error),
     };
@@ -50,7 +49,7 @@ fn main() -> ExitCode {
         Ok(runtime) => runtime,
         Err(error) => return fail(&error.to_string()),
     };
-    match runtime.block_on(admin::server::run(config)) {
+    match runtime.block_on(crate::server::run(config)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => fail(&error),
     }

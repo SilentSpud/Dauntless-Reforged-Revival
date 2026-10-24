@@ -4,6 +4,7 @@
 //! wants its key on every request; the gateway never forwards to it (docs/security/admin-api.md).
 
 pub mod app;
+pub mod cli;
 pub mod config;
 pub mod hmac;
 pub mod input;

@@ -53,6 +53,8 @@ pub enum Command {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
+    #[command(flatten)]
+    Server(crate::servers::Server),
 }
 
 impl Command {
@@ -70,6 +72,7 @@ impl Command {
             Self::Update(_) => "update",
             Self::Backup => "backup",
             Self::Gameserver { .. } => "gameserver",
+            Self::Server(server) => server.name(),
         }
     }
 }
