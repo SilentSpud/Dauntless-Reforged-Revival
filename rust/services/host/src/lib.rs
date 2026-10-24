@@ -1,9 +1,10 @@
 //! The host kit, `reforged-host` (MIGRATION_PLAN.md RD3, section 4.4): the Node kit in
 //! `legacy/ReforgedHost` as one Rust binary, with the same commands and options and the same files
-//! (`host.json`, the `.env` files), so an existing host moves over with `update`.
+//! (the `.env` files; `host.json` became `host.toml`, read from a Node kit's host.json until the
+//! first write), so an existing host moves over with `update`.
 //!
 //! RH1 is the skeleton: the command line ([`cli`]), the layout ([`paths`]), the env files
-//! ([`envfile`]) and `host.json` with the service env files built from it ([`hostconfig`]) are
+//! ([`envfile`]) and the settings with the service env files built from it ([`hostconfig`]) are
 //! real. Each command is a module in [`commands`]; the other modules follow the Node kit's files and
 //! name the row that fills them. Shared helpers one row writes and another calls are declared here
 //! with their signatures, so the wave 2 rows (RH2-RH5) each fill only their own files.
@@ -13,6 +14,7 @@ pub mod commands;
 pub mod envfile;
 pub mod error;
 pub mod hostconfig;
+pub mod hosttoml;
 pub mod paths;
 
 // RH2

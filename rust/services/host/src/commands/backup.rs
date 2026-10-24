@@ -12,7 +12,7 @@ use std::process::ExitCode;
 use crate::Outcome;
 use crate::commands::setup::database::{Database, database};
 use crate::error::HostError;
-use crate::hostconfig::{HostConfig, read_env_file, read_host_config};
+use crate::hostconfig::{HostConfig, load_host_config, read_env_file};
 use crate::mongo::{newest_installed, program_files, search_path};
 use crate::paths::Paths;
 
@@ -73,8 +73,8 @@ pub fn run(paths: &Paths) -> Outcome {
 }
 
 pub fn run_with(paths: &Paths, env: &dyn BackupEnv, out: &mut dyn FnMut(&str)) -> Outcome {
-    let config = read_host_config(&paths.host_json)?
-        .ok_or_else(|| HostError::message("not set up yet: run reforged-host setup first"))?;
+    let config =
+        load_host_config(paths)?.ok_or_else(|| HostError::message("not set up yet: run reforged-host setup first"))?;
     match database(&config) {
         Database::Mongo => mongo_backup(paths, &config, env, out),
     }

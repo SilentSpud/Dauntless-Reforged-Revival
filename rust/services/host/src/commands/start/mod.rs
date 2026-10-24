@@ -20,7 +20,7 @@ use std::time::Duration;
 
 use crate::Outcome;
 use crate::error::HostError;
-use crate::hostconfig::{HostConfig, ServerMode, gateway_port, read_env_file, read_host_config};
+use crate::hostconfig::{HostConfig, ServerMode, gateway_port, load_host_config, read_env_file};
 use crate::paths::{PORTS, Paths, game_exe_relative};
 use crate::services::{Printer, Ready, ServiceSpec, Supervisor, wait_until_ready};
 use binaries::{FrontService, Launch, Programs};
@@ -249,10 +249,10 @@ fn is_windows_admin() -> bool {
 
 const NOT_AS_ROOT: &str = "do not run the server as root. Make a user for it (sudo adduser reforged), sign in as that user (sudo -iu reforged) and run this there; docs/hosting-linux.md shows every step";
 
-/// The checks before anything starts, as the Node kit's; returns `host.json`.
+/// The checks before anything starts, as the Node kit's; returns the server's settings (host.toml).
 fn preflight(paths: &Paths, external_allowlist: bool) -> Result<HostConfig, HostError> {
-    let config = read_host_config(&paths.host_json)?
-        .ok_or_else(|| HostError::message("not set up yet: run reforged-host setup first"))?;
+    let config =
+        load_host_config(paths)?.ok_or_else(|| HostError::message("not set up yet: run reforged-host setup first"))?;
     for name in ["backend", "director", "content", "gateway"] {
         if !env_file(paths, name).exists() {
             return Err(HostError::message(format!(

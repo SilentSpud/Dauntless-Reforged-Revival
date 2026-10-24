@@ -14,7 +14,7 @@ from memory), link the code or test that shows it, and sign at the end with the 
 systemd unit on Linux). It starts MongoDB when managed, the backend and the Director (Node), the content server, the
 allowlist helper (public) and the gateway, each with its env file, and stops them all.
 
-- **In:** `host.json` and the `.env` files under `.workspace/config` (trusted: whoever can write them chooses what
+- **In:** `host.toml` (or a Node kit's `host.json`) and the `.env` files under `.workspace/config` (trusted: whoever can write them chooses what
   runs), the process environment, and with `REFORGED_CONTROL=stdin` the launcher's stdin pipe.
 - **Out:** child processes (never through a shell), their logs under `.workspace/logs`, and the console.
 

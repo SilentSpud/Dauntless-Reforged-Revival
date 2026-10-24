@@ -38,6 +38,7 @@ sha2.workspace = true
 # The Linux release is a .tar.gz, the Windows one a .zip.
 tar = { version = "0.4.46", default-features = false }
 thiserror.workspace = true
+toml_edit.workspace = true
 # `start`: Ctrl+C, Ctrl+Break and closing the console on Windows; SIGINT, SIGTERM and SIGHUP elsewhere
 tokio = { workspace = true, features = ["signal", "time", "net"] }
 url.workspace = true

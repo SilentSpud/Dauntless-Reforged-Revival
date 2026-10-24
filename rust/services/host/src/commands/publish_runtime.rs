@@ -13,7 +13,7 @@ use crate::Outcome;
 use crate::cli::PublishRuntimeArgs;
 use crate::commands::gamedata::from_cwd;
 use crate::error::HostError;
-use crate::hostconfig::read_host_config;
+use crate::hostconfig::load_host_config;
 use crate::paths::{Paths, RUNTIME_FILE_NAMES, game_exe_relative};
 use crate::publish::{default_sources, ensure_server_flags, install_server_runtime, publish_runtime};
 
@@ -40,7 +40,7 @@ pub fn run(paths: &Paths, args: &PublishRuntimeArgs) -> Outcome {
         println!("  {}  {} bytes  {}", f.name, f.size, f.sha256);
     }
     println!("Players see these hashes and accept them once in the launcher.");
-    let config = read_host_config(&paths.host_json)?;
+    let config = load_host_config(paths)?;
     if let Some(game_dir) = config.as_ref().and_then(|c| c.game_dir.as_deref()) {
         let exe = Path::new(game_dir).join(game_exe_relative());
         let win64 = exe.parent().unwrap_or(Path::new(game_dir));

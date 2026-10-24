@@ -22,7 +22,7 @@ use host::commands::setup::{SetupEnv, run_with};
 use host::error::HostError;
 use host::hostconfig::{
     DEFAULT_PERFORMANCE, HostConfig, LinuxOptions, Multipliers, PerformanceOptions, Platform, ServerMode,
-    host_config_text, read_env_file, read_host_config, write_host_config,
+    host_config_text, load_host_config, read_env_file, read_host_config, write_host_config,
 };
 use host::paths::{Paths, game_exe_relative};
 use host::preset::PresetApplied;
@@ -658,12 +658,19 @@ fn a_fresh_private_setup_then_again() {
     assert!(text.ends_with("  reforged-host doctor shows what is still missing."));
     assert_eq!(*env.installs.borrow(), 1);
 
-    let config = read_host_config(&p.host_json).unwrap().unwrap();
+    let config = read_host_config(&p.host_toml).unwrap().unwrap();
     assert_eq!(config.mode, ServerMode::Private);
     assert_eq!(config.game_dir.as_deref(), Some(game_arg.as_str()));
+    assert!(!p.host_json.exists(), "host.toml only");
+    let toml = read(&p.host_toml);
+    assert!(toml.starts_with("# This server's settings (reforged-host)."), "{toml}");
     assert!(
-        read(&p.host_json)
-            .starts_with("{\n  \"version\": 1,\n  \"mode\": \"private\",\n  \"host\": \"100.101.102.103\",")
+        toml.contains("\nversion = 1\n") && toml.contains("\nmode = \"private\"\n"),
+        "{toml}"
+    );
+    assert!(
+        toml.contains("\nhost = \"100.101.102.103\"\n") && toml.contains("\n[mongo]\n"),
+        "{toml}"
     );
     let backend = read_env_file(&p.config.join("backend.env")).unwrap();
     let secrets = read_env_file(&p.config.join("secrets.env")).unwrap();
@@ -693,7 +700,74 @@ fn a_fresh_private_setup_then_again() {
     assert!(lines.contains(&"\n2. Skipped installing and building (--skip-install)".to_owned()));
     assert!(lines.iter().any(|l| l.starts_with("- secrets: kept in ")));
     assert_eq!(read(&p.config.join("secrets.env")), before);
-    assert_eq!(read_host_config(&p.host_json).unwrap().unwrap().name, "Friday Hunts");
+    assert_eq!(read_host_config(&p.host_toml).unwrap().unwrap().name, "Friday Hunts");
+}
+
+#[test]
+fn setup_moves_a_node_kits_host_json_over_to_host_toml() {
+    let (_dir, p, game) = checkout();
+    let env = Mock::new();
+    let game_arg = game.to_string_lossy().into_owned();
+    setup(
+        &p,
+        &["--mode", "private", "--name", "Friday Hunts", "--game", &game_arg],
+        &env,
+    )
+    .0
+    .unwrap();
+    // As a Node kit leaves it: host.json only.
+    let config = read_host_config(&p.host_toml).unwrap().unwrap();
+    write_host_config(&p.host_json, &config).unwrap();
+    let json = read(&p.host_json);
+    std::fs::remove_file(&p.host_toml).unwrap();
+    assert_eq!(
+        load_host_config(&p).unwrap().unwrap().name,
+        "Friday Hunts",
+        "read while there is no host.toml"
+    );
+
+    let (r, lines) = setup(&p, &["--skip-install"], &env);
+    assert!(r.is_ok(), "{r:?}");
+    assert!(
+        lines.contains(&"(host.json is now host.toml; the old file is kept as host.json.bak)".to_owned()),
+        "{lines:?}"
+    );
+    assert!(!p.host_json.exists());
+    assert_eq!(read(&p.config.join("host.json.bak")), json, "kept as it was");
+    let moved = read_host_config(&p.host_toml).unwrap().unwrap();
+    assert_eq!(moved.name, "Friday Hunts");
+    assert_eq!(moved.game_dir.as_deref(), Some(game_arg.as_str()));
+
+    // Once moved, setup says nothing more about it.
+    let (_, lines) = setup(&p, &["--skip-install"], &env);
+    assert!(!lines.iter().any(|l| l.contains("host.json.bak")));
+}
+
+#[test]
+fn setup_keeps_the_hosts_own_comments_and_edits_in_host_toml() {
+    let (_dir, p, _game) = checkout();
+    let env = Mock::new();
+    setup(
+        &p,
+        &["--mode", "private", "--name", "Friday Hunts", "--skip-install"],
+        &env,
+    )
+    .0
+    .unwrap();
+    let edited = read(&p.host_toml).replace(
+        "max_hunt_servers = 3\n",
+        "# two hunts are plenty on this PC\nmax_hunt_servers = 2 # was 3\n",
+    );
+    assert_ne!(edited, read(&p.host_toml));
+    std::fs::write(&p.host_toml, &edited).unwrap();
+    setup(&p, &["--name", "Saturday Hunts", "--skip-install"], &env)
+        .0
+        .unwrap();
+    assert_eq!(
+        read(&p.host_toml),
+        edited.replace("name = \"Friday Hunts\"", "name = \"Saturday Hunts\"")
+    );
+    assert_eq!(load_host_config(&p).unwrap().unwrap().max_hunt_servers, 2);
 }
 
 #[test]
@@ -782,7 +856,7 @@ fn multipliers(p: &Paths, args: &[&str]) -> (Result<std::process::ExitCode, Stri
 }
 
 #[test]
-fn multipliers_change_only_the_multipliers_in_host_json_and_the_backends_env() {
+fn multipliers_change_only_the_multipliers_in_host_toml_and_the_backends_env() {
     let (_dir, p, _game) = checkout();
     let (r, lines) = multipliers(&p, &[]);
     assert_eq!(
@@ -793,7 +867,7 @@ fn multipliers_change_only_the_multipliers_in_host_json_and_the_backends_env() {
     setup(&p, &["--mode", "private", "--skip-install"], &Mock::new())
         .0
         .unwrap();
-    let before = read(&p.host_json);
+    let before = read(&p.host_toml);
 
     let (r, lines) = multipliers(&p, &[]);
     assert!(r.is_ok());
@@ -803,15 +877,9 @@ fn multipliers_change_only_the_multipliers_in_host_json_and_the_backends_env() {
     assert!(r.is_ok(), "{r:?}");
     assert_eq!(lines[0], "Test multipliers ON: XP x5, rewards x2.5.");
     assert!(lines[1].starts_with("Restart the server"));
-    let after = read(&p.host_json);
-    // `{ ...config, multipliers }`: a new key goes last, everything else stays as it was.
-    assert_eq!(
-        after,
-        before.replace(
-            "\n  }\n}\n",
-            "\n  },\n  \"multipliers\": {\n    \"xp\": 5,\n    \"rewards\": 2.5\n  }\n}\n"
-        )
-    );
+    let after = read(&p.host_toml);
+    // A new [multipliers] table at the end; everything else stays as it was.
+    assert_eq!(after, format!("{before}\n[multipliers]\nxp = 5\nrewards = 2.5\n"));
     let backend = read_env_file(&p.config.join("backend.env")).unwrap();
     assert!(
         backend.iter().any(|(k, v)| k.contains("MULTIPLIER") && v == "5"),
@@ -825,7 +893,7 @@ fn multipliers_change_only_the_multipliers_in_host_json_and_the_backends_env() {
         "--xp must be a number from 1 to 100 (got 500)"
     );
     multipliers(&p, &["--off"]).0.unwrap();
-    assert_eq!(read(&p.host_json), before, "--off: the file as it was");
+    assert_eq!(read(&p.host_toml), before, "--off: the file as it was");
 }
 
 #[test]

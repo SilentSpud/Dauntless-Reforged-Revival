@@ -179,7 +179,7 @@ and the gateway certificate (it prints the fingerprint that goes into every invi
 Wine launcher and the systemd units, and makes the Wine prefix. The server preset in `preset/` fills
 most of the game data.
 
-Linux options (each is kept in `host.json` until you change it):
+Linux options (each is kept in `host.toml`'s `[linux]` table until you change it):
 
 | Option | What |
 |---|---|
@@ -244,7 +244,8 @@ The first game servers take longer than on Windows (Wine loads the game): the Di
   as root, `sh setup-vps.sh` (the newest one, from GitHub) moves it over, or by hand as `reforged`:
   download and check the archive as in step 5, put its `bin/reforged-host` in `~/Reforged`, run
   `cd ~/Reforged && ./reforged-host update`, then `rm ~/Reforged/reforged-host` and use
-  `~/Reforged/bin/reforged-host` from then on. `.workspace/`, `host.json` and the env files stay as they are.
+  `~/Reforged/bin/reforged-host` from then on. `.workspace/` and the env files stay as they are, and the Node kit's `host.json` becomes
+  `host.toml` (the old file is kept as `host.json.bak`).
 - **Bans, registration, news, backups:** as on Windows ([hosting.md](hosting.md#running-it)).
   Back up MongoDB with `mongodump`, and keep `.workspace/config/` and `.workspace/tls/` private.
 - **Supplies refilled at every login:** list per account, in `~/Reforged/.workspace/config/session-supplies.json`,

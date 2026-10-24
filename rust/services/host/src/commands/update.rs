@@ -19,6 +19,7 @@ use serde_json::{Value, json};
 use crate::Outcome;
 use crate::cli::UpdateArgs;
 use crate::error::HostError;
+use crate::hostconfig::has_host_config;
 use crate::paths::Paths;
 use crate::selfupdate::{
     self, Attestation, Candidate, Manifest, Source, UpdateError, UpdateResult, Wanted, find_release, installing_marker,
@@ -261,7 +262,7 @@ fn update(paths: &Paths, args: &UpdateArgs, env: &dyn UpdateEnv, out: &mut dyn F
     if args.no_setup {
         return Ok(ExitCode::SUCCESS);
     }
-    if !paths.host_json.exists() {
+    if !has_host_config(paths) {
         out("Now run reforged-host setup.");
         return Ok(ExitCode::SUCCESS);
     }

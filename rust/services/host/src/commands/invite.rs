@@ -8,7 +8,7 @@ use crate::Outcome;
 use crate::cli::InviteArgs;
 use crate::commands::setup::options::{number, number_value, text};
 use crate::error::HostError;
-use crate::hostconfig::{HostConfig, ServerMode, load_or_create_secrets, read_host_config, stringify_pretty};
+use crate::hostconfig::{HostConfig, ServerMode, load_host_config, load_or_create_secrets, stringify_pretty};
 use crate::invite::{CodeOptions, certificate_fingerprint, create_invite_code, invite_for, list_invite_codes};
 use crate::paths::{PORTS, Paths};
 
@@ -71,8 +71,8 @@ pub fn invite_text(config: &HostConfig, args: &InviteArgs, uses: f64, link: &str
 
 /// The command with the backend's port given (tests run a fake backend).
 pub fn run_with(paths: &Paths, args: &InviteArgs, backend_port: u16, out: &mut dyn FnMut(&str)) -> Outcome {
-    let config = read_host_config(&paths.host_json)?
-        .ok_or_else(|| HostError::message("not set up yet: run reforged-host setup first"))?;
+    let config =
+        load_host_config(paths)?.ok_or_else(|| HostError::message("not set up yet: run reforged-host setup first"))?;
     let (secrets, _) = load_or_create_secrets(&paths.config, super::setup::secrets::new_secrets)?;
     if args.list {
         out(&stringify_pretty(&list_invite_codes(&secrets.admin_key, backend_port)?));

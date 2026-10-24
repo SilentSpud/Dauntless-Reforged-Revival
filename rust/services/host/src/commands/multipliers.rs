@@ -1,4 +1,4 @@
-//! `reforged-host multipliers`: the Node kit's `multipliers()` in `cli.ts`. It reads host.json,
+//! `reforged-host multipliers`: the Node kit's `multipliers()` in `cli.ts`. It reads host.toml,
 //! changes only `multipliers` (so the rest of the file stays byte for byte) and rewrites the env
 //! files; the backend reads them when it starts.
 
@@ -10,8 +10,8 @@ use crate::cli::MultipliersArgs;
 use crate::commands::setup::options::{MultiplierOption, multipliers_from_args, number_text, text};
 use crate::error::HostError;
 use crate::hostconfig::{
-    HostConfig, Platform, ServerMode, build_env_files, load_or_create_secrets, multipliers_on, read_host_config,
-    write_env_files, write_host_config,
+    HostConfig, Platform, ServerMode, build_env_files, load_host_config, load_or_create_secrets, multipliers_on,
+    save_host_config, write_env_files,
 };
 use crate::paths::Paths;
 
@@ -61,12 +61,12 @@ pub fn run_with(
     source_commit: &dyn Fn(&Path) -> Result<String, HostError>,
     out: &mut dyn FnMut(&str),
 ) -> Outcome {
-    let mut config = read_host_config(&paths.host_json)?
-        .ok_or_else(|| HostError::message("not set up yet: run reforged-host setup first"))?;
+    let mut config =
+        load_host_config(paths)?.ok_or_else(|| HostError::message("not set up yet: run reforged-host setup first"))?;
     let asked = asked(args);
     if asked {
         config = changed(&config, args)?;
-        write_host_config(&paths.host_json, &config)?;
+        save_host_config(paths, &config)?;
         let (secrets, _) = load_or_create_secrets(&paths.config, super::setup::secrets::new_secrets)?;
         let commit = source_commit(&paths.repo)?;
         write_env_files(paths, &build_env_files(&config, &secrets, paths, &commit, platform))?;

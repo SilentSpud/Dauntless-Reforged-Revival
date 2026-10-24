@@ -26,7 +26,7 @@ pub struct Cli {
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Set up (or update) this server: Mystic Paradox, the services, host.json and the env files
+    /// Set up (or update) this server: Mystic Paradox, the services, host.toml and the env files
     Setup(SetupArgs),
     /// Run every service until Ctrl+C (or a "stop" line with REFORGED_CONTROL=stdin)
     Start,

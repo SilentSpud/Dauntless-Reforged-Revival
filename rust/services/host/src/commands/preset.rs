@@ -12,7 +12,7 @@ use crate::cli::PresetArgs;
 use crate::commands::gamedata::{log_file, not_set_up};
 use crate::error::HostError;
 use crate::gamedata::{GenerateOptions, generate_game_data};
-use crate::hostconfig::read_host_config;
+use crate::hostconfig::load_host_config;
 use crate::paths::{Paths, game_exe_relative};
 use crate::preset::{CreateOptions, apply_preset, create_preset, read_preset_manifest};
 
@@ -35,7 +35,7 @@ fn create(paths: &Paths, args: &PresetArgs) -> Outcome {
             );
         }
     }
-    let config = read_host_config(&paths.host_json)?;
+    let config = load_host_config(paths)?;
     let executable = config
         .as_ref()
         .and_then(|c| c.game_dir.as_deref())
@@ -69,7 +69,7 @@ fn create(paths: &Paths, args: &PresetArgs) -> Outcome {
     );
     match &r.manifest.executable_sha256 {
         Some(hash) => println!("  read from the game executable {hash}"),
-        None => println!("  ! no game folder in host.json, so the executable's SHA-256 was not recorded"),
+        None => println!("  ! no game folder in host.toml, so the executable's SHA-256 was not recorded"),
     }
     println!(
         "Every server set up from this checkout now starts from it (reforged-host setup applies it). To ship it with the project, commit preset/."

@@ -11,7 +11,8 @@
 //! <workspace>\native\catalog-exporter\x64\Release\CatalogExporter.dll
 //! <workspace>\paradox\backend\game-data\, paradox\director\game-data\
 //! <workspace>\paradox\Items_Analysis\            CatalogExporter's output, copied in from the game folder
-//! <workspace>\.workspace\config\host.json        the server's settings (its secrets are in secrets.env)
+//! <workspace>\.workspace\config\host.toml        the server's settings (its secrets are in secrets.env);
+//!                                                 host.json while a Node kit's is not moved over yet
 //! <workspace>\.workspace\runtime\                what the content server hands to players
 //! <workspace>\.workspace\logs\                   the logs of what the launcher started
 //! ```
@@ -105,6 +106,7 @@ pub struct WorkspacePaths {
     pub exports: PathBuf,
     pub publish: PathBuf,
     pub logs: PathBuf,
+    pub host_toml: PathBuf,
     pub host_json: PathBuf,
     pub gamedata_packs: PathBuf,
 }
@@ -134,6 +136,7 @@ impl WorkspacePaths {
             exports: paradox.join("Items_Analysis"),
             publish: workspace.join("runtime"),
             logs: workspace.join("logs"),
+            host_toml: join(&workspace, &["config", "host.toml"]),
             host_json: join(&workspace, &["config", "host.json"]),
             gamedata_packs: workspace.join("gamedata-packs"),
             root: root.to_path_buf(),
@@ -358,15 +361,24 @@ fn not_configured() -> HostServerConfig {
     }
 }
 
-/// The server's `host.json` as the Host page shows it (Reforged's `readServerConfig`).
-pub fn read_server_config(root: &Path) -> HostServerConfig {
-    let path = WorkspacePaths::new(root).host_json;
-    // host.json is small; a huge one is not the host kit's.
-    let text = match path.metadata() {
-        Ok(meta) if meta.len() <= 1024 * 1024 => std::fs::read_to_string(&path).ok(),
+/// A settings file's text; None when it is missing or too big. The files are small: a huge one is not
+/// the host kit's.
+fn small_text(path: &Path) -> Option<String> {
+    match path.metadata() {
+        Ok(meta) if meta.len() <= 1024 * 1024 => std::fs::read_to_string(path).ok(),
         _ => None,
+    }
+}
+
+/// The server's settings as the Host page shows them (Reforged's `readServerConfig`): `host.toml`, or
+/// a Node kit's `host.json` while there is no host.toml.
+pub fn read_server_config(root: &Path) -> HostServerConfig {
+    let paths = WorkspacePaths::new(root);
+    let config = match small_text(&paths.host_toml) {
+        Some(text) => parse::server_config_toml(&text),
+        None => small_text(&paths.host_json).as_deref().and_then(parse::server_config),
     };
-    let Some(config) = text.as_deref().and_then(parse::server_config) else {
+    let Some(config) = config else {
         return not_configured();
     };
     HostServerConfig {
@@ -673,6 +685,7 @@ mod tests {
         assert_eq!(w.backend_game_data, join(root, &["paradox", "backend", "game-data"]));
         assert_eq!(w.exports, join(root, &["paradox", "Items_Analysis"]));
         assert_eq!(w.publish, join(root, &[".workspace", "runtime"]));
+        assert_eq!(w.host_toml, join(root, &[".workspace", "config", "host.toml"]));
         assert_eq!(w.host_json, join(root, &[".workspace", "config", "host.json"]));
         assert_eq!(
             w.launcher_log("setup"),
@@ -821,6 +834,16 @@ mod tests {
             kit.server_config.multipliers,
             Some(HostMultipliers { xp: 5.0, rewards: 2.0 })
         );
+
+        // host.toml wins over a Node kit's host.json left next to it.
+        write(
+            &w.host_toml,
+            b"name = \"Saturday\"\nmode = \"public\"\nhost = \"hunts.example.net\"\n",
+        );
+        let kit = detect_host_kit(Some(root), &Toolchain::default(), &root.join("no-dumps"));
+        assert_eq!(kit.server_config.mode, Some(HostServerMode::Public));
+        assert_eq!(kit.server_config.name.as_deref(), Some("Saturday"));
+        assert_eq!(kit.server_config.multipliers, None);
 
         let none = detect_host_kit(None, &Toolchain::default(), &root.join("no-dumps"));
         assert!(!none.workspace_ok && none.workspace.is_none());
