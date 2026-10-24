@@ -604,6 +604,44 @@ systemRouter.put("/cooldown/batch/:userId", HasParadoxBackendAuth, async (req: a
 	}
 });
 
+// [Dauntless Reforged Revival] The game server also saves one cooldown at a time with
+// PUT /cooldown/<user>/<cooldownId>; that route did not exist, so those saves were lost (404) and the
+// cooldown fired again on the next arrival. It stores the cooldown as started now, like a batch save of one.
+// It stays after /cooldown/batch/:userId so "batch" is never read as a user id.
+systemRouter.put("/cooldown/:userId/:cooldownId", HasParadoxBackendAuth, async (req: any, res) => {
+	const UserId = String(req.params.userId);
+	const CooldownId = String(req.params.cooldownId);
+	if (!IsAuthorizedCooldownWriter(req.AuthData)) {
+		logger.warn(`Rejected cooldown write without gameserver authority actor=${req.AuthData?.userId ?? "unknown"} target=${UserId}`);
+		res.status(403).json({ code: null, message: "Forbidden", payload: {} });
+		return;
+	}
+	if (!CooldownId || CooldownId.length > 200 || !/^[A-Za-z0-9_.:-]+$/.test(CooldownId)) {
+		res.status(400).json({ code: null, message: "Bad Request", payload: {} });
+		return;
+	}
+	const Body = { cooldowns: [{ cooldown_id: CooldownId, cooldown_started_date: new Date().toISOString() }] };
+	if (!COOLDOWN_PERSISTENCE || UserId === COOLDOWN_NO_PLAYER) {
+		MonitorCooldownSave(UserId, MonitorSourceOf(req.AuthData), Body, COOLDOWN_PERSISTENCE ? "no-player sentinel, not stored" : "persistence off (stub), not stored");
+		res.status(200).json({ code: null, message: "OK", payload: {} });
+		return;
+	}
+	try {
+		const { payload, record } = await SaveCooldowns(UserId, Body);
+		MonitorCooldownSave(UserId, MonitorSourceOf(req.AuthData), Body, `stored one -> ${record.entries.length} cooldown(s) version=${record.updateVersion}`);
+		logger.info(`[CooldownIndividual] user=${UserId} id=${CooldownId} stored=${record.entries.length} version=${record.updateVersion}`);
+		res.status(200).json({ code: null, message: "OK", payload });
+	}
+	catch (Err) {
+		if (Err instanceof CooldownSaveValidationError) {
+			MonitorCooldownSave(UserId, MonitorSourceOf(req.AuthData), Body, `REJECTED ${Err.message}`);
+			res.status(400).json({ code: null, message: "Bad Request", payload: {} });
+			return;
+		}
+		throw Err;
+	}
+});
+
 systemRouter.get("/bounty/game-data", HasParadoxBackendAuth, (req: any, res) => {
 	logger.info("Bounty game data (stubbed)");
 

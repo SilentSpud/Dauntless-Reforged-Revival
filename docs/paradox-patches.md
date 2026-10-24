@@ -2,7 +2,7 @@
 
 Dauntless Reforged Revival forks [Mystic Paradox](https://github.com/pranav158/Mystic-Paradox) by Pranav
 Karande. The fork, [SilentSpud/Mystic-Paradox](https://github.com/SilentSpud/Mystic-Paradox), has a `reforged`
-branch that starts at the commit Reforged used to pin and adds the 33 patches below as one commit each; that
+branch that starts at the commit Reforged used to pin and adds the first 33 patches below as one commit each; that
 branch is merged into this repository with its history at [`paradox/`](../paradox). Until then the host kit
 downloaded the pinned commit and applied these patches as files under `upstream/`.
 
@@ -15,7 +15,8 @@ downloaded the pinned commit and applied these patches as files under `upstream/
 | License | AGPL-3.0-only, with the attribution terms in [`paradox/ADDITIONAL_TERMS.md`](../paradox/ADDITIONAL_TERMS.md) |
 
 Each patch below is the commit of the same name in `git log` (for example
-`git log --grep=^0023- 24e60c8`). The paths in them are Paradox's: `ParadoxBackend` and `ParadoxDirector` are now
+`git log --grep=^0023- 24e60c8`). Patches 0034-0039 came from upstream after the fork and are applied as
+ordinary commits to `paradox/` and `native/`, not on the fork's branch. The paths in them are Paradox's: `ParadoxBackend` and `ParadoxDirector` are now
 [`paradox/backend`](../paradox/backend) and [`paradox/director`](../paradox/director), `ParadoxRuntime` and
 `tools/RuntimeLoader` are [`native/paradox-runtime`](../native/paradox-runtime) and
 [`native/runtime-loader`](../native/runtime-loader). Later changes are ordinary commits to those folders; how
@@ -531,6 +532,72 @@ in has no connection yet). The watchdog checks once a minute and sends the proce
 timeout sends; its exit releases the hub without a restart or a backoff (`[TrainingOnDemand] the Training
 Grounds stopped`). A request during the stop waits for it, then starts a fresh one. Any other exit (a crash)
 still restarts them as before.
+
+### 0034: the game server's single cooldown saves are stored
+
+`ParadoxBackend/src/routes/system.ts`. Besides `PUT /cooldown/batch/<user>`, the game server saves one cooldown at a
+time with `PUT /cooldown/<user>/<cooldownId>`. That route did not exist, so those saves were lost and the cooldown
+fired again on the next arrival. The new route takes the same game-server authority check, accepts ids of letters,
+digits and `_.:-` (up to 200), and stores the cooldown as started now, like a batch save of one
+(`[CooldownIndividual]` in backend.log). It is declared after the batch route so `batch` is never read as a user id.
+`MYSTICPARADOX_COOLDOWN_PERSISTENCE=off` and the no-player sentinel answer OK without storing, as for the batch.
+First made by hand on the VPS on 2026-10-22.
+
+### 0035: DISABLE_PC_CHANNEL_GUARD.flag (A/B diagnostic)
+
+`ParadoxRuntime/dllmain.cpp`. A `DISABLE_PC_CHANNEL_GUARD.flag` beside the game executable (read once, logged as
+`[PCChannelGuard]`) bypasses the two PlayerController channel guards (`RepGraphReplicateSingleActorGuardHook` and
+`PlayerControllerSetChannelActorGuardHook`), so a 2-player Escalation can be compared with and without them.
+Without the flag nothing changes. Diagnostic only: without the guards a remote controller may be adopted.
+First made by hand on the VPS on 2026-10-22.
+
+### 0036: weapons are served at item level 0
+
+`ParadoxBackend/src/weaponBaseLevel.ts`, used by `ParadoxBackend/src/routes/inventory.ts`. A weapon's `itemData`
+carries `CurrentLevel`, and the game takes the weapon's power table for that level. The 1.14.7 paks only carry the
+base `weapon_power_table` (plus `weapon_power_table_level_01` and an obprog one), so a weapon above level 0 gets
+no table: the game server logs `Weapon: invalid weapon power table reference on (<weapon>_bp_C)` and every value
+of the table reads as 0. That includes the Chain Blades and War Pike meter gain (`CBlade_MeterGainScale`,
+`MSpear_MeterGainScale`, `MSpear_MeterGainPerX/YAttack`) and the War Pike damage multipliers, so the special meter
+never fills and the War Pike stops wounding (seen on the VPS on 2026-10-23 with two weapons at level 5; level-0
+weapons never log the warning). Every inventory response (`GET /inventory/...`, `POST /inventory` and
+`POST /inventory/instanceditem`) now serves weapons with `CurrentLevel` 0. The stored level is not changed, and
+`KEEP_WEAPON_ITEM_LEVELS=true` in the backend's environment serves it again.
+
+### 0037: the loadout slot repair also re-applies cells, parts, dye and transmog
+
+`ParadoxRuntime/dllmain.cpp`, in the client's `RepairClientLoadoutItemSlots` (0027). Back in Ramsgate after a hunt the
+loadout's item slots reach the client before its inventory, so 0027 resolves their items again (`[LoadoutSlotRepair]
+... resolved`). Each slot's other replicated fields (`EquippedCells`, weapon parts, dye, transmog) arrived in the same
+window, and their RepNotify ran against no item, so the cells disappeared from the weapons and armour in the UI
+although the backend kept them (checked in the Mongo oplog on 2026-10-23: no save ever dropped them). Once a slot's
+item resolves, the repair now also runs `OnRep_CellsChanged`, `OnRep_ItemPartsChanged`, `OnRep_DyeChanged` and
+`OnRep_TransmogChanged` on it. `DISABLE_LOADOUT_SLOT_REPAIR.flag` still turns the whole repair off.
+
+### 0038: game servers answer a 1920x1080 viewport size
+
+`ParadoxRuntime/dllmain.cpp`. A headless game server has no viewport, so `UWidgetLayoutLibrary::GetViewportSize`
+answers (0,0). The War Pike's projectile special (`mspear_special_projectile_bpc` -> `player_aiming_bpc.StartAiming`
+-> `camera_helper_function_library.ConvertFovHorzToVert`) divides by it on the server (`Divide by zero detected:
+0.000000 / 0` in the hunt log, VPS 2026-10-23), so the server's shot has a broken aim and passes through Behemoths
+without hitting them. On the server the function's native entry is wrapped once (`[ServerViewportSize]`): a size
+of 0 becomes 1920x1080. Only the aspect ratio is used there, and the aim is the centre of the screen at any size.
+`DISABLE_SERVER_VIEWPORT_SIZE.flag` beside the game executable turns it off.
+
+### 0039: two-player Escalation gets past the amp
+
+`ParadoxRuntime/dllmain.cpp`, server only. With two or more players, choosing the first amp never finished: each
+player's `ServerSelectRelicOption` entered and never returned, so the geyser to the next arena never appeared
+although the round counter moved on (VPS logs, 21-22 Oct 2026). The amp sends a multicast RPC on the chooser's
+PlayerController. The replication graph's multicast branch (`UReplicationGraph::ProcessRemoteFunction`, +0xF278B8 in
+the 1.14.7 executable) opens a channel for that controller on the other player's connection and binds it with
+`SetChannelActor` (caller +0xF27D45). The PlayerController channel guard refuses that bind on purpose (the other
+client would adopt the controller), which leaves the channel without an actor, and the graph still calls
+`UNetDriver::ProcessRemoteFunctionForChannel` (+0x3FA09B0) on it. That function reads the channel's actor before the
+first bunch, faults (access violation at +0x3F90A77), and the fault unwinds the whole amp RPC. The hook now drops an
+RPC on a quarantined channel or on a server channel with no actor (`[RpcChannelGuard] DROP fn=...`). Stock UE never
+sends a controller's multicast to another connection either; the owner still gets it. `DISABLE_RPC_UNBOUND_CHANNEL_GUARD.flag`
+beside the game executable turns it off.
 
 ## Store captures
 

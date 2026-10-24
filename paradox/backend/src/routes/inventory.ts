@@ -21,6 +21,7 @@ import { CaptureInventoryTransaction, CaptureEvent } from "../diagnostics/captur
 import { GetCharactersForUid } from "../controllers/character";
 import { ExtensionInventoryTransaction, GetP2PExtension } from "../extensions/p2p";
 import { MultiplyRewardItems } from "../testMultipliers";
+import { ServeWeaponsAtBaseLevel } from "../weaponBaseLevel";
 
 export const inventoryRouter = Router();
 
@@ -79,7 +80,7 @@ inventoryRouter.get("/inventory/:userId/:characterId", HasParadoxBackendAuth, as
 
     if(Inventory != undefined){
         res.status(200);
-        res.json(Inventory);
+        res.json(ServeWeaponsAtBaseLevel(Inventory)); // [Reforged 0036]
     }
     else{
         res.status(400);
@@ -118,7 +119,7 @@ inventoryRouter.get("/inventory/:userId/", HasParadoxBackendAuth, async (req: an
             if (Inventory != undefined) {
                 logger.info(`GET /inventory (no characterId): gameserver request resolved to '${CharacterId}' for ${UserId}`);
                 res.status(200);
-                res.json(Inventory);
+                res.json(ServeWeaponsAtBaseLevel(Inventory)); // [Reforged 0036]
                 return;
             }
         }
@@ -372,7 +373,7 @@ inventoryRouter.post("/inventory", HasParadoxBackendAuth, async (req: any, res) 
         logger.info(`Ran transactionId ${TransactionId} for userId ${UserId} and characterId ${CharacterId}`);
 
         res.status(200);
-        res.json(TransactionResult);
+        res.json(ServeWeaponsAtBaseLevel(TransactionResult)); // [Reforged 0036]
 
         return;
     }
@@ -453,5 +454,5 @@ inventoryRouter.post("/inventory/instanceditem", HasParadoxBackendAuth, async (r
     const Item = await UpdateInstancedItem(CharacterId, UserId, InstanceId, CatalogId, ItemData, UpdateVersion);
 
     res.status(200);
-    res.json(Item);
+    res.json(ServeWeaponsAtBaseLevel(Item)); // [Reforged 0036]
 });

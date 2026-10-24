@@ -5113,6 +5113,52 @@ static void MpPaceServerFrame() {
 //     ManualTickDispatchSEH code=0xC0000005 params=0x0,0x88 regs{rax=0x0 ...}
 // 0x88 is UNetDriver::ServerConnection, which Networking::Listen deliberately nulls - i.e. the code was
 // following a client-style path off a garbage base. Calling it with the real engine is the correct fix.
+// [Reforged 0038] A headless game server has no viewport, so UWidgetLayoutLibrary::GetViewportSize answers (0,0).
+// The War Pike's projectile special (mspear_special_projectile_bpc -> player_aiming_bpc.StartAiming ->
+// camera_helper_function_library.ConvertFovHorzToVert) divides by that size on the server ("Divide by zero detected:
+// 0.000000 / 0", VPS 2026-10-23), so the server-side shot gets a broken aim and passes through Behemoths without a hit.
+// On the server, a (0,0) answer becomes 1920x1080: only the aspect ratio matters there, and the aim is the centre of
+// the screen whatever its size. DISABLE_SERVER_VIEWPORT_SIZE.flag beside the game executable turns it off.
+static SDK::UFunction::FNativeFuncPtr g_origGetViewportSizeExec = nullptr;
+
+static void ServerGetViewportSizeExec(void* Context, void* Stack, void* Result) {
+    g_origGetViewportSizeExec(Context, Stack, Result);
+    if (!Result) return;
+    auto* Size = reinterpret_cast<float*>(Result);   // FVector2D {X, Y}
+    if (!(Size[0] > 1.0f) || !(Size[1] > 1.0f)) {
+        Size[0] = 1920.0f;
+        Size[1] = 1080.0f;
+        static std::atomic<int> s_logged{ 0 };
+        if (s_logged.fetch_add(1, std::memory_order_relaxed) < 3) {
+            MpLog("[ServerViewportSize] GetViewportSize answered 0 on the server; returned 1920x1080");
+        }
+    }
+}
+
+static void MpInstallServerViewportSizeFix() {
+    static bool s_done = false;
+    static uint64_t s_nextTryMs = 0;
+    if (s_done) return;
+    const uint64_t Now = GetTickCount64();
+    if (Now < s_nextTryMs) return;
+    s_nextTryMs = Now + 1000;
+    if (MpExeRelativeFlagPresent(L"DISABLE_SERVER_VIEWPORT_SIZE.flag")) {
+        s_done = true;
+        MpLog("[ServerViewportSize] DISABLE_SERVER_VIEWPORT_SIZE.flag present - left as it is");
+        return;
+    }
+    SDK::UClass* Library = SDK::UWidgetLayoutLibrary::StaticClass();
+    if (!Library || !IsRegisteredLiveObject(Library)) return;
+    SDK::UFunction* Fn = Library->GetFunction("WidgetLayoutLibrary", "GetViewportSize");
+    if (!Fn || !IsReadablePointer(Fn, sizeof(SDK::UFunction)) || !Fn->ExecFunction) return;
+    if (Fn->ExecFunction != &ServerGetViewportSizeExec) {
+        g_origGetViewportSizeExec = Fn->ExecFunction;
+        Fn->ExecFunction = &ServerGetViewportSizeExec;
+    }
+    s_done = true;
+    MpLog("[ServerViewportSize] WidgetLayoutLibrary.GetViewportSize answers 1920x1080 instead of 0 on the server");
+}
+
 void GameEngineTickHook(UGameEngine* GameEngine, float DeltaTime, char CanRender) {
     if (GameEngine != nullptr && g_GameEnginePtr == nullptr) {
         g_GameEnginePtr = GameEngine;
@@ -5142,6 +5188,7 @@ void GameEngineTickHook(UGameEngine* GameEngine, float DeltaTime, char CanRender
     // [Reforged 0020] Pace the server's game thread (see MpPaceServerFrame) before this frame's work.
     if (Globals::AmServer) {
         MpPaceServerFrame();
+        MpInstallServerViewportSizeFix();   // [Reforged 0038]
     }
 
     // [1.14.7 client replication membership 2026-10-05] Bounded, read-only server probe: does the
@@ -8457,6 +8504,19 @@ static void ProcessPlayerControllerChannelQuarantine(void* NetDriver) {
     s_processingPcChannelQuarantine = false;
 }
 
+// [2026-10-22 A/B] DISABLE_PC_CHANNEL_GUARD.flag (next to the game .exe, read once) bypasses the
+// PlayerController channel guards so a 2-player Escalation can be compared with and without them.
+// Diagnostic only: without the guards a remote controller may be adopted (see the 2026-07-26 notes).
+static bool PcChannelGuardDisabled() {
+    static int s_v = -1;
+    if (s_v < 0) {
+        s_v = MpExeRelativeFlagPresent(L"DISABLE_PC_CHANNEL_GUARD.flag") ? 1 : 0;
+        MpLog(std::string("[PCChannelGuard] DISABLE_PC_CHANNEL_GUARD.flag ")
+            + (s_v ? "PRESENT -> guards BYPASSED (A/B)" : "absent -> guards active"));
+    }
+    return s_v == 1;
+}
+
 // [2026-07-26 ESCALATION CONTROLLER-ADOPTION ROOT FIX]
 //
 // Repro 16 proved that the ReplicateActor boundary below is not early enough: it logged BLOCK for
@@ -8477,6 +8537,13 @@ void* OrigRepGraphReplicateSingleActor = nullptr;
 uint64_t __fastcall RepGraphReplicateSingleActorGuardHook(
     void* Graph, void* Actor, void* ConnActorInfo, void* GlobalInfo,
     void* ActorInfoMap, void* ConnManager, uint32_t Frame) {
+    if (PcChannelGuardDisabled()) {
+        return reinterpret_cast<uint64_t(__fastcall*)(
+            void*, void*, void*, void*, void*, void*, uint32_t)>(
+                OrigRepGraphReplicateSingleActor)(
+                    Graph, Actor, ConnActorInfo, GlobalInfo,
+                    ActorInfoMap, ConnManager, Frame);
+    }
     const bool ConnManagerValid = ConnManager
         && IsReadablePointer(ConnManager, 0x30)
         && IsRegisteredLiveObject(ConnManager);
@@ -8636,6 +8703,11 @@ uint64_t __fastcall RepGraphReplicateSingleActorGuardHook(
 void* OrigPlayerControllerSetChannelActor = nullptr;
 void __fastcall PlayerControllerSetChannelActorGuardHook(
     UActorChannel* Channel, AActor* Actor, uint64_t Flags) {
+    if (PcChannelGuardDisabled()) {
+        reinterpret_cast<void(__fastcall*)(UActorChannel*, AActor*, uint64_t)>(
+            OrigPlayerControllerSetChannelActor)(Channel, Actor, Flags);
+        return;
+    }
     const uintptr_t Caller = reinterpret_cast<uintptr_t>(_ReturnAddress());
     const uintptr_t CallerRva = Caller >= Globals::BaseAddress
         ? Caller - Globals::BaseAddress : 0;
@@ -8807,6 +8879,78 @@ void __fastcall ReplicateActorFreqHook(UActorChannel* channel) {
         }
     }
     reinterpret_cast<void(__fastcall*)(UActorChannel*)>(OrigReplicateActorFreq)(channel);
+}
+
+// [Dauntless Reforged Revival, 0039] An RPC must not be sent on a channel whose bind was refused.
+//
+// Two-player Escalation never got past the first amp (VPS logs, 21-22 Oct 2026, ports 8770-8775): each
+// player's ServerSelectRelicOption entered and never returned, and the geyser to the next arena was never
+// spawned. Each time the log shows [PCChannelBind] BLOCK ... callerRva=0xF27D45 followed by an access
+// violation at +0x3F90A77 reading null+0x10. The disassembly of the 1.14.7 executable gives the chain:
+//   +0x00F278B8..  UReplicationGraph::ProcessRemoteFunction, NetMulticast branch. For every connection it
+//                  looks up FConnectionReplicationActorInfo for the RPC's actor; with no channel and
+//                  RPC_Multicast_OpenChannelForClass true it calls CreateChannelByName (+0x3F62E90), stores
+//                  the new channel in ConnectionActorInfo.Channel, calls SetChannelActor (+0x3D8FB20) at
+//                  +0xF27D40, and then always calls ProcessRemoteFunctionForChannel at +0xF27DDF.
+//   +0x03FA09B0    UNetDriver::ProcessRemoteFunctionForChannel, a wrapper of the private version, which
+//                  (+0x3FA0CE2) calls Ch->Actor (+0x70) ->CallPreReplication before the channel's first
+//                  bunch, then ReplicateActor.
+// The amp fires a multicast on the chooser's PlayerController (or a component it owns), so the graph opens
+// a channel for that controller on the other player's connection. The guard above refuses that bind on
+// purpose (a remote controller channel makes the other client adopt it), which leaves the new channel with
+// Actor == null; the private function then dereferences it, the fault unwinds the whole server RPC, and
+// the rest of the amp choice (PlayerEscalationRelicsChanged and the round change that spawns the geyser)
+// never runs. A second multicast in the same frame finds the same channel already cached in the ActorInfo
+// and crashes without a new BLOCK line (the pid 2220 session).
+//
+// A PlayerController is only relevant to its owner, so stock UE never delivers its multicasts to another
+// connection. The RPC is dropped for exactly that case: a quarantined channel, or a server channel with no
+// actor bound. The owner's copy still goes out on its own channel, the deferred quarantine cleanup still
+// closes the empty channel and clears the cached ActorInfo slot, and the server RPC returns normally.
+// DISABLE_RPC_UNBOUND_CHANNEL_GUARD.flag beside the game executable turns this off.
+static bool MpRpcUnboundChannelGuardEnabled() {
+    static int s_enabled = -1;
+    if (s_enabled < 0) {
+        s_enabled = MpExeRelativeFlagPresent(L"DISABLE_RPC_UNBOUND_CHANNEL_GUARD.flag") ? 0 : 1;
+        MpLog(std::string("[RpcChannelGuard] DISABLE_RPC_UNBOUND_CHANNEL_GUARD.flag ")
+            + (s_enabled ? "absent -> guard active" : "PRESENT -> guard off"));
+    }
+    return s_enabled == 1;
+}
+
+// 1.14.7: this + 12 arguments (UE 4.26 order). The caller at +0xF27DDF passes IsServer as a byte at
+// [rsp+0x50], SendPolicy as a dword at [rsp+0x58] and &RemoteFunctionFlags at [rsp+0x60].
+void* OrigProcessRemoteFunctionForChannel = nullptr;
+using ProcessRemoteFunctionForChannelFn = void(__fastcall*)(
+    void* NetDriver, void* Channel, const void* ClassCache, const void* FieldCache,
+    void* TargetObj, void* Connection, void* Function, void* Parms, void* OutParms,
+    void* Stack, uint8_t IsServer, int32_t SendPolicy, void* RemoteFunctionFlags);
+
+void __fastcall ProcessRemoteFunctionForChannelGuardHook(
+    void* NetDriver, void* Channel, const void* ClassCache, const void* FieldCache,
+    void* TargetObj, void* Connection, void* Function, void* Parms, void* OutParms,
+    void* Stack, uint8_t IsServer, int32_t SendPolicy, void* RemoteFunctionFlags) {
+    if (Channel && IsServer && MpRpcUnboundChannelGuardEnabled()) {
+        const bool Quarantined = IsPlayerControllerChannelQuarantined(Channel);
+        const uintptr_t BoundActor = Quarantined
+            ? 0 : SafeReadPtr(reinterpret_cast<uintptr_t>(Channel), 0x70);
+        if (Quarantined || BoundActor == 0) {
+            static std::atomic<int> s_logged{ 0 };
+            const int N = s_logged.fetch_add(1, std::memory_order_relaxed);
+            if (N < 64 || (N % 256) == 0) {
+                MpLog("[RpcChannelGuard] DROP fn=" + SafeObjectNameForDiagnostic(Function)
+                    + " target=" + SafeObjectNameForDiagnostic(TargetObj)
+                    + " channel=" + MpPtr(Channel)
+                    + " connection=" + MpPtr(Connection)
+                    + " reason=" + (Quarantined ? "quarantined-channel" : "channel-without-actor")
+                    + " count=" + std::to_string(N + 1));
+            }
+            return;
+        }
+    }
+    reinterpret_cast<ProcessRemoteFunctionForChannelFn>(OrigProcessRemoteFunctionForChannel)(
+        NetDriver, Channel, ClassCache, FieldCache, TargetObj, Connection, Function, Parms,
+        OutParms, Stack, IsServer, SendPolicy, RemoteFunctionFlags);
 }
 
 // [2026-07-19 SRA_RATE_CAP.flag] Bring the ~60Hz SRA into sync with NetServerMaxTickRate (30). VERIFIED in
@@ -12706,7 +12850,19 @@ static void RepairClientLoadoutItemSlots() {
         alignas(8) uint8_t Parms[0x40] = {};   // OldItemInstanceId: an empty FItemInstanceIdRepl
         SlotObject->ProcessEvent(Fn, Parms);
         const bool Resolved = LoadoutItemSlotHasItemId(Slots[i].Slot);
-        if (Resolved) ++Repaired;
+        if (Resolved) {
+            ++Repaired;
+            // [Reforged 0037] The slot's other replicated fields (cells, weapon parts, dye, transmog) also arrived
+            // while the item was unknown, so their OnRep ran against no item and the cells vanish from the UI
+            // after a hunt. Run those OnReps again now that the item resolves. The data itself was never lost.
+            static const char* const kSlotDataOnReps[] = {
+                "OnRep_CellsChanged", "OnRep_ItemPartsChanged", "OnRep_DyeChanged", "OnRep_TransmogChanged" };
+            for (const char* OnRep : kSlotDataOnReps) {
+                if (SDK::UFunction* DataFn = SlotObject->Class->GetFunction("ArchonLoadoutItemSlot", OnRep)) {
+                    SlotObject->ProcessEvent(DataFn, nullptr);
+                }
+            }
+        }
         MpLog("[LoadoutSlotRepair] loadout slot " + std::to_string(Slots[i].LoadoutSlotIndex)
             + " " + kLoadoutItemSlotNames[Slots[i].ItemSlot]
             + " crc=" + MpHex(Slots[i].Crc)
@@ -22054,6 +22210,20 @@ void InitServerHooks() {
         + " enable=" + MH_StatusToString(PcChannelEnable)
         + " target=+" + MpHex(0x03D8A2D0)
         + (RepGraphDiag() ? " (RepFreq diag also enabled)" : ""));
+
+    // [Dauntless Reforged Revival, 0039] UNetDriver::ProcessRemoteFunctionForChannel: drop an RPC on a
+    // channel whose PlayerController bind was refused, see ProcessRemoteFunctionForChannelGuardHook.
+    {
+        MH_STATUS RpcChCreate = MH_CreateHook(
+            (void*)(Globals::BaseAddress + 0x03FA09B0),
+            ProcessRemoteFunctionForChannelGuardHook, &OrigProcessRemoteFunctionForChannel);
+        MH_STATUS RpcChEnable = MH_EnableHook((void*)(Globals::BaseAddress + 0x03FA09B0));
+        MpLog(std::string("[InitServerHooks] RPC unbound-channel guard create=")
+            + MH_StatusToString(RpcChCreate)
+            + " enable=" + MH_StatusToString(RpcChEnable)
+            + " target=+" + MpHex(0x03FA09B0));
+        MpRpcUnboundChannelGuardEnabled();
+    }
 
     // Artificer-specific native Blueprint-policy dispatcher.
     // [1.14.7]: 0x0230B750 is execCanActivateAbilityBP with 3-arg exec ABI (UObject*, FFrame&, RESULT_DECL),
