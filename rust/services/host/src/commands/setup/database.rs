@@ -11,7 +11,7 @@ use crate::hostconfig::{HostConfig, Platform};
 /// The backend's database, as setup prepares it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Database {
-    /// MongoDB with a replica set (`host.json` `mongo`), until RB14.
+    /// MongoDB with a replica set (host.toml `[mongo]`), until RB14.
     Mongo,
 }
 

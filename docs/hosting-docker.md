@@ -30,7 +30,7 @@ filters the game servers' traffic without any privilege on the host and without 
 Only the allowlist has `CAP_NET_ADMIN`, and only through `nft`'s file capability.
 
 **The same files as a Linux host.** Both images are laid out as the server release is, under `/opt/reforged`,
-and every container mounts the volumes at the same paths, so `host.json`, `secrets.env` and the env files are
+and every container mounts the volumes at the same paths, so `host.toml`, `secrets.env` and the env files are
 the host kit's, unchanged, and a `.workspace` can move between a container host and a plain one.
 
 | Volume | Path | Holds |

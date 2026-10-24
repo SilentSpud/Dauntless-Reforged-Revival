@@ -1,7 +1,10 @@
-//! The server's configuration (`legacy/ReforgedHost/src/hostconfig.ts`): `.workspace/config/host.json`
-//! (what the host chose) and one env file per service, written from it. Secrets are made once and
+//! The server's configuration (`legacy/ReforgedHost/src/hostconfig.ts`): `.workspace/config/host.toml`
+//! (what the host chose; [`crate::hosttoml`]) and one env file per service, written from it. Secrets are made once and
 //! kept: running setup again never rotates a key (that would log everyone out, or break every
 //! invite already sent).
+//!
+//! A Node kit's `host.json` is still read when there is no host.toml, and moved over by the first
+//! write ([`save_host_config`]). Everything is checked in host.json's form ([`validate`]).
 //!
 //! `host.json` is read and written as the Node kit does (`JSON.stringify(c, null, 2)` and a newline).
 //! A [`HostConfig`] that was read remembers the file, so writing it back gives the same bytes, and a
@@ -183,13 +186,16 @@ pub struct HostConfig {
     pub file: FileForm,
 }
 
-/// What a read `host.json` looked like, so that writing it back changes only what was changed.
+/// What a read `host.json` or `host.toml` looked like, so that writing it back changes only what was
+/// changed.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct FileForm {
     /// The file as read (and normalized, as the Node kit's `validateHostConfig` returns it).
     document: Map<String, Value>,
     /// The fields as they were read, in [`HostConfig::fields`]'s form.
     read: Map<String, Value>,
+    /// host.toml's text, when it was read from one.
+    toml: Option<String>,
 }
 
 pub fn performance_options(c: &HostConfig) -> PerformanceOptions {
@@ -646,8 +652,35 @@ impl HostConfig {
         config.file = FileForm {
             read: config.fields(),
             document: c,
+            toml: None,
         };
         Ok(config)
+    }
+
+    /// A config from a host.toml's text, checked as [`from_json`](Self::from_json) checks host.json;
+    /// the messages name the TOML keys.
+    pub fn from_toml(text: &str) -> Result<Self, HostError> {
+        let document = crate::hosttoml::document(text)?;
+        let mut config = Self::from_json(&document).map_err(|e| bad(crate::hosttoml::message(&e.to_string())))?;
+        config.file.toml = Some(text.to_owned());
+        Ok(config)
+    }
+
+    /// This config, to be written over `previous`'s host.toml. Setup builds its config anew from the
+    /// options; this keeps the host's comments and layout for every value that did not change.
+    pub fn written_over(mut self, previous: Option<&HostConfig>) -> Self {
+        if let Some(previous) = previous.filter(|p| p.file.toml.is_some()) {
+            self.file = previous.file.clone();
+        }
+        self
+    }
+
+    /// The host.toml to write, checked: the file as read with only the changed values replaced, or a
+    /// new file (from scratch, or from a host.json) that says what each key does.
+    pub fn to_toml(&self) -> Result<String, HostError> {
+        let text = crate::hosttoml::text(&self.fields(), &self.file.read, self.file.toml.as_deref())?;
+        Self::from_toml(&text)?;
+        Ok(text)
     }
 
     /// The fields in the order the Node kit's setup writes a new host.json.
@@ -759,23 +792,65 @@ fn write_pretty(out: &mut String, value: &Value, depth: usize) {
     }
 }
 
-/// `None` when there is no host.json yet.
+fn is_toml(file: &Path) -> bool {
+    file.extension().is_some_and(|e| e.eq_ignore_ascii_case("toml"))
+}
+
+/// The file at `file`, as TOML when it ends in `.toml` and as host.json otherwise. `None` when it
+/// does not exist.
 pub fn read_host_config(file: &Path) -> Result<Option<HostConfig>, HostError> {
     let text = match std::fs::read_to_string(file) {
         Ok(text) => text,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(HostError::io(file, e)),
     };
+    if is_toml(file) {
+        return HostConfig::from_toml(&text)
+            .map(Some)
+            .map_err(|e| bad(format!("{}: {e}", file.display())));
+    }
     let document = jsjson::parse(&text).map_err(|e| bad(format!("{}: {e}", file.display())))?;
     HostConfig::from_json(&document).map(Some)
 }
 
+/// The server's settings: host.toml, or a Node kit's host.json while there is no host.toml yet.
+/// `None` when there is neither. Never writes anything.
+pub fn load_host_config(p: &Paths) -> Result<Option<HostConfig>, HostError> {
+    match read_host_config(&p.host_toml)? {
+        Some(c) => Ok(Some(c)),
+        None => read_host_config(&p.host_json),
+    }
+}
+
+/// Whether the server has its settings yet (host.toml, or a Node kit's host.json).
+pub fn has_host_config(p: &Paths) -> bool {
+    p.host_toml.exists() || p.host_json.exists()
+}
+
+/// Writes host.toml. A Node kit's host.json is renamed host.json.bak once host.toml holds its
+/// settings, so it is never read again; returns true when that happened.
+pub fn save_host_config(p: &Paths, c: &HostConfig) -> Result<bool, HostError> {
+    write_host_config(&p.host_toml, c)?;
+    if !p.host_json.exists() {
+        return Ok(false);
+    }
+    let backup = p.host_json.with_extension("json.bak");
+    std::fs::rename(&p.host_json, &backup).map_err(|e| HostError::io(&p.host_json, e))?;
+    Ok(true)
+}
+
+/// The host.json text (`JSON.stringify(c, null, 2)` and a newline).
 pub fn host_config_text(c: &HostConfig) -> Result<String, HostError> {
     Ok(stringify_pretty(&c.to_json()?) + "\n")
 }
 
+/// Writes `file` as TOML when it ends in `.toml` and as host.json otherwise.
 pub fn write_host_config(file: &Path, c: &HostConfig) -> Result<(), HostError> {
-    let text = host_config_text(c)?;
+    let text = if is_toml(file) {
+        c.to_toml()?
+    } else {
+        host_config_text(c)?
+    };
     if let Some(dir) = file.parent() {
         std::fs::create_dir_all(dir).map_err(|e| HostError::io(dir, e))?;
     }

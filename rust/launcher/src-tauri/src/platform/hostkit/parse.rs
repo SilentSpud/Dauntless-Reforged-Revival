@@ -1,6 +1,7 @@
-//! What the Host page reads from text it did not write: the host kit's output, `host.json` and
-//! `vswhere`'s answers. Nothing here touches a file or a process, and it needs only `serde_json`, so
-//! the fuzz target `launcher_host` compiles it as it is (MIGRATION_PLAN.md RX3).
+//! What the Host page reads from text it did not write: the host kit's output, `host.toml` (or a Node
+//! kit's `host.json`) and `vswhere`'s answers. Nothing here touches a file or a process, and it needs
+//! only `serde_json` and `toml_edit`, so the fuzz target `launcher_host` compiles it as it is
+//! (MIGRATION_PLAN.md RX3).
 
 use serde_json::{Map, Value};
 
@@ -199,6 +200,36 @@ pub fn server_config(text: &str) -> Option<ServerConfig> {
     let Ok(Value::Object(c)) = serde_json::from_str::<Value>(text) else {
         return None;
     };
+    server_config_of(&c)
+}
+
+/// `host.toml`, read as [`server_config`] reads host.json: the keys the Host page shows are named the
+/// same in both files.
+pub fn server_config_toml(text: &str) -> Option<ServerConfig> {
+    let doc = text.parse::<toml_edit::DocumentMut>().ok()?;
+    let mut c = Map::new();
+    for key in ["name", "mode", "host"] {
+        if let Some(s) = doc.get(key).and_then(toml_edit::Item::as_str) {
+            c.insert(key.into(), Value::String(s.to_owned()));
+        }
+    }
+    if let Some(m) = doc.get("multipliers").and_then(toml_edit::Item::as_table_like) {
+        let mut multipliers = Map::new();
+        for key in ["xp", "rewards"] {
+            let item = m.get(key);
+            let n = item
+                .and_then(toml_edit::Item::as_float)
+                .or_else(|| item.and_then(toml_edit::Item::as_integer).map(|n| n as f64));
+            if let Some(number) = n.and_then(serde_json::Number::from_f64) {
+                multipliers.insert(key.into(), Value::Number(number));
+            }
+        }
+        c.insert("multipliers".into(), Value::Object(multipliers));
+    }
+    server_config_of(&c)
+}
+
+fn server_config_of(c: &Map<String, Value>) -> Option<ServerConfig> {
     let mode = match c.get("mode").and_then(Value::as_str) {
         Some("private") => ServerMode::Private,
         Some("public") => ServerMode::Public,
@@ -358,6 +389,30 @@ mod tests {
         assert_eq!(server_config("[]"), None);
         let long = format!(r#"{{"mode":"public","name":"{}"}}"#, "n".repeat(200));
         assert_eq!(server_config(&long).unwrap().name.unwrap().len(), 80);
+    }
+
+    #[test]
+    fn host_toml_as_host_json() {
+        let c = server_config_toml(
+            "# mine\nname = \"Friday\"\nmode = \"private\"\nhost = \"100.64.0.1\"\n\n[multipliers]\nxp = 5\nrewards = 2.5\n",
+        )
+        .unwrap();
+        assert_eq!(c.name.as_deref(), Some("Friday"));
+        assert_eq!(c.host.as_deref(), Some("100.64.0.1"));
+        assert_eq!(c.multipliers, Some((5.0, 2.5)));
+        let c = server_config_toml("mode = \"private\"\nmultipliers = { xp = 1, rewards = 1 }\n").unwrap();
+        assert_eq!(c.multipliers, None, "1 and 1 is off");
+        let c = server_config_toml("mode = \"public\"\n[multipliers]\nxp = 5\nrewards = 2\n").unwrap();
+        assert_eq!(c.multipliers, None, "public servers have none");
+        assert_eq!(server_config_toml("mode = \"other\"\n"), None);
+        assert_eq!(server_config_toml("mode = 3\n"), None);
+        assert_eq!(
+            server_config_toml("{\"mode\":\"private\"}"),
+            None,
+            "host.json is not TOML"
+        );
+        let long = format!("mode = \"public\"\nname = \"{}\"\n", "n".repeat(200));
+        assert_eq!(server_config_toml(&long).unwrap().name.unwrap().len(), 80);
     }
 
     // hostkit.test.ts: "build settings: v145 for Visual Studio 2026, v143 otherwise"

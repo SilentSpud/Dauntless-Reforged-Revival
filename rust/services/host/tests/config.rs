@@ -138,6 +138,91 @@ fn is_written_and_read_back() {
     assert!(read_host_config(&dir.path().join("none.json")).unwrap().is_none());
 }
 
+// ------------------------------------------------------------------ host.toml
+
+/// A config written to host.toml and read back.
+fn through_toml(c: &HostConfig) -> (HostConfig, String) {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("host.toml");
+    write_host_config(&file, c).unwrap();
+    let text = std::fs::read_to_string(&file).unwrap();
+    (read_host_config(&file).unwrap().unwrap(), text)
+}
+
+#[test]
+fn host_toml_holds_every_field_of_host_json() {
+    let full = with(
+        public(),
+        json!({
+            "publicPort": 4443,
+            "shareUrl": null,
+            "mongo": { "uri": DEFAULT_MONGO_URI, "manage": true, "mongod": "/usr/bin/mongod" },
+            "performance": {
+                "serverFps": 0, "idleFps": 1, "trainingOnDemand": false, "trainingIdleMinutes": 0,
+                "verboseGameLogs": true, "memoryGuard": false, "minFreeMemoryMb": 0, "huntMemoryMb": 256,
+            },
+            "linux": { "wine": "/usr/bin/wine", "proton": null, "xvfb": false, "firewallInterface": "eth0" },
+        }),
+    );
+    let tests = [
+        config(full),
+        config(with(
+            private(),
+            json!({ "multipliers": { "xp": 5, "rewards": 2.5 }, "gameDir": null }),
+        )),
+    ];
+    for c in tests {
+        let (back, text) = through_toml(&c);
+        assert_eq!(
+            (
+                back.mode,
+                &back.host,
+                &back.game_address,
+                &back.name,
+                &back.game_dir,
+                back.registration
+            ),
+            (c.mode, &c.host, &c.game_address, &c.name, &c.game_dir, c.registration),
+            "{text}"
+        );
+        assert_eq!(
+            (&back.share_url, &back.mongo, back.max_hunt_servers),
+            (&c.share_url, &c.mongo, c.max_hunt_servers)
+        );
+        assert_eq!(
+            (back.multipliers, back.public_port),
+            (c.multipliers, c.public_port),
+            "{text}"
+        );
+        assert_eq!((back.performance, &back.linux), (c.performance, &c.linux), "{text}");
+        assert!(
+            !text.contains("null") && !text.contains("Fps"),
+            "no null, snake_case keys: {text}"
+        );
+    }
+}
+
+#[test]
+fn host_toml_errors_name_its_own_keys() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("host.toml");
+    let (_, text) = through_toml(&config(private()));
+    let error = |text: &str| {
+        std::fs::write(&file, text).unwrap();
+        read_host_config(&file).unwrap_err().to_string()
+    };
+    let e = error(&text.replace("max_hunt_servers = 3", "max_hunt_servers = 99"));
+    assert!(e.contains("max_hunt_servers must be 1 to 10"), "{e}");
+    let e = error(&format!("{text}\n[performance]\nserver_fps = 5\n"));
+    assert!(
+        e.contains("performance.server_fps must be 0 (no cap) or 10 to 240"),
+        "{e}"
+    );
+    let e = error(&text.replace("game_address", "gameAddress"));
+    assert!(e.contains("did you mean game_address?"), "{e}");
+    assert!(e.contains("host.toml"), "names the file: {e}");
+}
+
 // ------------------------------------------------------------------ secrets
 
 #[test]

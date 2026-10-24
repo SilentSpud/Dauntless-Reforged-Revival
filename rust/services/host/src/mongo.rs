@@ -1,7 +1,7 @@
 //! MongoDB for the backend (`legacy/ReforgedHost/src/mongo.ts`), until the backend cutover (RB14;
 //! RB15 removes this module). The backend runs in production mode, which needs a replica-set primary
 //! (its registration and economy paths use transactions); a single mongod started with `--replSet`
-//! and initiated once is enough. The host kit can run that mongod itself (host.json `mongo.manage`),
+//! and initiated once is enough. The host kit can run that mongod itself (host.toml `mongo.manage`),
 //! or the host points `mongo.uri` at one they run (a Windows service with `replication.replSetName`).
 //!
 //! The Node kit used the backend's MongoDB driver; this speaks the three commands it needs itself

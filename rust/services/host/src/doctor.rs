@@ -12,7 +12,7 @@ use crate::error::HostError;
 use crate::gamedata::{BACKEND_GAME_DATA, DIRECTOR_GAME_DATA, GameDataKind, game_data_state};
 use crate::hostconfig::{
     HostConfig, PerformanceOptions, Platform, SECRET_FILE, ServerMode, game_ports_text, gateway_port, linux_options,
-    performance_options, read_env_file, read_host_config,
+    load_host_config, performance_options, read_env_file,
 };
 use crate::invite::{certificate_fingerprint, http_request, served_fingerprint};
 use crate::mongo::{MongoCheck, MongoProblem, ReplicaSetOptions, ensure_replica_set};
@@ -578,18 +578,33 @@ pub fn run_doctor(p: &Paths, options: &DoctorOptions) -> Result<Vec<Check>, Host
     }
 
     // ---- configuration
-    let config = match read_host_config(&p.host_json) {
+    let config = match load_host_config(p) {
         Ok(c) => c,
         Err(e) => {
             checks.push(fix(
                 "config",
                 Level::Fail,
-                format!("host.json: {e}"),
+                format!("settings: {e}"),
                 "reforged-host setup --mode ... --host ...",
             ));
             None
         }
     };
+    if p.host_toml.exists() && p.host_json.exists() {
+        checks.push(fix(
+            "config",
+            Level::Warn,
+            "host.json is next to host.toml and is not read: host.toml holds this server's settings",
+            "delete host.json, or rename it host.json.bak",
+        ));
+    } else if p.host_json.exists() {
+        checks.push(fix(
+            "config",
+            Level::Info,
+            "the settings are still in a Node kit's host.json",
+            "reforged-host setup (moves them to host.toml)",
+        ));
+    }
     if let Some(config) = &config {
         checks.push(check(
             "config",
@@ -638,7 +653,7 @@ pub fn run_doctor(p: &Paths, options: &DoctorOptions) -> Result<Vec<Check>, Host
                     "network",
                     Level::Fail,
                     format!(
-                        "this PC's Tailscale address is {ip}, host.json says {}",
+                        "this PC's Tailscale address is {ip}, host.toml says {}",
                         config.game_address
                     ),
                     format!("reforged-host setup --host {ip}"),

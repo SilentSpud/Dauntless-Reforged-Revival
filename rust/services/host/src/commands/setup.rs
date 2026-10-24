@@ -1,7 +1,7 @@
 //! `reforged-host setup`: the Node kit's `setup()`, `linuxSetup()`, `firewallScript()`,
 //! `hostConfigFromArgs()` and the `*FromArgs` option readers in `cli.ts`.
 //!
-//! It builds a new host.json in setup's key order ([`options`]), checks Mystic Paradox in `paradox/`
+//! It builds the server's settings in setup's key order and writes them to host.toml ([`options`]), checks Mystic Paradox in `paradox/`
 //! and `native/` ([`paradox`]), installs and builds the services ([`install`], RH5's seam for the
 //! server release), writes the secrets ([`secrets`]), the env files and the firewall rules
 //! ([`firewall`]), makes the public gateway's certificate and says what is still missing (the
@@ -25,8 +25,8 @@ use crate::Outcome;
 use crate::cli::SetupArgs;
 use crate::error::HostError;
 use crate::hostconfig::{
-    HostConfig, Platform, ServerMode, build_env_files, linux_options, load_or_create_secrets, multipliers_on,
-    read_host_config, write_env_files, write_host_config,
+    HostConfig, Platform, ServerMode, build_env_files, linux_options, load_host_config, load_or_create_secrets,
+    multipliers_on, save_host_config, write_env_files,
 };
 use crate::paths::{Paths, game_exe_relative};
 use crate::preset::PresetApplied;
@@ -179,16 +179,18 @@ pub fn run_with(paths: &Paths, args: &SetupArgs, env: &dyn SetupEnv, out: &mut d
     let log_file = p.logs.join("setup.log");
     mkdir(&p.logs)?;
 
-    let existing = match read_host_config(&p.host_json) {
+    let existing = match load_host_config(p) {
         Ok(c) => c,
         Err(e) => {
-            out(&format!("(ignoring the old host.json: {e})"));
+            out(&format!("(ignoring the old settings: {e})"));
             None
         }
     };
-    let config = options::host_config_from_args(args, existing.as_ref(), env)?;
-    write_host_config(&p.host_json, &config)?;
-    let config = read_host_config(&p.host_json)?.ok_or_else(|| HostError::message("host.json was not written"))?;
+    let config = options::host_config_from_args(args, existing.as_ref(), env)?.written_over(existing.as_ref());
+    if save_host_config(p, &config)? {
+        out("(host.json is now host.toml; the old file is kept as host.json.bak)");
+    }
+    let config = load_host_config(p)?.ok_or_else(|| HostError::message("host.toml was not written"))?;
     out(&format!(
         "\n{} server \"{}\" at {} (game servers on {})",
         if config.mode == ServerMode::Public {

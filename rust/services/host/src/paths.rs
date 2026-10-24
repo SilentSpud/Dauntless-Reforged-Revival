@@ -94,6 +94,9 @@ pub struct Paths {
     pub captures_pin: PathBuf,
     pub runtime_publish: PathBuf,
     pub config: PathBuf,
+    /// The server's settings (`crate::hosttoml`).
+    pub host_toml: PathBuf,
+    /// A Node kit's settings: read while there is no host.toml, renamed host.json.bak once there is.
     pub host_json: PathBuf,
     pub tls: PathBuf,
     pub cert_file: PathBuf,
@@ -145,6 +148,7 @@ impl Paths {
             store_captures: paradox.join("DauntlessEndpointDocumentation"),
             captures_pin: join(&paradox, &["backend", "store-captures.json"]),
             runtime_publish: workspace.join("runtime"),
+            host_toml: config.join("host.toml"),
             host_json: config.join("host.json"),
             cert_file: tls.join("gateway-cert.pem"),
             key_file: tls.join("gateway-key.pem"),
@@ -231,6 +235,7 @@ mod tests {
         let root = PathBuf::from("rr");
         let p = Paths::new(&root);
         let ws = root.join(".workspace");
+        assert_eq!(p.host_toml, ws.join("config").join("host.toml"));
         assert_eq!(p.host_json, ws.join("config").join("host.json"));
         assert_eq!(p.cert_file, ws.join("tls").join("gateway-cert.pem"));
         assert_eq!(p.backend_dir, root.join("paradox").join("backend"));

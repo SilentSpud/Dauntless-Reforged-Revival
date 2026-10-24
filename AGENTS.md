@@ -101,9 +101,10 @@ and never enter a preset. Don't edit `preset/` by hand: its file hashes are in `
 Every service reads one env file, given with `--env-file`, and nothing from its working directory
 (`service-kit/src/env.rs`, DR X7). As with Node's `--env-file`, the process environment wins over the file.
 **The env files are the host kit's output, not hand-written:** `reforged-host setup` writes them from
-`host.json` and `secrets.env` (`services/host/src/hostconfig.rs`), and `start` hands each service its own.
-So a new setting is a field in `host.json`, a `setup` option where a host should choose it, and a line in the
-service's file. It is never a variable the host is told to export.
+`host.toml` and `secrets.env` (`services/host/src/hostconfig.rs`, `hosttoml.rs`), and `start` hands each
+service its own. So a new setting is a field in `host.toml` (in `HostConfig`, and in `hosttoml.rs`'s key
+table with a snake_case name and a comment for new files), a `setup` option where a host should choose it,
+and a line in the service's file. It is never a variable the host is told to export.
 
 ### When you add, remove or rename a variable
 
@@ -111,13 +112,14 @@ It's never a one-file change:
 
 - **The writer and the reader in the same commit.** `hostconfig.rs` writes it, the service's `config.rs`
   reads it (`from_env`), and a test checks the round trip. `update` reruns `setup` with the host's existing
-  `host.json`, so a new field that an older `host.json` doesn't have must default to today's behaviour.
+  `host.toml` (or a Node kit's `host.json`), so a new field that an older file doesn't have must default to
+  today's behaviour.
 - **Use one of the server prefixes** (`REFORGED_`, `GATEWAY_`, `ALLOWLIST_`, `CONTENT_`, `GAMESERVER_`...).
   `start` clears the environment and passes on only the system's own variables plus the env file. Anything
   matching `SERVER_PREFIXES` or `SERVER_NAMES` in `services/host/src/services.rs` is dropped from the shell,
   so a stale setting left there never reaches a service. A name outside that list leaks in from whatever shell
   started the kit, so either pick a listed prefix or add the name to the list.
-- **A secret goes in `secrets.env`** (`SECRET_KEYS`), made once and never logged. It is never a `host.json`
+- **A secret goes in `secrets.env`** (`SECRET_KEYS`), made once and never logged. It is never a `host.toml`
   field and never an option on the command line.
 - **The docs move with it.** Each service's variable table (the gateway's is in
   `legacy/ReforgedGateway/README.md` until RS5), and `docs/hosting.md`, `hosting-linux.md` and

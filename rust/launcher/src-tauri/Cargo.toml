@@ -26,6 +26,8 @@ protocol.workspace = true
 serde.workspace = true
 # preserve_order: settings.json keeps its key order (L28); workspace builds unify it on anyway
 serde_json = { workspace = true, features = ["preserve_order"] }
+# The workspace's host.toml, for the Host page
+toml_edit.workspace = true
 dirs = "6"
 fs4 = "1"
 regex.workspace = true
