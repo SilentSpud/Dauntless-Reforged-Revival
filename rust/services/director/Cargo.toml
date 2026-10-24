@@ -1,12 +1,49 @@
 [package]
 name = "director"
-description = "The Director: starts the game servers (MIGRATION_PLAN.md RB rows)"
+description = "The Director: starts the game servers (MIGRATION_PLAN.md RB10)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish.workspace = true
+
+[dependencies]
+# Random ids and the runtime update's Ed25519 check (D10: aws-lc-rs, as the host kit)
+aws-lc-rs = "1.18"
+axum.workspace = true
+base64.workspace = true
+bytes = "1"
+chrono.workspace = true
+clap.workspace = true
+futures-util.workspace = true
+http-body-util.workspace = true
+hyper.workspace = true
+hyper-rustls.workspace = true
+hyper-util = { workspace = true, features = ["client-legacy", "http1"] }
+rustls.workspace = true
+serde_json.workspace = true
+service-kit.workspace = true
+sha2.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "net", "fs", "time", "sync", "signal", "io-util", "process", "macros"] }
+tower.workspace = true
+url.workspace = true
+
+[target."cfg(unix)".dependencies]
+# SIGTERM to a game server, and the free memory (sysconf) for the memory guard
+libc = "0.2.191"
+
+[target."cfg(windows)".dependencies]
+# The free memory, and game servers started hidden (CreateProcessW)
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+# Fake game servers in child processes: the test binary runs itself as one
+[[test]]
+name = "director"
+harness = false
 
 [lints]
 workspace = true

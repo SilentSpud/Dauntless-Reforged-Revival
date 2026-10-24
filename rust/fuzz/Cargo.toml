@@ -23,6 +23,7 @@ libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
 arbitrary = { version = "1", features = ["derive"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 content = { path = "../services/content" }
+director = { path = "../services/director" }
 flate2 = "1"
 gateway = { path = "../services/gateway" }
 host = { path = "../services/host" }
@@ -66,6 +67,13 @@ bench = false
 [[bin]]
 name = "content_runtime_index"
 path = "fuzz_targets/content_runtime_index.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "director_launch"
+path = "fuzz_targets/director_launch.rs"
 test = false
 doc = false
 bench = false

@@ -23,10 +23,9 @@ pub enum Server {
     #[cfg(feature = "backend")]
     #[command(hide = true)]
     Backend,
-    /// The Rust Director (not written yet)
+    /// Run the Director (start runs the Node one until the cutover)
     #[cfg(feature = "director")]
-    #[command(hide = true)]
-    Director,
+    Director(director::cli::Cli),
 }
 
 impl Server {
@@ -43,7 +42,7 @@ impl Server {
             #[cfg(feature = "backend")]
             Self::Backend => "backend",
             #[cfg(feature = "director")]
-            Self::Director => "director",
+            Self::Director(_) => "director",
         }
     }
 
@@ -61,7 +60,7 @@ impl Server {
             #[cfg(feature = "backend")]
             Self::Backend => backend::run(),
             #[cfg(feature = "director")]
-            Self::Director => director::run(),
+            Self::Director(ref cli) => director::cli::run(cli),
         }
     }
 }

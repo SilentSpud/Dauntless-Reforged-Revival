@@ -1,5 +1,5 @@
-//! Which program runs each service. The backend and the Director are Node until RB14. The gateway,
-//! the content server and the allowlist helper move to Rust one row at a time: [`rust_ported`] is
+//! Which program runs each service. The backend is Node until RB14. The gateway, the content
+//! server, the allowlist helper and the Director move to Rust one row at a time: [`rust_ported`] is
 //! the one switch each row flips. A ported service runs as `reforged-host <service>` (its cargo
 //! feature, [`crate::servers`]) and falls back to its Node build in a binary built without it.
 
@@ -13,6 +13,7 @@ pub enum FrontService {
     Gateway,
     Content,
     Allowlist,
+    Director,
 }
 
 /// Whether the service's Rust bin replaces its Node build (MIGRATION_PLAN.md section 4.3).
@@ -24,6 +25,8 @@ pub fn rust_ported(service: FrontService) -> bool {
         FrontService::Content => false,
         // RS4: DR's allowlist with Reforged's port range and nftables variant.
         FrontService::Allowlist => true,
+        // RB14 flips this, with the backend's cutover.
+        FrontService::Director => false,
     }
 }
 
@@ -33,6 +36,7 @@ impl FrontService {
             Self::Gateway => "gateway",
             Self::Content => "content",
             Self::Allowlist => "allowlist",
+            Self::Director => "director",
         }
     }
 
@@ -43,7 +47,7 @@ impl FrontService {
         let name = self.bin_name().to_owned();
         match self {
             // Content takes the file on its serve command too (`content --env-file` is refused).
-            Self::Gateway | Self::Content => vec![name, "serve".into(), "--env-file".into(), env_file],
+            Self::Gateway | Self::Content | Self::Director => vec![name, "serve".into(), "--env-file".into(), env_file],
             Self::Allowlist => vec![name, "--env-file".into(), env_file],
         }
     }
@@ -52,12 +56,13 @@ impl FrontService {
         match self {
             Self::Gateway | Self::Allowlist => paths.gateway_dir.clone(),
             Self::Content => paths.content_dir.clone(),
+            Self::Director => paths.director_dir.clone(),
         }
     }
 
     fn node_script(self) -> PathBuf {
         match self {
-            Self::Gateway | Self::Content => ["dist", "server.js"].iter().collect(),
+            Self::Gateway | Self::Content | Self::Director => ["dist", "server.js"].iter().collect(),
             Self::Allowlist => ["dist", "allowlist", "server.js"].iter().collect(),
         }
     }
@@ -105,10 +110,15 @@ impl Programs {
         if rust_ported(service)
             && let Some(bin) = self.server(service.bin_name())
         {
+            // The Director reads game-data/ and writes ../debug from its own folder, as the Node one.
+            let cwd = match service {
+                FrontService::Director => paths.director_dir.clone(),
+                _ => paths.workspace.clone(),
+            };
             return Launch {
                 command: bin,
                 args: service.rust_args(env_file),
-                cwd: paths.workspace.clone(),
+                cwd,
                 env_file_in_args: true,
             };
         }
@@ -227,6 +237,8 @@ mod tests {
         assert_eq!(args, ["gateway", "serve", "--env-file", "g.env"]);
         let args = FrontService::Content.rust_args(Path::new("c.env"));
         assert_eq!(args, ["content", "serve", "--env-file", "c.env"]);
+        let args = FrontService::Director.rust_args(Path::new("d.env"));
+        assert_eq!(args, ["director", "serve", "--env-file", "d.env"]);
     }
 
     #[test]

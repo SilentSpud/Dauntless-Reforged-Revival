@@ -86,10 +86,10 @@ pub fn service_plan(paths: &Paths, config: &HostConfig, external_allowlist: bool
             required: true,
         },
         Planned {
-            spec: node(
+            spec: spec_from(
                 "director",
-                &paths.director_dir,
-                &["dist", "server.js"],
+                programs.launch(FrontService::Director, paths, &env_file(paths, "director")),
+                env_file(paths, "director"),
                 Ready::http(PORTS.director, "/api/instances"),
             ),
             ready_timeout: minute,

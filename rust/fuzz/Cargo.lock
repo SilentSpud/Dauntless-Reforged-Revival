@@ -352,6 +352,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "backend"
+version = "0.0.0"
+
+[[package]]
 name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -700,6 +704,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "director"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "axum",
+ "base64 0.23.1",
+ "bytes",
+ "chrono",
+ "clap",
+ "futures-util",
+ "http-body-util",
+ "hyper",
+ "hyper-rustls",
+ "hyper-util",
+ "libc",
+ "rustls",
+ "serde_json",
+ "service-kit",
+ "sha2",
+ "tokio",
+ "tower",
+ "url",
+ "windows",
+]
+
+[[package]]
 name = "displaydoc"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -990,12 +1020,17 @@ checksum = "e17592d60ebacc7d5e169f4663c5f84f9161cc90328abcfe8456f41e4dfcb284"
 name = "host"
 version = "0.0.0"
 dependencies = [
+ "admin",
  "aws-lc-rs",
+ "backend",
  "base64 0.23.1",
  "bytes",
  "chrono",
  "clap",
+ "content",
+ "director",
  "flate2",
+ "gateway",
  "http-body-util",
  "hyper",
  "hyper-rustls",
@@ -1702,6 +1737,7 @@ dependencies = [
  "async-graphql",
  "chrono",
  "content",
+ "director",
  "flate2",
  "gateway",
  "host",

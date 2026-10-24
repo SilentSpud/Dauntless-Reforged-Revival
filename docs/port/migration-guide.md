@@ -107,7 +107,7 @@ No DR counterpart: DR's kits were PowerShell and shell scripts under `deploy/`. 
 files one to one; its tests run against fixtures generated from the Node kit (`tests/fixtures/node/`).
 
 `reforged-host` is also the one server binary: each Rust server is a cargo feature of the host crate (all on by
-default) and a subcommand (`reforged-host gateway|allowlist|content|admin ...`, `servers.rs`). Each service crate
+default) and a subcommand (`reforged-host gateway|allowlist|content|admin|director ...`, `servers.rs`). Each service crate
 keeps its entry point as `cli.rs` (`Cli` and `run`), where DR had `main.rs` or `bin/*.rs`.
 
 | Reforged Node (`legacy/ReforgedHost/src/`) | Rust (`services/host/src/`) | Note |
@@ -166,11 +166,24 @@ The Rust backend is DR's Tauri launcher fitted to Reforged; the page is still Re
 | `ParadoxBackend/scripts/` (game-data generators, admin bootstrap, data migrations) | `paradox/backend/scripts` | `backend gamedata`, `backend admin bootstrap`, folded into `backend db migrate` (RB11) |
 | `ParadoxBackend/realtime/` (XMPP) | `paradox/backend/src/realtime` | DR's `rust/services/metagame/src/chat/` at `e1c5fec`, copied in by RB9 and fitted to Paradox's JIDs, rooms and auth |
 | Express routing, JSON replies, middleware | — | `service-kit` (routing, `json`, `js`), DR metagame's `js.rs`, `origin.rs`, `redact.rs`, `bodylog.rs` and auth extractors, copied in by RB5 |
-| `ParadoxDirector` | `paradox/director` | `rust/services/director` (a stub today), RB10 |
+| `ParadoxDirector` | `paradox/director` | `rust/services/director`, RB10: ported; `start` keeps the Node one until RB14 flips `rust_ported` |
 | Hunt tables, game data | `paradox/*/game-data`, `preset/` | `director hunt-tables import`, `backend gamedata` (RB11) |
 
 Until then every backend or Director change is a commit to `paradox/`, kept small, and a new or changed route goes in
 RB1's inventory once it exists (RD2 as changed on 2026-10-24).
+
+The Rust Director, file by file (`paradox/director/src/` to `rust/services/director/src/`). It runs as
+`reforged-host director serve --env-file <file>`. Until the cutover a Director change lands in both: the Node one runs.
+
+| Node (`paradox/director/src/`, `paradox/shared/hunt-manifest/`) | Rust | Note |
+| --- | --- | --- |
+| `server.ts`, `app.ts`, `routes/matchmaker.ts`, `p2p/index.ts` | `server.rs`, `app.rs` | The same routes and replies; the request id header; Express's 404 page |
+| `controllers/matchmaker.ts` | `matchmaker.rs` | |
+| `controllers/gameservers.ts`, `watchdog.ts` | `gameservers.rs`, `process.rs`, `win_spawn.rs`, `cmdline.rs` | Exit detection from the process handle, not `kill(pid, 0)` |
+| `controllers/hubSupervisor.ts`, `portPool.ts`, `hubOccupancy.ts`, `memoryAdmission.ts` | `hub.rs`, `port_pool.rs`, `occupancy.rs`, `memory.rs` | Their tests in `tests/units.rs` |
+| `shared/hunt-manifest/index.js`, `p2p/completionMode.js`, `manifestDigest.js` | `hunt.rs` | The golden digest in `tests/hunt.rs` |
+| `runtimeUpdater.ts` | `runtime_update.rs` | |
+| `logger.ts`, `observability/requestContext.ts` | `log.rs` | `service_kit::linelog` lines with `requestId`; no pino-pretty file copy |
 
 ### 2.8 Freeza's patches
 

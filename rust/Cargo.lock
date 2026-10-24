@@ -1393,6 +1393,29 @@ dependencies = [
 [[package]]
 name = "director"
 version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "axum",
+ "base64 0.23.1",
+ "bytes",
+ "chrono",
+ "clap",
+ "futures-util",
+ "http-body-util",
+ "hyper",
+ "hyper-rustls",
+ "hyper-util",
+ "libc",
+ "rustls",
+ "serde_json",
+ "service-kit",
+ "sha2 0.11.1",
+ "tempfile",
+ "tokio",
+ "tower",
+ "url",
+ "windows",
+]
 
 [[package]]
 name = "dirs"
