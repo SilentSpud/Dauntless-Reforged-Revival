@@ -869,12 +869,16 @@ pub struct Secrets {
     pub metrics_token: String,
     pub jwt_private_key_b64: String,
     pub jwt_public_key_b64: String,
+    /// What the admin API's callers (a Discord bot) send it.
+    pub admin_api_key: String,
+    /// Signs the admin API's calls to the backend's `/admin/v1` (Paradox's manager-operator credential).
+    pub operator_secret: String,
 }
 
 pub const SECRET_FILE: &str = "secrets.env";
 
 /// The variable names in `secrets.env`, in the order they are written.
-pub const SECRET_KEYS: [&str; 8] = [
+pub const SECRET_KEYS: [&str; 10] = [
     "GATEWAY_SECRET",
     "ALLOWLIST_SECRET",
     "REFORGED_ADMIN_KEY",
@@ -883,6 +887,8 @@ pub const SECRET_KEYS: [&str; 8] = [
     "MYSTICPARADOX_METRICS_TOKEN",
     "AUTH_SIGNING_PRIVKEY_B64",
     "AUTH_SIGNING_PUBKEY_B64",
+    "REFORGED_ADMIN_API_KEY",
+    "MYSTICPARADOX_MANAGER_OPERATOR_SECRET",
 ];
 
 impl Secrets {
@@ -896,12 +902,14 @@ impl Secrets {
             4 => &mut self.api_key_hash_secret,
             5 => &mut self.metrics_token,
             6 => &mut self.jwt_private_key_b64,
-            _ => &mut self.jwt_public_key_b64,
+            7 => &mut self.jwt_public_key_b64,
+            8 => &mut self.admin_api_key,
+            _ => &mut self.operator_secret,
         }
     }
 }
 
-/// New secrets: six 32-byte hex keys and a 4096-bit RSA pair (PKCS#8 and SPKI PEM, base64) for the
+/// New secrets: eight 32-byte hex keys and a 4096-bit RSA pair (PKCS#8 and SPKI PEM, base64) for the
 /// backend's tokens. Filled by RH3, which picks the RSA implementation (D10: aws-lc-rs) and ports
 /// the "4096-bit RSA pair" test.
 pub fn new_secrets() -> Result<Secrets, HostError> {
@@ -1010,18 +1018,20 @@ pub struct EnvFiles {
     pub director: EnvEntries,
     pub content: EnvEntries,
     pub gateway: EnvEntries,
+    pub admin: EnvEntries,
     /// Public mode only.
     pub allowlist: Option<EnvEntries>,
 }
 
 impl EnvFiles {
     /// `(name, entries)` in the order the files are written.
-    pub fn files(&self) -> [(&'static str, Option<&EnvEntries>); 5] {
+    pub fn files(&self) -> [(&'static str, Option<&EnvEntries>); 6] {
         [
             ("backend", Some(&self.backend)),
             ("director", Some(&self.director)),
             ("content", Some(&self.content)),
             ("gateway", Some(&self.gateway)),
+            ("admin", Some(&self.admin)),
             ("allowlist", self.allowlist.as_ref()),
         ]
     }
@@ -1075,6 +1085,9 @@ pub fn build_env_files(c: &HostConfig, s: &Secrets, p: &Paths, source_commit: &s
         ("REALTIME_XMPP_DEV_CITY_MUC", "false".into()),
         ("REGISTRATION_MODE", c.registration.as_str().into()),
         ("REFORGED_ADMIN_KEY", s.admin_key.clone()),
+        // The admin API's signed calls to /admin/v1 (security/managerOperator.ts; docs/admin-api.md).
+        ("MYSTICPARADOX_MANAGER_ADMIN", "on".into()),
+        ("MYSTICPARADOX_MANAGER_OPERATOR_SECRET", s.operator_secret.clone()),
         ("REFORGED_SERVER_NAME", c.name.clone()),
         ("REFORGED_SERVER_VERSION", "0.1.0".into()),
         (
@@ -1198,6 +1211,22 @@ pub fn build_env_files(c: &HostConfig, s: &Secrets, p: &Paths, source_commit: &s
         ("CONTENT_BRANDING_DIR", path_text(&p.branding)),
         ("CONTENT_NEWS_FILE", path_text(&p.news_file)),
     ];
+    // Loopback only, never behind the gateway (docs/security/admin-api.md).
+    let admin: Vec<(&str, String)> = vec![
+        ("PORT", PORTS.admin.to_string()),
+        ("BIND_HOST", "127.0.0.1".into()),
+        ("BACKEND_URL", format!("http://127.0.0.1:{}", PORTS.backend)),
+        ("REFORGED_DIRECTOR_URL", format!("http://127.0.0.1:{}", PORTS.director)),
+        ("REFORGED_ADMIN_API_KEY", s.admin_api_key.clone()),
+        ("REFORGED_ADMIN_KEY", s.admin_key.clone()),
+        ("MYSTICPARADOX_MANAGER_OPERATOR_SECRET", s.operator_secret.clone()),
+        (
+            "REFORGED_ADMIN_API_TIMEOUTS_FILE",
+            path_text(&p.config.join("admin-timeouts.json")),
+        ),
+        ("REFORGED_MAX_HUNT_SERVERS", c.max_hunt_servers.to_string()),
+        ("REFORGED_SERVER_MODE", c.mode.as_str().into()),
+    ];
     let common: [(&str, String); 4] = [
         ("GATEWAY_SECRET", s.gateway_secret.clone()),
         ("GATEWAY_BACKEND_URL", format!("http://127.0.0.1:{}", PORTS.backend)),
@@ -1264,6 +1293,7 @@ pub fn build_env_files(c: &HostConfig, s: &Secrets, p: &Paths, source_commit: &s
         director: owned(director),
         content: owned(content),
         gateway: owned(gateway),
+        admin: owned(admin),
         allowlist: allowlist.map(owned),
     }
 }

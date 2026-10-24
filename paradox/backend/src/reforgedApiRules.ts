@@ -224,3 +224,20 @@ export function DetectGameData(Dir: string, Files: readonly string[] = BACKEND_G
     return Synthetic ? "synthetic" : "real";
 }
 
+
+// ------------------------------------------------------------------ kick
+
+export type KickDeps = {
+    connectionsFor(AccountId: string): { close(Code: number, Reason: string): void }[];
+    revokeRefreshSessions(AccountId: string): Promise<void>;
+    revokeExchangeCodes(AccountId: string): Promise<void>;
+};
+
+// Drops a player now without banning them (POST /reforged/api/Kick). Tokens go first, so the game
+// cannot sign straight back in with what it holds; they log in again with their key.
+export async function KickAccount(AccountId: string, Deps: KickDeps): Promise<number> {
+    await Promise.all([Deps.revokeRefreshSessions(AccountId), Deps.revokeExchangeCodes(AccountId)]);
+    const Connections = Deps.connectionsFor(AccountId);
+    for (const Connection of Connections) Connection.close(1008, "kicked by the host");
+    return Connections.length;
+}

@@ -1,0 +1,223 @@
+enum AccountStatus {
+	ACTIVE
+	BANNED
+	DISABLED
+	"""
+	A status this API does not know.
+	"""
+	UNKNOWN
+}
+
+type Hunt {
+	id: String!
+	title: String!
+	map: String!
+	behemoth: String
+	playerCount: Int!
+	maxPlayers: Int!
+	players: [HuntPlayer!]!
+	startedAt: String
+}
+
+type HuntPlayer {
+	userId: String!
+	"""
+	Null when the backend has no account with that id.
+	"""
+	username: String
+}
+
+type HuntStatus {
+	"""
+	`max_hunt_servers` in host.toml.
+	"""
+	maxHuntServers: Int!
+	running: Int!
+	"""
+	Hunt servers that can still start.
+	"""
+	free: Int!
+	hunts: [Hunt!]!
+}
+
+type KickResult {
+	userId: String!
+	username: String!
+	"""
+	Chat connections closed; 0 when the player held none.
+	"""
+	connectionsClosed: Int!
+}
+
+"""
+The game server a player is on, from the Director.
+"""
+type Location {
+	kind: LocationKind!
+	instanceId: String!
+	"""
+	"Ramsgate", "Training Grounds", or the hunt's behemoth or island.
+	"""
+	title: String!
+}
+
+enum LocationKind {
+	"""
+	Ramsgate
+	"""
+	HUB
+	HUNT
+	"""
+	The Training Grounds
+	"""
+	TRAINING
+	TUTORIAL
+}
+
+type Mutation {
+	"""
+	Drops a connected player now: their chat connections close and their sign-in tokens are
+	revoked. They are not banned, and may log in again.
+	"""
+	kick(username: String!): KickResult!
+	"""
+	Bans a player until a given time, then lifts the ban. Give `minutes` or `until` (RFC 3339),
+	within a year. Replaces an earlier timeout; refused for a player who is banned.
+	"""
+	timeout(username: String!, minutes: Int, until: String, reason: String!): Player!
+	"""
+	Lifts a timeout before it runs out.
+	"""
+	liftTimeout(username: String!): Player!
+	"""
+	Bans a player until someone unbans them. Replaces a timeout. The player reads `reason` in the
+	launcher.
+	"""
+	ban(username: String!, reason: String!): Player!
+	"""
+	Lifts a ban or a timeout.
+	"""
+	unban(username: String!, reason: String): Player!
+}
+
+type Player {
+	userId: String!
+	username: String!
+	status: AccountStatus!
+	"""
+	Null when the player may play.
+	"""
+	restriction: Restriction
+	"""
+	A chat connection, or a game that reported in within the last minute.
+	"""
+	online: Boolean!
+	"""
+	Null when the player is in no game server the Director knows of (the menus, or offline).
+	"""
+	location: Location
+	"""
+	Holds the backend's admin role: kicks, timeouts and bans refuse such accounts.
+	"""
+	admin: Boolean!
+	createdAt: String
+	lastLoginAt: String
+}
+
+type Query {
+	"""
+	A player by username (case-insensitive); null when there is no such account.
+	"""
+	player(username: String!): Player
+	serverStatus: ServerStatus!
+	"""
+	The running hunt servers, who is in each, and how many more can start.
+	"""
+	huntStatus: HuntStatus!
+}
+
+"""
+Why a player cannot play right now.
+"""
+type Restriction {
+	kind: RestrictionKind!
+	"""
+	The text the player sees in the launcher.
+	"""
+	reason: String
+	"""
+	When it was set (RFC 3339).
+	"""
+	since: String
+	"""
+	Who set it: `manager:<operator id>` for the admin API, an account id for the backend's dashboard.
+	"""
+	by: String
+	"""
+	When a timeout ends (RFC 3339); null for the other kinds.
+	"""
+	until: String
+}
+
+enum RestrictionKind {
+	"""
+	Banned until someone lifts it.
+	"""
+	BAN
+	"""
+	Banned until `until`, then lifted by the admin API.
+	"""
+	TIMEOUT
+	"""
+	Disabled by the backend's own admin tools.
+	"""
+	DISABLED
+}
+
+enum ServerMode {
+	"""
+	Reached over Tailscale.
+	"""
+	PRIVATE
+	"""
+	Reached over the internet through the gateway's TLS port.
+	"""
+	PUBLIC
+}
+
+type ServerStatus {
+	name: String!
+	mode: ServerMode!
+	"""
+	INVITECODE, OPEN or NONE.
+	"""
+	registration: String!
+	version: String!
+	"""
+	The server's source commit; null when unknown.
+	"""
+	commit: String
+	"""
+	Seconds since the backend started.
+	"""
+	uptimeSeconds: Int!
+	onlineCount: Int!
+	chat: Boolean!
+	"""
+	real, synthetic or missing.
+	"""
+	gameData: String!
+}
+
+"""
+Directs the executor to include this field or fragment only when the `if` argument is true.
+"""
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""
+Directs the executor to skip this field or fragment when the `if` argument is true.
+"""
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+schema {
+	query: Query
+	mutation: Mutation
+}

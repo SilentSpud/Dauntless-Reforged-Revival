@@ -26,6 +26,8 @@ pub struct Ports {
     pub backend: u16,
     pub director: u16,
     pub content: u16,
+    /// The admin API (`services/admin`), loopback only.
+    pub admin: u16,
     pub allowlist: u16,
     pub public_gateway: u16,
     pub private_gateway: u16,
@@ -43,6 +45,7 @@ pub const PORTS: Ports = Ports {
     backend: 61000,
     director: 61001,
     content: 61002,
+    admin: 61003,
     allowlist: 61005,
     public_gateway: 443,
     private_gateway: 61000,

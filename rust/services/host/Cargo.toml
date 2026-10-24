@@ -56,6 +56,9 @@ libc = "0.2.191"
 # Test certificates, as the gateway makes them.
 rcgen = { version = "0.14.10", default-features = false, features = ["aws_lc_rs", "pem", "crypto"] }
 tempfile.workspace = true
+# admin.env read back by the admin API itself
+admin.workspace = true
+service-kit.workspace = true
 
 # Fake services in child processes: the test binary runs itself in their roles (RH2)
 [[test]]

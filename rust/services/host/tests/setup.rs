@@ -653,7 +653,7 @@ fn a_fresh_private_setup_then_again() {
     );
     assert!(text.contains("- backend: npm ci (mocked)"));
     assert!(text.contains("- secrets: made (kept from now on) in "));
-    assert!(text.contains("- env files: backend.env, director.env, content.env, gateway.env in "));
+    assert!(text.contains("- env files: backend.env, director.env, content.env, gateway.env, admin.env in "));
     assert!(!text.contains("! No "), "the game folder is there: {text}");
     assert!(text.ends_with("  reforged-host doctor shows what is still missing."));
     assert_eq!(*env.installs.borrow(), 1);

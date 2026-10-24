@@ -4,7 +4,7 @@
 # default). docker/run-tests.sh runs it, then the compose smoke test; `docker compose run --rm test` runs it with
 # the server's game-data volumes mounted, so the *.gamedata.test.ts files check your real data too.
 #
-#   rust      cargo test for the server crates (protocol, proxy, service-kit, store, gateway, content, host),
+#   rust      cargo test for the server crates (protocol, proxy, service-kit, store, gateway, content, admin, host),
 #             every test binary even after a failure. With CAP_NET_ADMIN (docker run --cap-add NET_ADMIN) the
 #             allowlist's nftables test applies its rules for real (REFORGED_TEST_NFT=1), in this container's
 #             own network namespace
@@ -32,7 +32,7 @@ run_suite() {
 			echo "(nftables test: off; run with --cap-add NET_ADMIN to include it)"
 		fi
 		cd "$root/rust" && cargo test --locked --no-fail-fast \
-			-p protocol -p proxy -p service-kit -p store -p gateway -p content -p host
+			-p protocol -p proxy -p service-kit -p store -p gateway -p content -p admin -p host
 		;;
 	backend) cd "$root/paradox/backend" && npm test ;;
 	director) cd "$root/paradox/director" && npm test ;;

@@ -115,18 +115,47 @@ fn a_new_host_json_has_setups_key_order() {
     }
 }
 
+/// The secrets the Rust kit adds to a Node kit's file: the admin API's two (docs/admin-api.md).
+fn with_admin_api_secrets() -> Result<Secrets, host::error::HostError> {
+    Ok(Secrets {
+        admin_api_key: "g".repeat(64),
+        operator_secret: "h".repeat(64),
+        ..Secrets::default()
+    })
+}
+
+/// The lines the Rust kit writes that the Node kit never did, which the comparisons leave out.
+const ADMIN_API_LINES: [&str; 3] = [
+    "REFORGED_ADMIN_API_KEY=",
+    "MYSTICPARADOX_MANAGER_ADMIN=",
+    "MYSTICPARADOX_MANAGER_OPERATOR_SECRET=",
+];
+
+fn without_admin_api_lines(text: &str) -> String {
+    text.split_inclusive('\n')
+        .filter(|line| !ADMIN_API_LINES.iter().any(|start| line.starts_with(start)))
+        .collect()
+}
+
 #[test]
 fn secrets_env_written_by_the_node_kit_is_kept_byte_for_byte() {
     let file = fixtures("windows").join("secrets").join("secrets.env");
-    let (secrets, created) = load_or_create_secrets(file.parent().unwrap(), || panic!("nothing is missing")).unwrap();
-    assert!(!created);
+    let copy = tempfile::tempdir().unwrap();
+    std::fs::copy(&file, copy.path().join("secrets.env")).unwrap();
+    // The admin API's two are added; the Node kit's own are kept as they are
+    let (secrets, created) = load_or_create_secrets(copy.path(), with_admin_api_secrets).unwrap();
+    assert!(created);
     assert_eq!(secrets.admin_key, "c".repeat(64));
+    assert_eq!(secrets.admin_api_key, "g".repeat(64));
+    let rewritten = text(&copy.path().join("secrets.env"));
+    assert_eq!(without_admin_api_lines(&rewritten), text(&file));
+    assert!(rewritten.ends_with(&format!("MYSTICPARADOX_MANAGER_OPERATOR_SECRET={}\n", "h".repeat(64))));
     // Made by the Rust kit from the same values: the same file.
     let out = tempfile::tempdir().unwrap();
     let (made, created) = load_or_create_secrets(out.path(), || Ok(secrets.clone())).unwrap();
     assert!(created);
     assert_eq!(made, secrets);
-    assert_eq!(text(&out.path().join("secrets.env")), text(&file));
+    assert_eq!(text(&out.path().join("secrets.env")), rewritten);
 }
 
 const CASES: [(&str, &str, Platform); 5] = [
@@ -138,9 +167,9 @@ const CASES: [(&str, &str, Platform); 5] = [
 ];
 
 fn secrets(dir: &Path) -> Secrets {
-    load_or_create_secrets(&dir.join("secrets"), || panic!("nothing is missing"))
-        .unwrap()
-        .0
+    let copy = tempfile::tempdir().unwrap();
+    std::fs::copy(dir.join("secrets").join("secrets.env"), copy.path().join("secrets.env")).unwrap();
+    load_or_create_secrets(copy.path(), with_admin_api_secrets).unwrap().0
 }
 
 #[test]
@@ -177,10 +206,12 @@ fn the_service_env_files_are_the_node_kits_bytes() {
             .map(|f| f.file_name().unwrap().to_string_lossy().into_owned())
             .collect();
         names.sort();
+        // admin.env is the Rust kit's own: the admin API has no Node build
+        names.retain(|n| n != "admin.env");
         assert_eq!(names, expected, "{case}");
         for name in &expected {
             assert_eq!(
-                text(&out.path().join(name)),
+                without_admin_api_lines(&text(&out.path().join(name))),
                 text(&expected_dir.join(name)),
                 "{case}/{name}"
             );
