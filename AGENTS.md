@@ -6,6 +6,10 @@ This branch is mid-migration: the Node projects are being ported to one Rust cod
 included. [`MIGRATION_PLAN.md`](MIGRATION_PLAN.md) is the source of truth for what is done, what is next and
 why. Read its "What's left" table and the decisions (RD rows) before starting anything, and the row you were
 given in full, with the DR rows and the `docs/port/` delta file it names.
+[`docs/port/migration-guide.md`](docs/port/migration-guide.md) is the map: where every upstream file now lives,
+what each DR name became, where the next upstream change goes and how one change is ported and recorded. Read
+it before touching code that came from Dauntless Revived, Mystic Paradox or Freeza's line, which is most of
+the repository, and cite its section rather than re-deriving the mapping in a brief or a commit.
 
 ## Repository layout
 
@@ -23,9 +27,7 @@ given in full, with the DR rows and the `docs/port/` delta file it names.
 `backend` and `director` in `rust/services/` are still stubs: nothing in the RB rows starts before the gate
 (RD17). Don't fill them in ahead of it.
 
-`docs/port/migration-guide.md` maps every upstream file to its Rust home and says where the next upstream change
-goes and how to port it; start there when a brief names an upstream commit. `docs/architecture.md` is the
-reference for how the parts talk and what each trusts. Section 6 of the plan,
+`docs/architecture.md` is the reference for how the parts talk and what each trusts. Section 6 of the plan,
 "Things that must not change", lists what every port keeps byte for byte: read it before touching anything a
 player, host or the game client already depends on.
 
@@ -48,6 +50,10 @@ dependency order, runs the checks and strikes the rows.
 - `paradox/` takes any change, with fixes as the baseline (RD2): keep a change small, and list a new or changed
   route in RB1's inventory so the Rust port carries it. `legacy/` is never extended. A fix found there is listed
   for the catch-up (`docs/port/catchup-*.md`), not ported ad hoc.
+- **An upstream change is placed before it is ported.** Section 4 of the migration guide says where each kind
+  goes (a runtime patch, a backend patch, a Node change in `legacy/`, game data, a Mystic Paradox update);
+  section 5 is the method and section 6 the catch-up entry it leaves behind. A row that adds a Rust module
+  reports the line section 2 of the guide needs; the integration pass writes it.
 
 ## Rust
 
@@ -64,7 +70,9 @@ hides the ones after it). The toolchain is pinned in `rust-toolchain.toml`; `car
   as `JSON.stringify` does, the same status codes and field order. When the Node and Rust answers differ, the
   Rust one is the bug unless a decision row says otherwise.
 - Code copied from Dauntless Revived (DR, at `e1c5fec`) keeps its structure. Make the Reforged changes the
-  delta file lists and nothing else, so a later reader can diff it against DR.
+  delta file lists and nothing else, so a later reader can diff it against DR. The guide's section 2 says
+  which DR file a module came from and its section 3 (the rename dictionary) translates DR names, headers,
+  routes and env variables to Reforged's; never carry a DR name across untranslated.
 
 ### Launcher bridge
 
@@ -185,7 +193,9 @@ Not obvious from reading the suites:
 ## Native code
 
 A runtime patch from Freeza's line is applied to `native/` as `docs/paradox-runtime-patches.md` describes:
-paths rewritten, `git apply --3way`, LF line endings, and a section in `docs/paradox-patches.md`.
+paths rewritten, `git apply --3way`, LF line endings, and a section in `docs/paradox-patches.md`. The
+migration guide's sections 2.1 and 2.8 say which Paradox folder became which `native/` folder and which
+patches live there.
 `native/runtime-loader` is a Rust crate of its own, outside the workspace: workspace-wide `cargo` commands
 don't cover it.
 
