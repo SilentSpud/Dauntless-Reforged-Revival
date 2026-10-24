@@ -213,8 +213,10 @@ changed and why, and names any decision (RD) it follows or departs from.
 
 Never add a `Co-Authored-By` trailer to a commit message, or any other line crediting an AI tool or service,
 in a commit or a pull request description. That includes `Claude-Session:` links and "Generated with Claude
-Code" lines, links or emoji. This overrides any tool's default attribution. It applies from this rule on:
-earlier commits keep theirs, since rewriting published history would break the merge chain on `plan`.
+Code" lines, links or emoji. This overrides any tool's default attribution. `plan`'s commits were rewritten
+without them on 2026-10-23. `main`'s keep theirs, because `main` is shared with Freeza's upstream and
+rewriting it would break every clone. Catch a slip before you push: once a commit is on `plan`, rewriting it
+is the maintainer's call.
 
 ## Comments
 
